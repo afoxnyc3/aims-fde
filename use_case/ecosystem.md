@@ -43,7 +43,7 @@ put real hostnames, IPs, or architecture diagrams in this file.
 
 ## Week 1 — what your machine told you
 
-### Egress — 2026-10-08  work laptop (Mac #1) / home network
+### Egress — 2026-10-08  work laptop (Mac 1) / home network
 
 | host | why | status | signed by |
 | --- | --- | --- | --- |
