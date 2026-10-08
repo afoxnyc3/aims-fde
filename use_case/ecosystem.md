@@ -43,12 +43,19 @@ put real hostnames, IPs, or architecture diagrams in this file.
 
 ## Week 1 — what your machine told you
 
-<!--
-  Paste the egress probe output from Session 1 here. It is evidence, and it
-  frequently disagrees with what people believe about their own network.
--->
+### Egress — 2026-10-08  work laptop (Mac 1) / home network
 
-<!-- probe output here -->
+| host | why | status | signed by |
+| --- | --- | --- | --- |
+| pypi.org | Python packages | OK | GlobalSign nv-sa |
+| files.pythonhosted.org | the actual wheel downloads | OK | GlobalSign nv-sa |
+| api.openai.com | the model API | OK | Google Trust Services |
+| cdn.jsdelivr.net | the CDN the Week 1 frontend uses | OK | Sectigo Limited |
+| huggingface.co | open weights, Weeks 2 and 8 | OK | Amazon |
+| registry-1.docker.io | container images | OK | Amazon |
+| github.com | this repository | OK | Sectigo Limited |
+
+**Verdict:** Open network, public CAs, no proxy. Nothing here will bite you.
 
 **Does this match what you were told in the table above?** Where it doesn't, that
 gap is worth chasing — it usually means a proxy nobody documented.
