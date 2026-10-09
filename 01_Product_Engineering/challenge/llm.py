@@ -11,7 +11,7 @@ That property matters more than it looks like it does right now -- see the
 import json
 import os
 
-from litellm import completion
+from litellm import completion, decode, encode, token_counter
 
 # LiteLLM picks the provider from the model string:
 #   "gpt-4.1-mini"                    -> OpenAI
@@ -29,6 +29,40 @@ SYSTEM_PROMPT = os.getenv(
 )
 
 
+def build_messages(message: str, history: list[dict] | None = None) -> list[dict]:
+    """The exact message list sent to the model for this turn.
+
+    Shared by `stream_reply` and `count_tokens` so the count always matches
+    what actually goes over the wire.
+    """
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages.extend(history or [])
+    messages.append({"role": "user", "content": message})
+    return messages
+
+
+def count_tokens(message: str, history: list[dict] | None = None) -> int:
+    """How many prompt tokens this turn will cost, counted before sending.
+
+    Uses LiteLLM's tokenizer lookup for MODEL. For models it can't map
+    (self-hosted, custom deployments) it falls back to a generic tokenizer,
+    so treat the number as an estimate there.
+    """
+    return token_counter(model=MODEL, messages=build_messages(message, history))
+
+
+def truncate_prompt(text: str, max_tokens: int) -> str:
+    """Cut `text` down to at most `max_tokens` tokens, keeping the start.
+
+    Counts with MODEL's tokenizer, so the same estimate caveat as
+    `count_tokens` applies to models LiteLLM can't map.
+    """
+    tokens = encode(model=MODEL, text=text)
+    if len(tokens) <= max_tokens:
+        return text
+    return decode(model=MODEL, tokens=tokens[:max_tokens])
+
+
 def stream_reply(message: str, history: list[dict] | None = None):
     """Yield the assistant's reply as it arrives, one growing string at a time.
 
@@ -36,9 +70,7 @@ def stream_reply(message: str, history: list[dict] | None = None):
     full message list on every turn -- the model is stateless, so the
     conversation only exists because we keep sending it.
     """
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    messages.extend(history or [])
-    messages.append({"role": "user", "content": message})
+    messages = build_messages(message, history)
 
     kwargs = {"model": MODEL, "messages": messages, "stream": True}
     if API_BASE:

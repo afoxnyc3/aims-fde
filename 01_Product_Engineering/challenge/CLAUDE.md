@@ -241,6 +241,7 @@ wants a field the schema does not have, that is a Step 5 change first.
 
 ## Conventions
 
+- Change only the lines the task requires. Flag unrelated issues, don't fix them.
 - Simplicity and readability over cleverness.
 - Prefer the standard library and explicit code over a new dependency.
 - Comments explain *why*, not *what*.
