@@ -319,7 +319,7 @@ def _(mo):
     everything connected, so the network is fine. In one to three sentences,
     explain what the issuer column predicts that the status column cannot.
 
-    **Answer:**
+    **Answer:** Status only shows that the connection worked from this machine, on this network, right now. Issuer shows who signed the certificate: if it’s my employer’s CA instead of a public CA like GlobalSign, a TLS-inspecting proxy is decrypting and re-signing my traffic. Any environment that doesn’t have that CA in its trust store, such as a Docker container or Python’s certifi bundle, will fail with CERTIFICATE_VERIFY_FAILED even though status said OK on my laptop.
     """)
     return
 
@@ -333,7 +333,7 @@ def _(mo):
     cell. Explain how both of those can be true at once, and what that tells you
     about what a byte-comparison gate is actually able to promise.
 
-    **Answer:**
+    **Answer:** The mirrors gate regenerates the .ipynb from the .py and compares it byte for byte with the committed copy, but it never runs the code. A broken .py produces an identically broken .ipynb, so the gate passes. It can promise the two copies are in sync, not that the notebook works.
     """)
     return
 
@@ -518,7 +518,9 @@ def _(mo):
     costs one line in `.env` here — and what specifically you would have had to
     rewrite if the code had called a vendor SDK directly.
 
-    **Answer:**
+    **Answer:** Every call goes through LiteLLM’s completion(), which routes on the model string, and both that string and the endpoint are read from .env (LLM_MODEL, LLM_API_BASE), so pointing at the internal gateway is a config edit with no application code changes.
+
+      Had it called a vendor SDK directly, I’d have had to rewrite the client construction and auth, plus every call site’s request/response handling: message format, tool-calling schema, streaming, and error/retry logic.
     """)
     return
 
@@ -533,7 +535,7 @@ def _(mo):
     that specific outcome tell you about the rule you wrote — and why is
     `/clear` a better test than simply continuing the conversation?
 
-    **Answer:**
+    **Answer:** It tells me the behaviour came from the conversation, not the rule: the agent still had my correction and the discussion around it in context, and the rule as written is too vague or incomplete to produce the behaviour on its own. /clear is the better test because it wipes that history and reloads CLAUDE.md fresh, which is the state every future session starts in, so if the behaviour survives, the file alone caused it. Continuing the conversation can’t separate the two.
     """)
     return
 
