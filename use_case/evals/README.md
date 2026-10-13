@@ -37,3 +37,9 @@ wrong thing.
 - Include at least one **edge case** and one where the right answer is *"I don't
   know"* or *"escalate this"*. A system that never declines is not calibrated.
 - Keep them short enough to read in full during review.
+
+
+## Current coverage and open decisions
+
+- DEMO-001–005 are the five settled cases; DEMO-006 is an unresolved policy example, not a settled scoring target.
+- Open decisions from these goldens (seed coverage, login rule, permissions, repeated-trigger comments, and DEMO-006) are tracked in [decisions.md](../decisions.md#decisions-still-required).

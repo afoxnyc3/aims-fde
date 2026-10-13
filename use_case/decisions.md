@@ -56,6 +56,11 @@ For v1 `solve()`, the answers are **no, yes, no, no**:
 
 ## Decisions still required
 
+- Before Step 8, decide whether repeated ticket triggers update the existing workflow comment or append another, and how the caller identifies the existing comment.
+- Resolve DEMO-006: should a known onboarding role missing from the published standard be ignored or routed for human review?
+- Specify the synthetic standard's login-email rule so expected addresses are reproducible.
+- Confirm whether permissions are inherited from roles or assigned independently, then retain, populate, or remove the permissions field accordingly.
+- Before Week 2 generation, address the seed imbalance: one recommended case and no venue-scoped or multi-venue examples. Decide how to cover those variations without treating the current five as balanced seeds.
 - Write contract test cases for credential masking and comment authorship when the Week 2 validator is built.
 - Define output credential screening before production: free-text proposals and comments can carry secrets despite having no dedicated credential fields. Revisit during Week 6 security work.
 - Name the role-standard decision owners and decide whether ownership is shared or per role.

@@ -49,3 +49,8 @@ specifics. "Images go to an internal registry; Docker Hub is blocked" is useful
 to everyone and identifies nobody.
 
 If in doubt, leave it out.
+
+
+## Step 7 — golden examples
+
+Edge case: DEMO-002 (a note replaces the trainer level); decline: DEMO-003 (ambiguous role mapping and a peer-mirroring request).
