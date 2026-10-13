@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -471,12 +471,14 @@ source = { virtual = "." }
 dependencies = [
     { name = "gradio" },
     { name = "litellm" },
+    { name = "pydantic" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "gradio", specifier = ">=6.0" },
     { name = "litellm", specifier = ">=1.90" },
+    { name = "pydantic", specifier = ">=2.13.5" },
 ]
 
 [[package]]

@@ -44,8 +44,10 @@ The Technology Support Associate can apply the proposed access from the ticket c
 | --- | --- |
 | Associate handling minutes per scoped ticket | Reduce; set target after measuring baseline |
 | Replayed proposals matching the standard | At least 90%, proposed |
-| Granted role recorded on the ticket | Baseline 0%; target 100% of project-processed onboarding tickets |
+| Recommendation recorded on the ticket | 100% of recommendations posted before manual provisioning; baseline unmeasured |
 | Tickets completed automatically | Report count and share of eligible live tickets for promoted roles |
+
+The caller posts proposed roles and the standard version. Reconcile returned recommendations with JSM comments and report posted/returned counts. Zero recommendations means not assessed.
 
 ---
 
@@ -59,8 +61,10 @@ An agent that turns a JSM onboarding request into a verified account, recommendi
 
 | | |
 | --- | --- |
-| **In** | `solve()` receives a ticket reference and credential-masked raw ticket text: the full title, description, all form questions/answers, and all comments readable by the JSM adapter, labelled by source and ordered chronologically for comments. Comment labels include author ID, timestamp, and whether the author is the agent, derived from JSM metadata. No content is selected by relevance or silently truncated; redactions and unavailable sections are marked. The agent extracts person, job title, venues, start date, and exceptions; callers do not supply pre-parsed onboarding fields. |
-| **Out** | Ticket reference and status: recommended, completed, needs information, human review, ignored, or failed. Resolved roles, permissions, and venues use account-system IDs plus display names; include standard version and proposed changes. Missing fields produce needs information; ambiguous identities/mappings or exceptions produce human review, with the difference from the standard and approval-owner role for exceptions. Unsupported ticket types/roles are ignored; execution errors are failed. Completion includes account ID and verified access. Record the outcome on the ticket; return no credentials. |
+| **In** | A ticket reference, masked raw title/description/form text, and separate comments with trusted JSM author metadata and timestamps. Preserve all readable content and comment chronology; explicitly mark redacted and unavailable sections. No pre-parsed onboarding fields or caller-supplied standards/gates. |
+| **Out** | **V1 recommends only:** `recommended`, `needs_information`, `human_review`, `ignored`, or `failed`. `answer=None` means no answer; uncertain recommendations carry caveats, not confidence scores. Exception reviews include an unapproved standard proposal and differences. The caller posts the comment when one is returned; ignored tickets get none. An associate provisions access. `solve()` performs no writes; credentials must be excluded, with output screening still to implement. |
+
+The types and unimplemented `solve(request: Request) -> Response` are in [schema.py](../01_Product_Engineering/challenge/schema.py). V1 does not create accounts or write to JSM; gated production creation remains the later project end state.
 
 The course-window deliverables include draft, versioned standards for scoped roles and the onboarding agent. Standards and gates come from trusted configuration. Build in test against drafts; production requires ratification. Deliver credentials through an approved channel outside ticket comments. Offboarding is out of scope.
 
