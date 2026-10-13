@@ -40,7 +40,7 @@ A dash (—) in the Date column means the direction is established but no separa
 - Write contract test cases for credential masking and comment authorship when the Week 2 validator is built.
 - Name the role-standard decision owners and decide whether ownership is shared or per role.
 - Validate handling-time estimates and role mappings before confirming the scope: volume coverage does not establish effort coverage.
-- Confirm account-system API capabilities and separate read/write tokens for test and production. If access slips, decide whether a manual export can support inventory work.
+- Verify API operations, write permissions, token separation, and app-container routing before treating the production write-access gate as met. See [access status and egress evidence](ecosystem.md#azure-egress-verification).
 - Confirm the job-title source and identify intentional venue variation before finalizing the standards.
 - Confirm the production promotion approver, accuracy threshold, sample size, and scoring rules for right, wrong, and unhelpful recommendations.
 - Confirm that governance plus the onboarding slice meets the course requirements.
