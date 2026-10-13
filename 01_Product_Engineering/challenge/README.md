@@ -752,31 +752,31 @@ Fill these in directly in this README, and commit it.
 
 **Who did you ask?** (role, not name)
 
-<!-- Your answer here -->
+Senior Systems Administrator about Azure container hosting (~2026-10-07), and CTO about approved LLM access (2026-10-07). I am the Senior Director / Head of IT and deployment approver; that approval role is known from my position, not a separate conversation.
 
 **Where would this application run?**
 
-<!-- Your answer here -->
+Azure Container Apps, selected by the project owner following the Azure hosting discussion with the Senior Systems Administrator. There is no internal container registry; the image-publishing path is TBD. Independent review and release criteria are also pending.
 
 **Which cloud provider, if any?**
 
-<!-- Your answer here -->
+Azure for this application.
 
 **How would users authenticate?**
 
-<!-- Your answer here -->
+Entra ID, confirmed from my Head of IT role. The app currently has no authentication; sign-in integration remains to be configured.
 
 **Could this container reach an external LLM API? If not, what would it use instead?**
 
-<!-- Your answer here -->
+The local Docker container successfully called the approved external Anthropic API during Step 9. That does not establish Azure app-container access: verify its route and provider connectivity before deployment. There is no internal LLM endpoint; if external access is blocked, agree an approved egress path or model service rather than assume a fallback exists.
 
 **What surprised you in this conversation?**
 
-<!-- Your answer here -->
+Azure hosting is agreed, but there is no internal container registry. The image-publishing path is unresolved: the Senior Systems Administrator and I need to agree a managed registry or an approved external registry.
 
 **What would you have to change about this app to make it deployable there?**
 
-<!-- Your answer here -->
+Deploy the tested amd64 image to Azure Container Apps through a registry still to be agreed, initially using one replica. Add Entra sign-in, move model secrets to Key Vault, and pin and bundle the browser client. Verify app-container egress through the intended NAT route and access to the approved model API. Agree independent review and release criteria before real users. Key Vault is the intended secret store, confirmed from my Head of IT role; app integration is pending. Detailed dependencies and access evidence remain in [ecosystem.md](../../use_case/ecosystem.md).
 
 Then log the answers in [`use_case/ecosystem.md`](../../use_case/ecosystem.md)
 and the person you asked in
