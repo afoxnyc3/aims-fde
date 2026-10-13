@@ -29,13 +29,15 @@ SYSTEM_PROMPT = os.getenv(
 )
 
 
-def build_messages(message: str, history: list[dict] | None = None) -> list[dict]:
+def build_messages(
+    message: str, history: list[dict] | None = None, *, system_prompt: str | None = None,
+) -> list[dict]:
     """The exact message list sent to the model for this turn.
 
     Shared by `stream_reply` and `count_tokens` so the count always matches
     what actually goes over the wire.
     """
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages = [{"role": "system", "content": SYSTEM_PROMPT if system_prompt is None else system_prompt}]
     messages.extend(history or [])
     messages.append({"role": "user", "content": message})
     return messages
@@ -63,16 +65,27 @@ def truncate_prompt(text: str, max_tokens: int) -> str:
     return decode(model=MODEL, tokens=tokens[:max_tokens])
 
 
-def stream_reply(message: str, history: list[dict] | None = None):
+def stream_reply(
+    message: str, history: list[dict] | None = None, *,
+    system_prompt: str | None = None, max_tokens: int | None = None,
+    timeout: float | None = None, num_retries: int | None = None,
+):
     """Yield the assistant's reply as it arrives, one growing string at a time.
 
     `history` is a list of {"role": ..., "content": ...} dicts. We rebuild the
     full message list on every turn -- the model is stateless, so the
-    conversation only exists because we keep sending it.
+    conversation only exists because we keep sending it. Token limits, timeout,
+    and retries are independent; omitted options retain provider defaults.
     """
-    messages = build_messages(message, history)
+    messages = build_messages(message, history, system_prompt=system_prompt)
 
     kwargs = {"model": MODEL, "messages": messages, "stream": True}
+    if max_tokens is not None:
+        kwargs["max_tokens"] = max_tokens
+    if timeout is not None:
+        kwargs["timeout"] = timeout
+    if num_retries is not None:
+        kwargs["num_retries"] = num_retries
     if API_BASE:
         kwargs["api_base"] = API_BASE
     if EXTRA_HEADERS:

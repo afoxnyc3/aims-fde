@@ -9,9 +9,11 @@ import os
 from pathlib import Path
 
 from fastapi.responses import HTMLResponse
-from gradio import Server
+from gradio import Error, Server
+from pydantic import ValidationError
 
 from llm import stream_reply
+from schema import Request, solve
 
 app = Server()
 
@@ -27,6 +29,27 @@ FRONTEND = Path(__file__).parent / "frontend" / "index.html"
 def chat(message: str, history: list | None = None) -> str:
     """Stream a reply to one user message."""
     yield from stream_reply(message, history)
+
+
+@app.api(name="recommend_onboarding_access")
+def recommend_onboarding_access(onboarding_ticket_json: str) -> str:
+    """Recommend standard access for one masked synthetic onboarding ticket.
+
+    Send Request JSON with ticket_ref, ticket_text, and comments. Comments carry
+    trusted JSM author IDs/types and timestamps; optional redacted_sections and
+    unavailable_sections mark gaps. Return Response JSON: a recommendation,
+    clarification/review, ignored ticket, or processing failure. No account or
+    ticket writes. Invalid input is a validation error, not a failed Response.
+    """
+    try:
+        request = Request.model_validate_json(onboarding_ticket_json)
+    except ValidationError as exc:
+        details = "; ".join(
+            ".".join(str(part) for part in error["loc"]) + ": " + error["msg"]
+            for error in exc.errors(include_input=False)
+        )
+        raise Error("Invalid onboarding request: " + details) from None
+    return solve(request).model_dump_json()
 
 
 # --- The frontend ------------------------------------------------------------

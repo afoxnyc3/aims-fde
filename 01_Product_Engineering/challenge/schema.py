@@ -151,7 +151,10 @@ class Recommendation(BaseModel):
         ),
     )
     assignments: list[RoleAssignment] = Field(min_length=1)
-    permissions: list[NamedReference] = Field(description="Permissions from the role standard")
+    permissions: list[NamedReference] = Field(
+        description="Independent permission grants; empty in the inherited-role-only demo. "
+        "Effective permissions come from the assigned roles."
+    )
     venues: list[NamedReference] = Field(
         min_length=1,
         description="Target account venues; venue-scoped assignments must reference these IDs/names",
@@ -259,4 +262,6 @@ def solve(request: Request) -> Response:
     comment. This function does not provision accounts, issue credentials, or
     write to JSM or the account system. Production creation is a later gated phase.
     """
-    raise NotImplementedError("implement against this signature in Step 8")
+    from onboarding import recommend_access
+
+    return recommend_access(request)

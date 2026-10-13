@@ -1,0 +1,43 @@
+{
+  "version": "standard-demo-v1",
+  "synthetic_only": true,
+  "permission_mode": "inherited_from_roles",
+  "login_rule": {"strip_suffix": ".personal", "domain": "example.invalid"},
+  "business_units": [{"id": "unit-demo-fitness", "name": "Fitness"}],
+  "venues": [
+    {"id": "venue-demo-a", "name": "Venue A"},
+    {"id": "venue-demo-b", "name": "Venue B"},
+    {"id": "venue-demo-c", "name": "Venue C"},
+    {"id": "venue-demo-d", "name": "Venue D"}
+  ],
+  "rows": [
+    {
+      "id": "row-demo-hospitality",
+      "aliases": ["Hospitality Associate", "Hospitality Associate Level 1"],
+      "role": {"id": "role-demo-hospitality", "name": "Hospitality Associate"},
+      "scope_type": "business_unit",
+      "requires_trainer_level": false
+    },
+    {
+      "id": "row-demo-assistant-gm",
+      "aliases": ["Assistant GM", "AGM", "Assistant General Manager"],
+      "role": {"id": "role-demo-assistant-gm", "name": "Assistant GM"},
+      "scope_type": "business_unit",
+      "requires_trainer_level": false
+    },
+    {
+      "id": "row-demo-trainer",
+      "aliases": ["Personal Trainer", "Personal Trainer Level 1", "Personal Trainer Level 2", "Personal Trainer Level 3", "Personal Trainer Level 4"],
+      "role": {"id": "role-demo-trainer", "name": "Personal Trainer"},
+      "scope_type": "venue",
+      "requires_trainer_level": true,
+      "staff_group": {"id": "group-demo-trainer", "name": "Trainer"},
+      "level_groups": {
+        "1": {"id": "group-demo-trainer-1", "name": "Trainer Level 1"},
+        "2": {"id": "group-demo-trainer-2", "name": "Trainer Level 2"},
+        "3": {"id": "group-demo-trainer-3", "name": "Trainer Level 3"},
+        "4": {"id": "group-demo-trainer-4", "name": "Trainer Level 4"}
+      }
+    }
+  ]
+}

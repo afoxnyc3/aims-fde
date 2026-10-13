@@ -42,4 +42,5 @@ wrong thing.
 ## Current coverage and open decisions
 
 - DEMO-001–005 are the five settled cases; DEMO-006 is an unresolved policy example, not a settled scoring target.
-- Open decisions from these goldens (seed coverage, login rule, permissions, repeated-trigger comments, and DEMO-006) are tracked in [decisions.md](../decisions.md#decisions-still-required).
+- Open decisions (seed coverage and DEMO-006) are tracked in [decisions.md](../decisions.md#decisions-still-required). The settled login/permission and repeated-trigger policies are recorded in the same log.
+- The synthetic [demo standard](../../01_Product_Engineering/challenge/demo_standard.json) strips a trailing `.personal` and uses `example.invalid`. Permissions are inherited through roles; `permissions: []` represents no independent grants, not zero effective permissions.

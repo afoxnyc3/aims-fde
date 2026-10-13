@@ -54,3 +54,27 @@ If in doubt, leave it out.
 ## Step 7 — golden examples
 
 Edge case: DEMO-002 (a note replaces the trainer level); decline: DEMO-003 (ambiguous role mapping and a peer-mirroring request).
+
+
+## Step 8 — endpoint design
+
+- **Work it takes over:** interpreting an onboarding ticket and proposing standard access, without copying another user's permissions. The associate checks existing accounts and provisions access.
+- **Input:** `onboarding_ticket_json`, serialized Request data with ticket_ref, masked ticket_text, and chronological comments carrying trusted metadata; optional redaction and unavailable-section markers.
+- **Output and reader:** validated Response JSON for the Technology Support Associate: a recommendation, missing information, review outcome, ignored ticket, or operational failure. Ignored tickets return no proposed comment.
+- **Name:** `recommend_onboarding_access`; it names the work and signals recommendations rather than account creation.
+
+The UI displays structured results and distinguishes invalid input from failed processing. The implemented solve() returns standard-backed recommendations and explicit no-answer outcomes; it is no longer a stub. Authentication, databases, and live JSM/account-system writes remain outside this week's build.
+
+
+### Running the Step 8 demo
+
+From `01_Product_Engineering/challenge/`, run `uv run --env-file .env python app.py` and open `http://localhost:7860`. The `.env` file is for the approved model configuration only; no production account-system tokens belong there. Paste a golden's `input` object into the onboarding form. General chat remains available below it.
+
+The model extracts facts; code performs lookup and constructs access from `demo_standard.json`. It never reads golden outputs at runtime. The UI is a synthetic, masked-input demo, not a production JSM adapter: metadata is not authenticated here, and production input masking and output secret screening remain separate requirements.
+
+Run `uv run python -m unittest -v test_onboarding` for mocked-extraction policy/transport checks. These are not a live-model accuracy result. The optional sixth golden is unresolved and excluded from settled-case scoring.
+
+
+### Step 8 verification — October 13, 2026
+
+Twenty focused tests passed using mocked extraction, including business-unit mapping, unsupported-role ordering, transient retries, permanent provider rejection, malformed model output, rejected model-supplied role IDs, invalid Request handling, and multi-venue trainer assignments. The live local endpoint matched all five settled goldens on status, review reason, required fields, and applicable role/venue/login/date checks. After the business-unit fix, a live-model recheck passed the same five structured checks; an additional Sports ticket returned human_review / ambiguous_mapping with no recommendation. Free-text wording was not exact-scored. This small synthetic sample is not production accuracy evidence. The browser form also returned a standard-backed recommendation using the later human comment's start date.
