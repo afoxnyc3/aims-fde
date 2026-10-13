@@ -113,6 +113,12 @@ Masking can miss unknown secret formats; review detection coverage before produc
 
 ---
 
+## Week 1 — local container verification
+
+Docker Desktop built and ran the application on October 13, 2026. The Mac is arm64; the image targets linux/amd64 for Azure and ran locally under emulation. No alternate container runtime was needed. `/health` and a synthetic golden through the browser form passed; see [Step 9 verification](README.md#step-9--container-deployment). This does not verify Azure deployment or account-system API access.
+
+---
+
 ## Week 9 — the full checklist
 
 <!--
