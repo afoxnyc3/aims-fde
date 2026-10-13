@@ -96,7 +96,7 @@ Supporting dependencies; internal evidence stays separate. The input contract is
 | Model access | Approved external LLM API | Anthropic available (CTO approval); OpenRouter approved (known from my role). No internal endpoint | CTO / project owner |
 | Credential delivery | Unique credentials through an approved channel outside ticket comments | Confirm delivery and first-login behavior before production | Account-system owner / security owner |
 | Production promotion | Ratified standard, write access, and sufficient live accuracy per role | Confirm approver, scoring rules, and threshold | Project owner / role decision owners |
-| Course review | Demonstrate the agent and evaluation within the course window | Confirm deliverable fit | Course team |
+| Course review | Demonstrate the onboarding workflow and evaluation within the course window | Confirm deliverable fit | Course team |
 
 Conversations are recorded in [stakeholders.md](stakeholders.md). Build in test against draft standards while ratification proceeds. Keep production tokens only in Key Vault for the production runtime, never on laptops, in `.env` files, or in the test runtime; production writes remain gated per role. Offboarding stays out of scope.
 

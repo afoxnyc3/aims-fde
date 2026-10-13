@@ -36,7 +36,7 @@ A Technology Support Associate cannot reliably determine a new hire's club-manag
 
 **What does the new world look like for that person?**
 
-The Technology Support Associate can apply the proposed access from the ticket comment without looking up other users or emailing to establish standard access. For promoted roles, the agent creates the account, verifies access, and records the result; the associate handles exceptions and spot-checks results. Rollout starts with recommendations, then acts per role after approval, API access, and accuracy gates clear. Scope targets roles covering 80% of onboarding effort; coverage remains unvalidated.
+The Technology Support Associate can apply the proposed access from the ticket comment without comparing peer accounts or emailing to establish standard permissions. For promoted roles, the workflow creates the account, verifies access, and records the result; the associate handles exceptions and spot-checks results. Rollout starts with recommendations, then acts per role after approval, API access, and accuracy gates clear. Scope targets roles covering 80% of onboarding effort; coverage remains unvalidated.
 
 **How would the firm measure it? Which numbers should move?**
 
@@ -55,7 +55,7 @@ The caller posts proposed roles and the standard version. Reconcile returned rec
 
 **Your solution in one sentence.**
 
-An agent that turns a JSM onboarding request into a verified account, recommending access changes until the role clears its production gate.
+An onboarding workflow that turns a JSM request into a verified account, recommending access changes until the role clears its production gate.
 
 **Input → Output.** One call handles one ticket.
 
@@ -64,9 +64,9 @@ An agent that turns a JSM onboarding request into a verified account, recommendi
 | **In** | A ticket reference, masked raw title/description/form text, and separate comments with trusted JSM author metadata and timestamps. Preserve all readable content and comment chronology; explicitly mark redacted and unavailable sections. No pre-parsed onboarding fields or caller-supplied standards/gates. |
 | **Out** | **V1 recommends only:** `recommended`, `needs_information`, `human_review`, `ignored`, or `failed`. `answer=None` means no answer; uncertain recommendations carry caveats, not confidence scores. Exception reviews include an unapproved standard proposal and differences. The caller posts the comment when one is returned; ignored tickets get none. An associate provisions access. `solve()` performs no writes; credentials must be excluded, with output screening still to implement. |
 
-The types and unimplemented `solve(request: Request) -> Response` are in [schema.py](../01_Product_Engineering/challenge/schema.py). V1 does not create accounts or write to JSM; gated production creation remains the later project end state.
+The types and unimplemented `solve(request: Request) -> Response` are in [schema.py](../01_Product_Engineering/challenge/schema.py). V1 does not create accounts or write to JSM; gated production creation remains the later project end state. V1 is a fixed pipeline using the published standard only, with no live account lookup. Identity ambiguity means conflicting or multiple identities in the ticket, not verified account matching. Before provisioning, the associate checks existing accounts, rehires/transfers, and login-email availability; new-account creation is conditional on that check.
 
-The course-window deliverables include draft, versioned standards for scoped roles and the onboarding agent. Standards and gates come from trusted configuration. Build in test against drafts; production requires ratification. Deliver credentials through an approved channel outside ticket comments. Offboarding is out of scope.
+The course-window deliverables include draft, versioned standards for scoped roles and the onboarding workflow. Standards and gates come from trusted configuration. Build in test against drafts; production requires ratification. Deliver credentials through an approved channel outside ticket comments. Offboarding is out of scope.
 
 ---
 

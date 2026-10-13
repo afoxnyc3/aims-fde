@@ -142,7 +142,14 @@ class Recommendation(BaseModel):
     person_name: str = Field(min_length=1)
     job_title: str = Field(min_length=1)
     start_date: date
-    login_email: str = Field(min_length=1, description="Resolved using the standard's login rule")
+    login_email: str = Field(
+        min_length=1,
+        description=(
+            "Proposed using the standard's login rule; email availability and existing-account "
+            "status are unchecked. The associate verifies both before provisioning; "
+            "recommendations must not claim those checks were performed."
+        ),
+    )
     assignments: list[RoleAssignment] = Field(min_length=1)
     permissions: list[NamedReference] = Field(description="Permissions from the role standard")
     venues: list[NamedReference] = Field(
