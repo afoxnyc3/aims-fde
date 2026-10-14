@@ -1,97 +1,127 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Rename this. It is your app. -->
-    <title>Your AI Application</title>
-    <style>
-      body {
-        font-family: system-ui, sans-serif;
-        max-width: 44rem;
-        margin: 2rem auto;
-        padding: 0 1rem;
-        line-height: 1.5;
-      }
-      #log {
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        padding: 1rem;
-        min-height: 20rem;
-        margin-bottom: 1rem;
-        white-space: pre-wrap;
-        overflow-y: auto;
-      }
-      .turn { margin-bottom: 1rem; }
-      .who { font-weight: 600; }
-      form { display: flex; gap: 0.5rem; }
-      input { flex: 1; padding: 0.5rem; font: inherit; }
-      button { padding: 0.5rem 1rem; font: inherit; }
-    </style>
-  </head>
-  <body>
-    <h1>Your AI Application</h1>
-    <p>
-      This is a deliberately plain frontend. Making it good is your job — open
-      this file in VS Code and point Claude Code at it.
-    </p>
-
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Onboarding Access · Demo</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #182b35; background: #f3f6f7; }
+    body { max-width: 64rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    h1 { margin-bottom: .2rem; } h2 { margin-top: 0; }
+    .muted { color: #526773; } .badge { border-radius: 2rem; padding: .25rem .65rem; background: #dcefeb; font-size: .85rem; }
+    .panel { padding: 1.4rem; margin: 1rem 0; background: white; border: 1px solid #d4dfe4; border-radius: .8rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    label { display: block; font-weight: 600; margin-bottom: .5rem; }
+    textarea { box-sizing: border-box; width: 100%; min-height: 20rem; padding: .8rem; border: 1px solid #91a7b2; border-radius: .4rem; font: .85rem/1.5 monospace; }
+    button { padding: .6rem 1rem; border: 0; border-radius: .4rem; background: #155f63; color: white; cursor: pointer; font: inherit; }
+    button:disabled { opacity: .55; cursor: wait; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85rem; }
+    .error { color: #922b29; border-left: 4px solid #922b29; padding-left: .7rem; }
+    .status { font-weight: 650; } details { margin-top: 1.5rem; }
+    #log { white-space: pre-wrap; max-height: 22rem; overflow-y: auto; margin: 1rem 0; }
+    .turn { margin-bottom: .8rem; } .who { font-weight: 600; }
+    #form { display: flex; gap: .5rem; } #input { flex: 1; min-width: 0; padding: .5rem; font: inherit; }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="badge">Fixed pipeline · Recommend only</span>
+    <h1>Onboarding Access</h1>
+    <p class="muted">Turn a masked ticket into a standard-backed proposal for an associate to review.</p>
+    <p><strong>Synthetic demo only.</strong> No accounts are created and no JSM comments are posted. Use invented people and IDs; never paste credentials or real tickets.</p>
+    <p id="connection" role="status">Connecting to the application…</p>
+  </header>
+  <div class="grid">
+    <section class="panel">
+      <form id="onboarding-form">
+        <label for="ticket-json">Onboarding Request JSON</label>
+        <p class="muted">Paste the <code>input</code> object from a golden. Include <code>ticket_ref</code>, <code>ticket_text</code>, and <code>comments</code>. Authorship labels come from the adapter, not comment wording.</p>
+        <textarea id="ticket-json" spellcheck="false" placeholder='{"ticket_ref":"DEMO-001","ticket_text":"[title]\nSynthetic onboarding ticket","comments":[]}'></textarea>
+        <p><button id="recommend-button" disabled>Recommend access</button></p>
+      </form>
+      <p id="request-error" role="alert" hidden></p>
+    </section>
+    <section class="panel" aria-live="polite">
+      <h2>Recommendation</h2>
+      <p id="result-status" class="status">Waiting for a ticket</p>
+      <p id="result-summary" class="muted">Recommendations, clarification requests, and review outcomes appear here.</p>
+      <pre id="result-json"></pre>
+    </section>
+  </div>
+  <details class="panel">
+    <summary>General chat</summary>
     <div id="log"></div>
     <form id="form">
-      <input id="input" placeholder="Ask something..." autocomplete="off" />
-      <button type="submit">Send</button>
+      <input id="input" placeholder="Ask a general question…" autocomplete="off" />
+      <button id="chat-button" disabled>Send</button>
     </form>
-
-    <script type="module">
-      // NOTE: this loads the Gradio client from a public CDN. On a locked-down
-      // corporate network that request may simply fail. Worth noticing now --
-      // it is the kind of thing that turns a working demo into a broken one the
-      // moment it moves inside the firewall.
-      import { Client } from "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js";
-
-      const client = await Client.connect(window.location.origin);
-      const log = document.getElementById("log");
-      const form = document.getElementById("form");
-      const input = document.getElementById("input");
-
-      // The model has no memory. This array is the entire conversation.
-      const history = [];
-
-      function addTurn(who, text) {
-        const div = document.createElement("div");
-        div.className = "turn";
-        div.innerHTML = `<span class="who">${who}:</span> `;
-        const span = document.createElement("span");
-        div.appendChild(span);
-        span.textContent = text;
-        log.appendChild(div);
-        log.scrollTop = log.scrollHeight;
-        return span;
-      }
-
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const message = input.value.trim();
-        if (!message) return;
-        input.value = "";
-
-        addTurn("You", message);
-        const out = addTurn("Assistant", "");
-
-        // submit() streams; each event carries the reply so far.
-        let reply = "";
-        const job = client.submit("/chat", { message, history });
-        for await (const event of job) {
-          if (event.type === "data") {
-            reply = event.data[0];
-            out.textContent = reply;
-            log.scrollTop = log.scrollHeight;
+    <p id="chat-error" role="alert" hidden></p>
+  </details>
+  <script type="module">
+    const byId = (id) => document.getElementById(id);
+    function showError(id, message) {
+      const target = byId(id); target.textContent = message; target.className = "error"; target.hidden = false;
+    }
+    let client;
+    try {
+      const { Client } = await import("https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js");
+      client = await Client.connect(window.location.origin, { events: ["data", "status"] });
+      byId("connection").textContent = "Connected · Versioned synthetic standard";
+      byId("recommend-button").disabled = false; byId("chat-button").disabled = false;
+    } catch {
+      byId("connection").textContent = "Connection failed. Check the server and CDN access, then reload.";
+      byId("connection").className = "error";
+    }
+    byId("onboarding-form").addEventListener("submit", async (event) => {
+      event.preventDefault(); byId("request-error").hidden = true;
+      byId("result-json").textContent = ""; byId("result-summary").textContent = "";
+      byId("result-status").textContent = "No result"; byId("result-status").className = "status";
+      const onboarding_ticket_json = byId("ticket-json").value;
+      try { JSON.parse(onboarding_ticket_json); }
+      catch { showError("request-error", "Invalid input: enter a JSON object, not the whole JSONL line."); return; }
+      byId("recommend-button").disabled = true;
+      byId("result-status").textContent = "Reading ticket and checking the standard…";
+      byId("result-status").className = "status";
+      try {
+        const result = await client.predict("/recommend_onboarding_access", { onboarding_ticket_json });
+        const response = JSON.parse(result.data[0]);
+        byId("result-status").textContent = response.status.replaceAll("_", " ");
+        byId("result-status").className = response.status === "failed" ? "status error" : "status";
+        byId("result-summary").textContent = response.rationale;
+        byId("result-json").textContent = JSON.stringify(response, null, 2);
+      } catch (error) {
+        byId("result-status").textContent = "No result";
+        showError("request-error", String(error.message || "Request rejected or server error. Check the request fields and try again."));
+      } finally { byId("recommend-button").disabled = false; }
+    });
+    const history = [];
+    function addTurn(who, text) {
+      const turn = document.createElement("div"); turn.className = "turn";
+      const label = document.createElement("span"); label.className = "who"; label.textContent = who + ": ";
+      const content = document.createElement("span"); content.textContent = text;
+      turn.append(label, content); byId("log").appendChild(turn); return content;
+    }
+    byId("form").addEventListener("submit", async (event) => {
+      event.preventDefault(); byId("chat-error").hidden = true;
+      const message = byId("input").value.trim(); if (!message) return;
+      byId("input").value = ""; byId("chat-button").disabled = true;
+      addTurn("You", message); const output = addTurn("Assistant", ""); let reply = "";
+      try {
+        for await (const event of client.submit("/chat", { message, history })) {
+          if (event.type === "status" && event.stage === "error") {
+            throw new Error(typeof event.message === "string" ? event.message : "Chat request failed.");
           }
+          if (event.type === "data") { reply = event.data[0]; output.textContent = reply; }
         }
-
-        history.push({ role: "user", content: message });
-        history.push({ role: "assistant", content: reply });
-      });
-    </script>
-  </body>
+        if (typeof reply !== "string" || !reply.trim()) throw new Error("The model returned no reply.");
+        history.push({ role: "user", content: message }, { role: "assistant", content: reply });
+      } catch (error) {
+        output.parentElement.remove();
+        showError("chat-error", String(error.message || "Chat failed."));
+      }
+      finally { byId("chat-button").disabled = false; }
+    });
+  </script>
+</body>
 </html>
