@@ -29,6 +29,10 @@ SYSTEM_PROMPT = os.getenv(
 )
 
 
+class ReplyError(RuntimeError):
+    """A safe, caller-visible failure to obtain usable model text."""
+
+
 def build_messages(
     message: str, history: list[dict] | None = None, *, system_prompt: str | None = None,
 ) -> list[dict]:
@@ -76,6 +80,7 @@ def stream_reply(
     full message list on every turn -- the model is stateless, so the
     conversation only exists because we keep sending it. Token limits, timeout,
     and retries are independent; omitted options retain provider defaults.
+    Raise ReplyError for a content-filter stop or an empty text response.
     """
     messages = build_messages(message, history, system_prompt=system_prompt)
 
@@ -93,7 +98,14 @@ def stream_reply(
 
     reply = ""
     for chunk in completion(**kwargs):
-        piece = chunk.choices[0].delta.content
+        if not chunk.choices:  # Usage-only chunks have no choices.
+            continue
+        choice = chunk.choices[0]
+        if choice.finish_reason == "content_filter":
+            raise ReplyError("The model provider declined to answer (content filter).")
+        piece = choice.delta.content
         if piece:
             reply += piece
             yield reply
+    if not reply.strip():
+        raise ReplyError("The model provider returned no text; please try again or review manually.")

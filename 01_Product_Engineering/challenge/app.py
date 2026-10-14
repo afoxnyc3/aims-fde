@@ -12,7 +12,7 @@ from fastapi.responses import HTMLResponse
 from gradio import Error, Server
 from pydantic import ValidationError
 
-from llm import stream_reply
+from llm import ReplyError, stream_reply
 from schema import Request, solve
 
 app = Server()
@@ -28,7 +28,10 @@ FRONTEND = Path(__file__).parent / "frontend" / "index.html"
 @app.api(name="chat")
 def chat(message: str, history: list | None = None) -> str:
     """Stream a reply to one user message."""
-    yield from stream_reply(message, history)
+    try:
+        yield from stream_reply(message, history)
+    except ReplyError as exc:
+        raise Error(str(exc)) from None
 
 
 @app.api(name="recommend_onboarding_access")

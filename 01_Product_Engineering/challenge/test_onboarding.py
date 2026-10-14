@@ -3,6 +3,7 @@
 import json
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from gradio import Error
@@ -139,7 +140,9 @@ class OnboardingTests(unittest.TestCase):
 
     def test_token_limit_does_not_change_timeout_or_retries(self):
         import llm
-        with patch("llm.completion", return_value=iter([])) as completion:
+        chunk = SimpleNamespace(choices=[SimpleNamespace(
+            delta=SimpleNamespace(content="ok"), finish_reason="stop")])
+        with patch("llm.completion", return_value=iter([chunk])) as completion:
             list(llm.stream_reply("Synthetic ticket", max_tokens=100))
         self.assertEqual(completion.call_args.kwargs["max_tokens"], 100)
         self.assertNotIn("timeout", completion.call_args.kwargs)
@@ -147,7 +150,9 @@ class OnboardingTests(unittest.TestCase):
 
     def test_explicit_timeout_and_retries_are_forwarded(self):
         import llm
-        with patch("llm.completion", return_value=iter([])) as completion:
+        chunk = SimpleNamespace(choices=[SimpleNamespace(
+            delta=SimpleNamespace(content="ok"), finish_reason="stop")])
+        with patch("llm.completion", return_value=iter([chunk])) as completion:
             list(llm.stream_reply("Synthetic ticket", timeout=30, num_retries=1))
         self.assertEqual(completion.call_args.kwargs["timeout"], 30)
         self.assertEqual(completion.call_args.kwargs["num_retries"], 1)
@@ -172,6 +177,67 @@ class OnboardingTests(unittest.TestCase):
             result = solve(self.request)
         self.assertEqual(result.status.value, "failed")
         self.assertIsNone(result.answer)
+
+    def test_chat_content_filter_is_visible(self):
+        chunk = SimpleNamespace(choices=[SimpleNamespace(
+            delta=SimpleNamespace(content=None), finish_reason="content_filter")])
+        with patch("llm.completion", return_value=iter([chunk])):
+            with self.assertRaisesRegex(Error, "content filter"):
+                list(app.chat("Synthetic prompt"))
+
+    def test_onboarding_content_filter_returns_specific_failed(self):
+        chunk = SimpleNamespace(choices=[SimpleNamespace(
+            delta=SimpleNamespace(content=None), finish_reason="content_filter")])
+        with patch("llm.completion", return_value=iter([chunk])) as completion:
+            result = solve(self.request)
+        self.assertEqual(result.status.value, "failed")
+        self.assertIn("content filter", result.rationale)
+        self.assertNotIn("valid ticket facts", result.rationale)
+        self.assertIsNone(result.answer)
+        self.assertEqual(completion.call_count, 1)
+
+    def test_empty_extraction_stream_returns_no_text_failure(self):
+        with patch("llm.stream_reply", return_value=iter([])):
+            result = solve(self.request)
+        self.assertEqual(result.status.value, "failed")
+        self.assertIn("no text", result.rationale)
+        self.assertNotIn("content filter", result.rationale)
+
+    def test_empty_provider_stream_is_not_mislabeled_as_filtered(self):
+        with patch("llm.completion", return_value=iter([])):
+            result = solve(self.request)
+        self.assertEqual(result.status.value, "failed")
+        self.assertIn("no text", result.rationale)
+        self.assertNotIn("content filter", result.rationale)
+
+    def test_chat_empty_stream_is_visible(self):
+        with patch("llm.completion", return_value=iter([])):
+            with self.assertRaisesRegex(Error, "no text"):
+                list(app.chat("Synthetic prompt"))
+
+    def test_filtered_partial_json_is_never_a_recommendation(self):
+        chunks = [
+            SimpleNamespace(choices=[SimpleNamespace(
+                delta=SimpleNamespace(content=facts().model_dump_json()), finish_reason=None)]),
+            SimpleNamespace(choices=[SimpleNamespace(
+                delta=SimpleNamespace(content=None), finish_reason="content_filter")]),
+        ]
+        with patch("llm.completion", return_value=iter(chunks)):
+            result = solve(self.request)
+        self.assertEqual(result.status.value, "failed")
+        self.assertIn("content filter", result.rationale)
+        self.assertIsNone(result.answer)
+
+    def test_normal_stream_and_usage_chunk_keep_cumulative_text(self):
+        import llm
+        chunks = [
+            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content="Hello"), finish_reason=None)]),
+            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=" world"), finish_reason=None)]),
+            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=None), finish_reason="stop")]),
+            SimpleNamespace(choices=[]),
+        ]
+        with patch("llm.completion", return_value=iter(chunks)):
+            self.assertEqual(list(llm.stream_reply("Synthetic prompt")), ["Hello", "Hello world"])
 
     def test_malformed_extraction_returns_failed(self):
         with patch("llm.stream_reply", return_value=iter(["not json"])):

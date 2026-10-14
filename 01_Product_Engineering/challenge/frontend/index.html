@@ -66,7 +66,7 @@
     let client;
     try {
       const { Client } = await import("https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js");
-      client = await Client.connect(window.location.origin);
+      client = await Client.connect(window.location.origin, { events: ["data", "status"] });
       byId("connection").textContent = "Connected · Versioned synthetic standard";
       byId("recommend-button").disabled = false; byId("chat-button").disabled = false;
     } catch {
@@ -109,10 +109,17 @@
       addTurn("You", message); const output = addTurn("Assistant", ""); let reply = "";
       try {
         for await (const event of client.submit("/chat", { message, history })) {
+          if (event.type === "status" && event.stage === "error") {
+            throw new Error(typeof event.message === "string" ? event.message : "Chat request failed.");
+          }
           if (event.type === "data") { reply = event.data[0]; output.textContent = reply; }
         }
+        if (typeof reply !== "string" || !reply.trim()) throw new Error("The model returned no reply.");
         history.push({ role: "user", content: message }, { role: "assistant", content: reply });
-      } catch (error) { showError("chat-error", String(error.message || "Chat failed.")); }
+      } catch (error) {
+        output.parentElement.remove();
+        showError("chat-error", String(error.message || "Chat failed."));
+      }
       finally { byId("chat-button").disabled = false; }
     });
   </script>
