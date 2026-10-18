@@ -69,6 +69,8 @@ Compare the home probe with [Azure egress verification](#azure-egress-verificati
 
 Separate test and production VNets use NAT gateways with the provisioned public IPs. The project owner queried `api.ipify.org` from all four VMs on October 12, 2026, and verified the expected outbound addresses. No addresses are published here.
 
+The VMs are a governance and testing environment, separate from the container app: a Windows host runs the account-system client, and the Ubuntu hosts test the API while standards are established and automations are tested. The container app will egress through the same NAT gateways, so it uses the allowlisted addresses; its API credentials will come from Key Vault.
+
 | Environment | Device | Result |
 | --- | --- | --- |
 | Test | Ubuntu VM | Expected outbound IP confirmed |
@@ -76,7 +78,7 @@ Separate test and production VNets use NAT gateways with the provisioned public 
 | Production | Ubuntu VM | Expected outbound IP confirmed |
 | Production | Windows VM | Expected outbound IP confirmed |
 
-**Current status:** Test and production API tokens are received. These were outbound-IP checks, not account-system API calls. API tests can proceed through the already-allowlisted office/VPN connection. The provider has not updated the Azure allowlist request; Azure API access, app-container egress, and write permissions remain unverified.
+**Current status:** Test and production API tokens are received; API access requires an allowlisted IP plus credentials. The provider confirmed on 2026-10-14 that the requested Azure egress addresses are allowlisted in both production and test. Production API login and reads succeeded from Azure on 2026-10-16. Each NAT gateway IP currently appears in only one environment; confirm both IPs are present in both environments before the Azure endpoint test. Test-environment API access, write permissions, and app-container egress remain unverified.
 
 This section is the source of access status; update it when confirmation or test results arrive.
 
@@ -91,14 +93,15 @@ Supporting dependencies; internal evidence stays separate. The input contract is
 | JSM onboarding intake | Complete readable ticket text, masking, source/author labels, and chronology | Confirm cloud vs. self-hosted JSM and webhook reachability; use polling or an approved relay if ingress is unavailable. Extraction stays inside `solve()` | Technology Support Associate / intake owner / Senior Systems Administrator |
 | Input credential masking | Mask before model calls and logs; stop on errors or discovered misses | Confirm handling rules; defer contract tests to the Week 2 validator | Adapter implementer / security owner |
 | Account-system API | Read access, create accounts, assign roles/permissions/venues, and verify results | Verify supported operations and write permissions; see [access status](#azure-egress-verification) | Senior Product Manager / Engineering |
+| Upstream hire provisioning | Know where onboarding tickets originate relative to account creation | New hires flow from the HR system through an identity-provisioning tool into Entra; none of it is connected to Azure. Confirm the provisioning-to-Jira handoff before relying on the webhook trigger; paid support for the provisioning tool is approved pending budget, with new build work deferred | Senior Systems Administrator |
 | Identity and role standard | Identity source, job-title mapping, permissions, venue add-ons, and login-email rules | Produce versioned drafts; confirm job levels, venue variation, and ratification owners | Product / role decision owners |
-| Hosting | Container runtime, image publishing, authentication, and secrets | Azure Container Apps selected; confirm registry, app-container routing, and cost; see [egress evidence](#azure-egress-verification). Use the tested amd64 image and initially one replica; enable Entra sign-in and use Key Vault | Senior Systems Administrator / Senior Director of IT |
+| Hosting | Container runtime, image publishing, authentication, and secrets | Azure Container Apps selected; hosting pattern validated by the Senior Systems Administrator (2026-10-16). App egress uses the existing NAT gateways; confirm registry and cost; see [egress evidence](#azure-egress-verification). Use the tested amd64 image and initially one replica; enable Entra sign-in and use Key Vault | Senior Systems Administrator / Senior Director of IT |
 | Model access | Approved external LLM API | Anthropic available (CTO approval); the local Docker container called it successfully during Step 9. Azure app-container connectivity is unverified. OpenRouter approved (known from my role). No internal endpoint | CTO / project owner |
 | Credential delivery | Unique credentials through an approved channel outside ticket comments | Confirm delivery and first-login behavior before production | Account-system owner / security owner |
-| Production promotion | Ratified standard, write access, and sufficient live accuracy per role | Confirm approver, scoring rules, and threshold | Project owner / role decision owners |
+| Production promotion | Ratified standard, write access, and 95% on synthetic tickets or 90% over at least 20 live tickets per role | CTO approves on reported results; set synthetic set size, coverage, and scoring rules (see [decisions](decisions.md)) | CTO / project owner / role decision owners |
 | Course review | Demonstrate the onboarding workflow and evaluation within the course window | Confirm deliverable fit | Course team |
 
-Conversations are recorded in [stakeholders.md](stakeholders.md). Build in test against draft standards while ratification proceeds. Keep production tokens only in Key Vault for the production runtime, never on laptops, in `.env` files, or in the test runtime; production writes remain gated per role. Offboarding stays out of scope.
+Conversations are recorded in [stakeholders.md](stakeholders.md). Build in test against draft standards while ratification proceeds. For the container app, keep production tokens only in Key Vault for the production runtime, never on laptops, in `.env` files, or in the test runtime; production writes remain gated per role. Offboarding stays out of scope.
 
 ## Credential masking response
 
