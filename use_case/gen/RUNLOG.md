@@ -50,3 +50,23 @@ Re-run to fill the dead cell, after `generate.py` started keeping the raw model 
   - Same row with a hardware extra request instead of "access to the marketing email tool": generated normally.
   - Reading: the refusal comes from a combination. The new account uses the manager's email (contradiction b), asks for access to an email system, and the prompt says to hide the inconsistency. Together these read as covert account takeover. No single instruction triggers it on its own.
 - **Decision (2026-10-18):** the cell is left dead, with the cause recorded above. Running the frontier model first showed one of its limits as a synthetic-data generator: its safety classifier refuses a realistic ticket shape. Next runs move to local models, where temperature and top-p can be set.
+
+## 2026-10-18 — local trial, `qwen3:4b`, base setting (`sweep_qwen3-4b_base_20261018_235625`)
+
+First run of `sweep.py`: local model through LiteLLM → Ollama 0.40.6, with temperature and top-p applied.
+
+- **Slice:** 24 rows, one per cell: `venue_dependent` × `new_hire` (12) and `outside_standard` × `new_hire` (12). Seed 42 for picks. Per-row sampling seed is derived from `row_id`, so it is the same across settings and models.
+- **Model:** `ollama_chat/qwen3:4b`, digest `359d7dd4bcda`. `git 791f524`.
+- **Settings:** temperature 0.7, top-p 0.8 (Qwen3 model card, non-thinking mode: *looked up*). `top_k` 0, `repeat_penalty` 1.0, `num_ctx` 8192, `think` false. LiteLLM's request body to Ollama was inspected: all six options arrive in `options`, and `think` arrives top-level. top-k 0 = no limit relies on llama.cpp semantics (`ollama ps` shows the llamacpp runner).
+- **Result:** 24 generated, 0 unparseable, 0 schema-invalid, 24 schema-valid, **23 verified**, 1 dead cell. After dedupe 23, by construction (one row per cell per setting). Highest cross-cell similarity 0.61 (masked text); none at or above 0.85.
+- **Dead cell:** `venue_dependent|new_hire|internal_contradiction|beyond_template`. The model put the requester sign-off in a comment instead of the notes, so verification failed on `names` and `changed` (unexpected comment). This is a real generation miss.
+- **Echo (prompt wording copied into the ticket):** 4 rows, all `beyond_template`, with "no other club(s)" taken from the prompt's "Mention no other club." **3 of the 4 passed verification.** Verification proves a ticket contains its picks, not that it reads as plausible. The echo check (`echo_ngrams`) was tuned on this file: it flags exactly these 4 rows and nothing else. Exclusions: code-picked values masked (label fields such as `changed.detail` are not treated as values), mandated phrases masked, stopword-only 3-grams dropped, crude plural fold. It may need retuning when it meets other settings.
+- **Timing (*measured*, run alone):** warm-up 5.5 s; median 5.7 s per ticket (range 5.3–7.1); 152 s wall-clock for 24 rows.
+- **Failure paths:** `sweep.py --selftest` feeds `classify()` a non-JSON reply and a dict missing required fields. It asserts `unparseable` and `schema_invalid`, and that both records serialize. Passes. No model call.
+
+## Fifty-row read checklist (additions)
+
+Beyond the datasheet's leakage boxes, look for:
+- [ ] **Prompt-wording echo:** instruction text copied into notes or comments ("no other club", "use those words", "exactly"). The `echo` flag catches the known pattern, not every phrasing.
+- [ ] **Sign-off placement:** the requester's sign-off in the notes, not in a comment.
+- [ ] **Fields the picks don't call for:** for example `trainer_level` or `specialties` filled for non-trainer roles (seen on an Aquatics Lead in the 4B smoke test). `verify.py` does not check these.
