@@ -49,3 +49,4 @@ Re-run to fill the dead cell, after `generate.py` started keeping the raw model 
   - Same row without "Do not explain, justify, or acknowledge the inconsistency.": generated normally.
   - Same row with a hardware extra request instead of "access to the marketing email tool": generated normally.
   - Reading: the refusal comes from a combination. The new account uses the manager's email (contradiction b), asks for access to an email system, and the prompt says to hide the inconsistency. Together these read as covert account takeover. No single instruction triggers it on its own.
+- **Decision (2026-10-18):** the cell is left dead, with the cause recorded above. Running the frontier model first showed one of its limits as a synthetic-data generator: its safety classifier refuses a realistic ticket shape. Next runs move to local models, where temperature and top-p can be set.
