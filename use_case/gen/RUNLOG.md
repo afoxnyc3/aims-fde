@@ -79,3 +79,23 @@ Beyond the datasheet's leakage boxes, look for:
 - **Re-pick:** `fixed|5` employee is now Vesper Yarrowby (requester Tobias Copperfield).
 - **Result:** 6 planned, 6 generated, 6 schema-valid, **6 verified**. Model `claude-opus-5-5`; temperature not applied.
 - **Use:** `use_case/data/review_20.md` takes its two fixed rows (#5 and #6) from this file and all other rows from `synth_run_20261018_221844`.
+
+## 2026-10-19 — full grids, `qwen3:4b` and `qwen3:8b` (`sweep_qwen3-4b_grid_20261019_000744`, `sweep_qwen3-8b_grid_20261019_002506`)
+
+- **Grid:** temperature {0.2, 0.7, 1.0} × top-p {0.5, 0.8, 0.95}, the same 24-row slice, per-row seed from `row_id`. `top_k` 0, `repeat_penalty` 1.0, `num_ctx` 8192, `think` false. Both files share the same 24 `prompt_sha` values, so the prompts are byte-identical. The 4B ran at `git 083213d` and the 8B at `dc7234f` (the change only touched fixed rows).
+- **Schema:** 432 of 432 calls parsed and validated (0 unparseable, 0 schema-invalid). Under Ollama's schema-constrained decoding, those two counters do not vary, so `verified` is the count that moves.
+- **Verified per setting** (out of 24):
+
+  | T \ top-p | 0.5 | 0.8 | 0.95 |
+  |---|---|---|---|
+  | 4B @ 0.2 | 24 | 24 | 24 |
+  | 4B @ 0.7 | 24 | 23 | 23 |
+  | 4B @ 1.0 | 24 | 22 | 21 |
+  | 8B (all 9) | 24 | 24 | 24 |
+
+  4B failures are `names` (requester sign-off not in the notes) plus 2 `changed`. One sample per row per setting, so differences of 1–3 rows are within noise.
+- **Cross-cell near-duplicates (masked text, Jaccard ≥ 0.85, pairs):** 4B: 1 at (0.2, 0.5), 0 elsewhere (max 1.00 at (0.2, 0.5)). 8B: 7 / 4 / 4 at T 0.2; 5 / 1 / 0 at T 0.7; 5 / 0 / 1 at T 1.0 (top-p 0.5 / 0.8 / 0.95). Max similarity was 1.00 at top-p 0.5 for all three temperatures: different cells produced identical wording.
+- **Echo ("no other club"):** 4B 4–6 rows per setting; 8B 7 rows at every setting. Echo did not change with sampling settings.
+- **Timing:**
+  - 4B: *measured*, median 4.5 s per ticket (range 3.9–7.2), wall 1,041 s ≈ sum of call latencies (1,035 s).
+  - 8B: **not usable as a measurement.** The Mac went into idle sleep at 00:26:59, two minutes after the run started, and the run continued in maintenance wakes. Wall clock was 8,787 s against 4,078 s of summed call time, and per-call medians (11–25 s) are well above the awake 8B trial's 9.6 s. Rerun under `caffeinate -i` before citing any 8B time.
