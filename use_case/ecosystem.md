@@ -103,7 +103,24 @@ The VMs are a governance and testing environment, separate from the container ap
 | Production | Ubuntu VM | Expected outbound IP confirmed |
 | Production | Windows VM | Expected outbound IP confirmed |
 
-**Current status:** Test and production API tokens are received; API access requires an allowlisted IP plus credentials. The provider confirmed on 2026-10-14 that the requested Azure egress addresses are allowlisted in both production and test. Production API login and reads succeeded from Azure on 2026-10-16. Each NAT gateway IP currently appears in only one environment; confirm both IPs are present in both environments before the Azure endpoint test. Test-environment API access, write permissions, and app-container egress remain unverified.
+#### Egress — 2026-10-19 Azure VMs
+
+| Host | Why | Ubuntu TEST | Ubuntu PROD | Windows TEST | Windows PROD | Verified by |
+| --- | --- | --- | --- | --- | --- | --- |
+| api.anthropic.com | Anthropic API (auth verified, 200) | PASS | PASS | PASS | PASS | Project owner |
+| openrouter.ai | OpenRouter model API (200) | PASS | PASS | PASS | PASS | Project owner |
+| JSM site | Ticket intake, outbound status check (RUNNING) | PASS | PASS | PASS | PASS | Project owner |
+| Account-system API (own environment) | Read access for onboarding agent; IP allowlist confirmed by Basic auth challenge | PASS | PASS | PASS | PASS | Project owner |
+| Account-system API (other environment) | Isolation check; must be rejected | PASS (403) | PASS (403) | PASS (403) | PASS (403) | Project owner |
+
+**Current status (2026-10-19):** Verified on all four VMs (Ubuntu and Windows, TEST and PROD). Each VM egresses directly through its VNet NAT IP, with no proxy. Certificate issuers for all external endpoints are public CAs (Google Trust Services, Amazon), so there is no TLS inspection on Azure egress. Each VM reaches only its own account-system environment, and TEST and PROD are isolated at the vendor IP allowlist. Authenticated account-system reads were tested from the Ubuntu TEST VM only; no writes were made in any environment.
+
+Earlier history: test and production API tokens were received; API access requires an allowlisted IP plus credentials. The provider confirmed the allowlisting on 2026-10-14, and production API login and reads succeeded from Azure on 2026-10-16.
+
+**Open:**
+- Confirm least-privilege read roles on the account-system API accounts (tracked internally).
+- Inbound JSM to Azure webhook is not yet verified.
+- Container app egress is not yet verified (pending deployment).
 
 This section is the source of access status; update it when confirmation or test results arrive.
 
