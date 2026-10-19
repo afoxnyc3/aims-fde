@@ -31,6 +31,17 @@ def jaccard(a: set, b: set) -> float:
     return len(a & b) / len(a | b) if a | b else 0.0
 
 
+# Picks that legitimately vary between rows of one cell without changing what is
+# tested. A dropped pair differing in any OTHER pick means the threshold is too low.
+INCIDENTAL = {"created", "due_date", "comment_ts", "requester_name", "requester_email",
+              "manager_name", "manager_email", "employee_name", "employee_email"}
+
+
+def differing_picks(x: dict, y: dict) -> list[str]:
+    px, py = x["picks"], y["picks"]
+    return sorted(k for k in px.keys() | py.keys() if px.get(k) != py.get(k))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("run_file", type=Path)
@@ -65,22 +76,36 @@ def main() -> None:
         print("dedupe:         skipped (--one-per-cell run)")
         return
 
-    valid = [r for r in rows if r["schema_valid"]]
-    sh = {r["row_id"]: shingles(variable_text(r["ticket"])) for r in valid}
-    dropped, cross = set(), []
-    for x, y in combinations(valid, 2):
+    verified = [r for r in rows if r["verified"]]
+    sh = {r["row_id"]: shingles(variable_text(r["ticket"])) for r in verified}
+    dropped, pairs, cross = set(), [], []
+    for x, y in combinations(verified, 2):
         score = jaccard(sh[x["row_id"]], sh[y["row_id"]])
         if score < args.threshold:
             continue
         if x["cell_id"] == y["cell_id"]:
-            dropped.add(y["row_id"])
+            if y["row_id"] not in dropped:
+                dropped.add(y["row_id"])
+                pairs.append((x, y, score))
         else:
             cross.append((x["row_id"], y["row_id"], score))
-    print(f"dedupe @ {args.threshold}: {len(dropped)} same-cell rows dropped, {len(cross)} cross-cell pairs reported")
-    for rid in sorted(dropped):
-        print(f"  dropped {rid}")
+    print(f"after dedupe:   {len(verified) - len(dropped)} (verified, minus {len(dropped)} same-cell rows dropped at Jaccard >= {args.threshold})")
+    print("dropped pairs (same cell):")
+    if not pairs:
+        print("  none")
+    for x, y, score in pairs:
+        diff = differing_picks(x, y)
+        substantive = [k for k in diff if k not in INCIDENTAL]
+        print(f"  {score:.2f}  kept {x['row_id']}  dropped {y['row_id']}")
+        print(f"        picks differ: {', '.join(substantive) or 'none'}"
+              f"  (incidental: {', '.join(k for k in diff if k in INCIDENTAL) or 'none'})")
+    print(f"cross-cell pairs >= {args.threshold} (reported, not merged): {len(cross)}")
     for a, b, s in sorted(cross, key=lambda c: -c[2])[:20]:
-        print(f"  cross   {s:.2f}  {a}  ~  {b}")
+        print(f"  {s:.2f}  {a}  ~  {b}")
+    # Highest same-cell similarity actually observed, for threshold calibration.
+    same = [jaccard(sh[x["row_id"]], sh[y["row_id"]]) for x, y in combinations(verified, 2) if x["cell_id"] == y["cell_id"]]
+    if same:
+        print(f"same-cell Jaccard: max {max(same):.2f}, mean {sum(same) / len(same):.2f} over {len(same)} pairs")
 
 
 if __name__ == "__main__":

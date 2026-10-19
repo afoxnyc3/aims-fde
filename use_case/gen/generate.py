@@ -91,7 +91,7 @@ TOOL = {
 }
 
 HOUSE_RULES = """Rules for every ticket:
-- Use clearly fictional people's names. Every email address ends in @example.com.
+- Use the people's names and email addresses exactly as given. If the situation needs anyone else, invent a clearly fictional name. Every email address ends in @example.com.
 - Never use a real company, club, city, or software product name. Clubs are only Club A, Club B, Club C, Club D, Club E. The staff system is called "the club-management system".
 - A field you are told to leave blank is an empty string "".
 - Write like a busy staff member, not a template. Keep it short and plausible.
@@ -120,6 +120,7 @@ def instructions(row: dict) -> str:
             f'- location: {"exactly " + repr(p["club"]) if p["club"] else "blank"}',
             "- Fill only the fields that fit this situation; leave the rest blank. login_required, membership_required and rehire are NO.",
             "- comments: an empty list.",
+            f'- The ticket is filed by {p["requester_name"]} ({p["requester_email"]}). End the notes with "- {p["requester_name"]}".',
         ]
         if row["fixed"]["kind"] == "vague_account":
             lines.append("- job_title, location, department and manager_name are blank. The note gives no role, club, or manager.")
@@ -137,14 +138,15 @@ def instructions(row: dict) -> str:
         f'- department: "{p["department"]}"',
         f'- location: {"blank" if p["club"] is None else "exactly " + json.dumps(p["club"])}',
         f'- due_date (start date): {"blank" if blank == "due_date" else "exactly " + json.dumps(p["due_date"])}',
-        "- manager_name and manager_email: a fictional manager.",
+        f'- manager_name: exactly "{p["manager_name"]}"; manager_email: exactly "{p["manager_email"]}"',
+        f'- The new hire is {p["employee_name"]}. Refer to them by this name in the summary or notes.',
     ]
     if blank == "employee_email":
         lines.append("- employee_email: blank")
     elif p["contradiction_variant"] == "b":
-        lines.append("- employee_email: exactly the same address as manager_email")
+        lines.append(f'- employee_email: exactly "{p["manager_email"]}" (the same as manager_email)')
     else:
-        lines.append("- employee_email: the new hire's fictional address")
+        lines.append(f'- employee_email: exactly "{p["employee_email"]}"')
     lines += [
         f"- login_required: {login}",
         f"- membership_required: {membership}",
@@ -170,6 +172,9 @@ def instructions(row: dict) -> str:
         lines.append("- notes must: " + "; ".join(notes) + ". Mention no other club.")
     else:
         lines.append("- notes: a short, ordinary note. Mention no club.")
+    lines.append(f'- The ticket is filed by {p["requester_name"]}. End the notes with "- {p["requester_name"]}". Mention no people other than those named in these instructions.')
+    if p["contradiction_variant"]:
+        lines.append("- Do not explain, justify, or acknowledge the inconsistency.")
 
     ch = p["changed"]
     if ch:

@@ -133,6 +133,15 @@ First match wins.
 - `venue_dependent` × `missing_required`: never blank location.
 - Job title blanked only, and always, in `exact` × `missing_required`.
 - Fixed rows never crossed.
+- `membership_only` × `changed_after_submission`: the change is to start date or club only, never membership.
+
+### Implementation assumptions (made in `use_case/gen/`, not ratified)
+Where this file is silent, the generator assumes the following. Each is a choice, not a Service Desk decision.
+1. **`exact` uses the 7 fixed-login roles only** (Group Fitness Instructor, Personal Trainer, Front Desk Associate, Massage Therapist, Membership Consultant, Cafe Associate, Housekeeping Associate). Lifeguard and Aquatics Lead are by-club and belong to `venue_dependent`.
+2. **`expected_proposal` and `expected_caveat` are set only on `recommended` rows.** Other rows carry `null` for both and a short `expected_reason` code (e.g. `missing_required:due_date`, `human_review:returning_or_moving+beyond_template`).
+3. **Membership follows the ticket and its comments; login follows the standard.** `expected_proposal.membership_required` is the form value as amended by a later requester comment; `login_required` always comes from the role list or venue table (Rule 3).
+4. **Rule 4's agree/disagree start side is staggered by scope as well as by cell**, so each scope gets a balanced split (3 agree / 3 disagree per role fit) rather than 4/2.
+5. **Stored `picks` carry fields beyond the example above**: `standard_role`, `level`, `department`, `contradiction_club`, `extra_request`, `previous_club`, `intent_note`, `created`, `due_date`, `request_type`, and requester / manager / employee names and `@example.com` emails. Verification needs them to check a ticket against its picks.
 
 ### Removed, and why
 | Removed | Reason |

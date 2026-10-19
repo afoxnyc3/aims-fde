@@ -22,6 +22,13 @@ SCOPE_FORM = {
     "membership_only": ("NO", "YES"),
     "beyond_template": ("YES", "YES"),
 }
+# Accepted phrases for the Axis 2 note, checked case-insensitively in this order.
+# The first match is recorded on the row as verify_matches.intent_note.
+INTENT_PHRASES = {
+    "returning": ["returning", "coming back", "rejoining", "back with us", "back on the team"],
+    "transferring": ["transferring", "transfer", "moving over from", "moving from"],
+    "promoted": ["promoted", "promotion"],
+}
 NEGATION = re.compile(r"\b(no|not|n't|don't|doesn't|without|cancel\w*|remove\w*|drop\w*)\b", re.I)
 
 
@@ -32,9 +39,10 @@ def _ts(s: str) -> datetime | None:
         return None
 
 
-def check(row: dict) -> list[dict]:
+def check(row: dict) -> tuple[list[dict], dict]:
     t, p = row["ticket"], row["picks"]
     fails: list[dict] = []
+    matches: dict = {}
 
     def fail(pick_type: str, detail: str) -> None:
         fails.append({"pick_type": pick_type, "detail": detail})
@@ -48,6 +56,8 @@ def check(row: dict) -> list[dict]:
     emails = [e for e in (fm["manager_email"], fm["employee_email"]) if e]
     if any(not e.strip().lower().endswith("@example.com") for e in emails):
         fail("fictional", f"non-example.com email in {emails}")
+    if p["requester_name"] not in notes:
+        fail("names", f"requester {p['requester_name']!r} not in notes")
 
     if row["fixed"]:
         if p["club"] and p["club"] not in f["location"]:
@@ -56,9 +66,21 @@ def check(row: dict) -> list[dict]:
             filled = [k for k in ("job_title", "location", "department", "manager_name") if f[k].strip()]
             if filled:
                 fail("blank_field", f"vague request has {filled} filled")
-        return fails
+        return fails, matches
 
     a = row["axes"]
+
+    # Names: code-picked; the model must use them as given.
+    if f["manager_name"].strip() != p["manager_name"]:
+        fail("names", f"manager_name {f['manager_name']!r} != {p['manager_name']!r}")
+    if fm["manager_email"].strip().lower() != p["manager_email"]:
+        fail("names", f"manager_email {fm['manager_email']!r} != {p['manager_email']!r}")
+    if p["blank_field"] != "employee_email" and p["contradiction_variant"] != "b" \
+            and fm["employee_email"].strip().lower() != p["employee_email"]:
+        fail("names", f"employee_email {fm['employee_email']!r} != {p['employee_email']!r}")
+    first = p["employee_name"].split()[0]
+    if first not in t["summary"] + " " + notes:
+        fail("names", f"employee {p['employee_name']!r} not named in summary or notes")
 
     # Axis 1: title and club.
     if p["title"] is None:
@@ -109,9 +131,10 @@ def check(row: dict) -> list[dict]:
             fail("intent", "rehire is not YES")
         if p["previous_club"] not in fm["previous_location"]:
             fail("intent", f"previous_location {fm['previous_location']!r} lacks {p['previous_club']}")
-        stems = {"returning": ("return", "coming back"), "transferring": ("transfer",), "promoted": ("promot",)}[p["intent_note"]]
-        if not any(s in notes.lower() for s in stems):
-            fail("intent", f"notes do not say {p['intent_note']}")
+        hit = next((ph for ph in INTENT_PHRASES[p["intent_note"]] if ph in notes.lower()), None)
+        matches["intent_note"] = hit
+        if hit is None:
+            fail("intent", f"notes do not say {p['intent_note']} (no accepted phrase)")
     else:
         if fm["rehire"] != "NO":
             fail("intent", "rehire is not NO")
@@ -127,7 +150,7 @@ def check(row: dict) -> list[dict]:
         if missing:
             fail("extra_request", f"notes lack {missing}")
 
-    return fails
+    return fails, matches
 
 
 def main() -> None:
@@ -139,8 +162,9 @@ def main() -> None:
     for row in rows:
         if not row.get("schema_valid"):
             row["verified"], row["verify_failures"] = False, [{"pick_type": "schema", "detail": row.get("error")}]
+            row["verify_matches"] = {}
             continue
-        row["verify_failures"] = check(row)
+        row["verify_failures"], row["verify_matches"] = check(row)
         row["verified"] = not row["verify_failures"]
     args.run_file.write_text("".join(json.dumps(r) + "\n" for r in rows))
     print(f"verified {sum(r['verified'] for r in rows)}/{len(rows)} rows in {args.run_file}")

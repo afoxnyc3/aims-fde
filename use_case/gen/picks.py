@@ -71,7 +71,17 @@ EXTRA_REQUESTS = [
     {"kind": "same_as", "text": "same access as Riley Placeholder", "keywords": ["same access as", "Riley Placeholder"]},
 ]
 
-INTENT_NOTES = {"returning": "return", "transferring": "transfer", "promoted": "promot"}
+INTENT_NOTES = ["returning", "transferring", "promoted"]
+
+# Seeded fictional names. Code picks requester, manager, and employee per row; the
+# model must use them as given. Emails are derived as first.last@example.com.
+FIRST_NAMES = ["Arlo", "Bexley", "Caspian", "Delphine", "Ezra", "Fennimore", "Gwendolyn", "Hollis",
+               "Isolde", "Jasper", "Kestrel", "Lark", "Marisol", "Nico", "Ottoline", "Percival",
+               "Quinlan", "Rosalind", "Sorrel", "Tobias", "Ulla", "Vesper", "Wren", "Xavi", "Yara", "Zephyr"]
+LAST_NAMES = ["Ashgrove", "Brindlewood", "Copperfield", "Dunmore", "Elderberry", "Foxglove", "Gallowmere",
+              "Hartwell", "Inglenook", "Juniperhill", "Kettleby", "Larkspur", "Mossbank", "Nettlefield",
+              "Oakhollow", "Pebbleton", "Quenby", "Ravensworth", "Saltmarsh", "Thistledown", "Underhill",
+              "Wexcombe", "Yarrowby"]
 
 FIXED_ROWS = [
     {"n": 1, "kind": "login_problem", "request_type": "Get IT help",
@@ -153,6 +163,18 @@ class Rotation:
         raise ValueError(f"no item satisfies the constraint in {self.items}")
 
 
+def pick_people(rot: dict, roles: tuple[str, ...]) -> dict:
+    """Distinct fictional names (and example.com emails) for the given ticket roles."""
+    people, used = {}, set()
+    for role in roles:
+        first = rot["first"].take(exclude={n.split()[0] for n in used})
+        last = rot["last"].take()
+        used.add(f"{first} {last}")
+        people[f"{role}_name"] = f"{first} {last}"
+        people[f"{role}_email"] = f"{first}.{last}@example.com".lower()
+    return people
+
+
 def build_plan(seed: int = 42) -> list[dict]:
     rng = random.Random(seed)
     rot = {
@@ -168,7 +190,10 @@ def build_plan(seed: int = 42) -> list[dict]:
         "blank_venue": Rotation(rng, ["due_date", "employee_email"]),
         "contradiction": Rotation(rng, ["a", "b"]),
         "changed": Rotation(rng, ["due_date", "club", "membership"]),
-        "intent_note": Rotation(rng, list(INTENT_NOTES)),
+        "changed_no_membership": Rotation(rng, ["due_date", "club"]),
+        "intent_note": Rotation(rng, INTENT_NOTES),
+        "first": Rotation(rng, FIRST_NAMES),
+        "last": Rotation(rng, LAST_NAMES),
         "extra": Rotation(rng, range(len(EXTRA_REQUESTS))),
         "day": Rotation(rng, range(45)),
         "hour": Rotation(rng, range(8, 18)),
@@ -207,6 +232,7 @@ def build_plan(seed: int = 42) -> list[dict]:
                 "previous_club": None, "intent_note": None,
                 "created": created.isoformat(timespec="seconds"), "due_date": due.isoformat(),
                 "request_type": ONBOARDING_REQUEST_TYPE,
+                **pick_people(rot, ("requester", "manager", "employee")),
             }
 
             # Axis 3 first (Rule 1: Axis 3 wins), so later axes can respect its picks.
@@ -220,7 +246,9 @@ def build_plan(seed: int = 42) -> list[dict]:
             elif reliability == "internal_contradiction":
                 picks["contradiction_variant"] = rot["contradiction"].take()
             elif reliability == "changed_after_submission":
-                picks["changed"] = {"detail": rot["changed"].take(), "from": None, "to": None}
+                # Exclusion: membership_only cells never change membership.
+                pool = rot["changed_no_membership"] if scope == "membership_only" else rot["changed"]
+                picks["changed"] = {"detail": pool.take(), "from": None, "to": None}
                 picks["comment_ts"] = (created + timedelta(hours=rot["comment_hours"].take())).isoformat(timespec="seconds")
 
             changed_detail = picks["changed"]["detail"] if picks["changed"] else None
@@ -305,7 +333,8 @@ def build_plan(seed: int = 42) -> list[dict]:
             "axes": None,
             "fixed": {"n": fx["n"], "kind": fx["kind"], "brief": fx["brief"]},
             "picks": {"request_type": fx["request_type"], "created": created.isoformat(timespec="seconds"),
-                      "club": None if fx["kind"] == "vague_account" else rot["club"].take()},
+                      "club": None if fx["kind"] == "vague_account" else rot["club"].take(),
+                      **pick_people(rot, ("requester",))},
             "expected_status": fx["status"],
             "role_fit_observable": False,
             "expected_proposal": None,
