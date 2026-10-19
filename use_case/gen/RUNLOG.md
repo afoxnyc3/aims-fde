@@ -19,3 +19,20 @@ records what was run and what happened. Newest last.
 - **Scope, model, temperature:** same as run 1 (temperature not applied).
 - **Result:** 24 planned, 24 generated, 24 schema-valid, **24 verified**, 0 dead cells. Dedupe skipped (one row per cell).
 - **Read-through notes:** on the contradiction-b row, the model explained the shared email in the notes ("I put mine for now"). Manager names repeated across rows. Both led to the next change set: a no-explanation instruction on contradiction rows, and code-picked names.
+
+## 2026-10-18 — small batch, run 3 (`synth_run_20261018_221801`)
+
+After commit `a2903ae` (code-picked names, membership exclusion, no-explanation instruction on contradiction rows, accepted-phrase list for the intent note).
+
+- **Scope, model, temperature:** same as run 1 (temperature not applied).
+- **Result:** 24 planned, 24 generated, 24 schema-valid, **24 verified**, 0 dead cells. Dedupe skipped (one row per cell).
+- **Spot check:** none of the 3 contradiction-b rows explains the shared email. The 2 `membership_only` × `changed_after_submission` rows change start date and club, not membership.
+
+## 2026-10-18 — full run (`synth_run_20261018_221844`)
+
+- **Scope:** all 126 rows (102 cells), seed 42. Same model; temperature not applied.
+- **Result:** 126 planned, 125 generated, 125 schema-valid, **125 verified**. After dedupe: 125 (0 dropped at Jaccard ≥ 0.85, 0 cross-cell pairs).
+- **Dead cell:** `exact|new_hire|internal_contradiction|beyond_template`. Its only row was `schema_invalid` after one retry. The raw model output was not kept, so the cause is unknown.
+- **Verified status mix:** 36 recommended / 48 needs_information / 36 human_review / 5 ignored (planned 36/49/36/5).
+- **Intent phrases matched:** returning → "coming back" 9, "returning" 7; transferring → "transferring" 16; promoted → "promoted" 16.
+- **Dedupe calibration:** highest same-cell Jaccard was 0.43 (mean 0.22, 36 pairs). Code-picked names, emails, and dates are part of the shingled content, so same-cell rows sit far below 0.85. Per the decisions.md rule, this is a signal to lower the threshold or exclude code-picked values from the shingles. Not yet decided.
