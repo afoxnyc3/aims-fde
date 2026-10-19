@@ -106,6 +106,9 @@ FIXED_ROWS = [
 
 ONBOARDING_REQUEST_TYPE = "New Hire Onboarding"
 
+# Fixed-row situations about an employee other than the requester.
+FIXED_WITH_EMPLOYEE = {"permission_change", "offboarding", "promotion_general"}
+
 EXPECTED_MIX = {"recommended": 36, "needs_information": 49, "human_review": 36, "ignored": 5}
 EXPECTED_TOTAL = 126
 
@@ -334,7 +337,9 @@ def build_plan(seed: int = 42) -> list[dict]:
             "fixed": {"n": fx["n"], "kind": fx["kind"], "brief": fx["brief"]},
             "picks": {"request_type": fx["request_type"], "created": created.isoformat(timespec="seconds"),
                       "club": None if fx["kind"] == "vague_account" else rot["club"].take(),
-                      **pick_people(rot, ("requester",))},
+                      # Fixed rows that name another employee get that name from code too.
+                      **pick_people(rot, ("requester", "employee") if fx["kind"] in FIXED_WITH_EMPLOYEE
+                                    else ("requester",))},
             "expected_status": fx["status"],
             "role_fit_observable": False,
             "expected_proposal": None,
@@ -382,7 +387,10 @@ def _label(cell_id, role_fit, intent, reliability, scope, picks, k) -> dict:
     }
 
 
-def select(rows: list[dict], role_fit: str | None = None, one_per_cell: bool = False, limit: int | None = None) -> list[dict]:
+def select(rows: list[dict], role_fit: str | None = None, one_per_cell: bool = False, limit: int | None = None,
+           fixed_only: bool = False) -> list[dict]:
+    if fixed_only:
+        rows = [r for r in rows if r["fixed"]]
     if role_fit:
         rows = [r for r in rows if r["axes"] and r["axes"]["role_fit"] == role_fit]
     if one_per_cell:
@@ -399,6 +407,7 @@ def add_filter_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--role-fit", choices=ROLE_FIT)
     p.add_argument("--one-per-cell", action="store_true")
+    p.add_argument("--fixed-only", action="store_true")
     p.add_argument("--limit", type=int)
 
 
@@ -406,7 +415,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     add_filter_args(p)
     args = p.parse_args()
-    rows = select(build_plan(args.seed), args.role_fit, args.one_per_cell, args.limit)
+    rows = select(build_plan(args.seed), args.role_fit, args.one_per_cell, args.limit, args.fixed_only)
     for r in rows:
         sys.stdout.write(json.dumps(r) + "\n")
     print(f"{len(rows)} rows; status mix {dict(Counter(r['expected_status'] for r in rows))}", file=sys.stderr)

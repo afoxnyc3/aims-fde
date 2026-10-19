@@ -70,3 +70,12 @@ Beyond the datasheet's leakage boxes, look for:
 - [ ] **Prompt-wording echo:** instruction text copied into notes or comments ("no other club", "use those words", "exactly"). The `echo` flag catches the known pattern, not every phrasing.
 - [ ] **Sign-off placement:** the requester's sign-off in the notes, not in a comment.
 - [ ] **Fields the picks don't call for:** for example `trainer_level` or `specialties` filled for non-trainer roles (seen on an Aquatics Lead in the 4B smoke test). `verify.py` does not check these.
+
+## 2026-10-19 — fixed rows regenerated with code-picked employee names (`synth_run_20261019_001640`)
+
+- **Why:** in the 126-row run, fixed rows code-picked only the requester, so the model invented the employee. Row `fixed|5` (promotion via general request) came back as "Priya Lindqvist". The name is fictional, but Priya is also the course notebooks' persona.
+- **Change:** `picks.py` now code-picks an employee name and email for the fixed rows that concern someone other than the requester (`permission_change`, `offboarding`, `promotion_general`). `generate.py` passes the name in, and `verify.py` checks the employee is named in the summary or notes. Added a `--fixed-only` filter.
+- **Side effect:** names come from one seeded rotation, so requester names for fixed rows 2–6 shifted. The 120 crossed rows are unchanged, and the plan still asserts 126 rows with the 36/49/36/5 mix. Fixed-row tickets in earlier run files no longer match the current picks; each stored row keeps the picks it was generated from.
+- **Re-pick:** `fixed|5` employee is now Vesper Yarrowby (requester Tobias Copperfield).
+- **Result:** 6 planned, 6 generated, 6 schema-valid, **6 verified**. Model `claude-opus-5-5`; temperature not applied.
+- **Use:** `use_case/data/review_20.md` takes its two fixed rows (#5 and #6) from this file and all other rows from `synth_run_20261018_221844`.

@@ -66,6 +66,8 @@ def check(row: dict) -> tuple[list[dict], dict]:
             filled = [k for k in ("job_title", "location", "department", "manager_name") if f[k].strip()]
             if filled:
                 fail("blank_field", f"vague request has {filled} filled")
+        if p.get("employee_name") and p["employee_name"].split()[0] not in t["summary"] + " " + notes:
+            fail("names", f"employee {p['employee_name']!r} not named in summary or notes")
         return fails, matches
 
     a = row["axes"]

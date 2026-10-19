@@ -120,6 +120,8 @@ def instructions(row: dict) -> str:
             "- comments: an empty list.",
             f'- The ticket is filed by {p["requester_name"]} ({p["requester_email"]}). End the notes with "- {p["requester_name"]}".',
         ]
+        if p.get("employee_name"):
+            lines.append(f'- The employee this is about is {p["employee_name"]} ({p["employee_email"]}). Use that name.')
         if row["fixed"]["kind"] == "vague_account":
             lines.append("- job_title, location, department and manager_name are blank. The note gives no role, club, or manager.")
         return "\n".join(lines)
@@ -300,7 +302,7 @@ def main() -> None:
 
     load_dotenv(REPO_ROOT / ".env")
 
-    rows = P.select(P.build_plan(args.seed), args.role_fit, args.one_per_cell, args.limit)
+    rows = P.select(P.build_plan(args.seed), args.role_fit, args.one_per_cell, args.limit, args.fixed_only)
     if args.backend == "anthropic":
         backend = AnthropicBackend(args.model or DEFAULT_ANTHROPIC_MODEL, args.temperature)
     else:
