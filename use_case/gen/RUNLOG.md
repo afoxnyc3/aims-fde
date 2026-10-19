@@ -22,7 +22,7 @@ records what was run and what happened. Newest last.
 
 ## 2026-10-18 — small batch, run 3 (`synth_run_20261018_221801`)
 
-After commit `a2903ae` (code-picked names, membership exclusion, no-explanation instruction on contradiction rows, accepted-phrase list for the intent note).
+After commit `8dfbf03` (code-picked names, membership exclusion, no-explanation instruction on contradiction rows, accepted-phrase list for the intent note).
 
 - **Scope, model, temperature:** same as run 1 (temperature not applied).
 - **Result:** 24 planned, 24 generated, 24 schema-valid, **24 verified**, 0 dead cells. Dedupe skipped (one row per cell).
@@ -56,7 +56,7 @@ Re-run to fill the dead cell, after `generate.py` started keeping the raw model 
 First run of `sweep.py`: local model through LiteLLM → Ollama 0.40.6, with temperature and top-p applied.
 
 - **Slice:** 24 rows, one per cell: `venue_dependent` × `new_hire` (12) and `outside_standard` × `new_hire` (12). Seed 42 for picks. Per-row sampling seed is derived from `row_id`, so it is the same across settings and models.
-- **Model:** `ollama_chat/qwen3:4b`, digest `359d7dd4bcda`. `git 791f524`.
+- **Model:** `ollama_chat/qwen3:4b`, digest `359d7dd4bcda`. `git 70f17d9`.
 - **Settings:** temperature 0.7, top-p 0.8 (Qwen3 model card, non-thinking mode: *looked up*). `top_k` 0, `repeat_penalty` 1.0, `num_ctx` 8192, `think` false. LiteLLM's request body to Ollama was inspected: all six options arrive in `options`, and `think` arrives top-level. top-k 0 = no limit relies on llama.cpp semantics (`ollama ps` shows the llamacpp runner).
 - **Result:** 24 generated, 0 unparseable, 0 schema-invalid, 24 schema-valid, **23 verified**, 1 dead cell. After dedupe 23, by construction (one row per cell per setting). Highest cross-cell similarity 0.61 (masked text); none at or above 0.85.
 - **Dead cell:** `venue_dependent|new_hire|internal_contradiction|beyond_template`. The model put the requester sign-off in a comment instead of the notes, so verification failed on `names` and `changed` (unexpected comment). This is a real generation miss.
@@ -83,7 +83,7 @@ Beyond the datasheet's leakage boxes, look for:
 
 ## 2026-10-19 — full grids, `qwen3:4b` and `qwen3:8b` (`sweep_qwen3-4b_grid_20261019_000744`, `sweep_qwen3-8b_grid_20261019_002506`)
 
-- **Grid:** temperature {0.2, 0.7, 1.0} × top-p {0.5, 0.8, 0.95}, the same 24-row slice, per-row seed from `row_id`. `top_k` 0, `repeat_penalty` 1.0, `num_ctx` 8192, `think` false. Both files share the same 24 `prompt_sha` values, so the prompts are byte-identical. The 4B ran at `git 083213d` and the 8B at `dc7234f` (the change only touched fixed rows).
+- **Grid:** temperature {0.2, 0.7, 1.0} × top-p {0.5, 0.8, 0.95}, the same 24-row slice, per-row seed from `row_id`. `top_k` 0, `repeat_penalty` 1.0, `num_ctx` 8192, `think` false. Both files share the same 24 `prompt_sha` values, so the prompts are byte-identical. The 4B ran at `git 2718b05` and the 8B at `8498faf` (the change only touched fixed rows).
 - **Schema:** 432 of 432 calls parsed and validated (0 unparseable, 0 schema-invalid). Under Ollama's schema-constrained decoding, those two counters do not vary, so `verified` is the count that moves.
 - **Verified per setting** (out of 24):
 
@@ -103,7 +103,7 @@ Beyond the datasheet's leakage boxes, look for:
 
 ## 2026-10-19 — 8B timing, reproducibility (question 3), declines vs recommended (question 1)
 
-**8B timing, rerun under `caffeinate -i`** (`sweep_qwen3-8b_base_20261019_061836`, `git 32e81c8`):
+**8B timing, rerun under `caffeinate -i`** (`sweep_qwen3-8b_base_20261019_061836`, `git 7491c47`):
 - 24 generated, 24 schema-valid, 24 verified, 0 dead, echo 7. Same counts as the earlier 8B trial.
 - *Measured:* median **9.6 s** per ticket (range 8.9–11.6), warm-up 3.7 s, wall 242 s ≈ summed call time 237 s. No sleep during the run.
 - This replaces the 8B grid's unusable timing. The 4B (4.5 s per ticket in the grid) is about 2.1× faster.
@@ -117,3 +117,18 @@ Beyond the datasheet's leakage boxes, look for:
 - **Verified:** declines 6/6 at every setting on both models, except **4B at T 1.0: 5/6 (top-p 0.8) and 4/6 (top-p 0.95)**. Recommended 4/4 at every setting on both models.
 - **Echo:** declines 2/6 and recommended 0/4 at every setting on both models. This difference is structural, not about declining. The echo comes from `beyond_template` rows, and recommended rows can never be `beyond_template`.
 - **Reading:** with n=6 and n=4 and one sample per row, the only visible signal is the 4B losing declines first at the highest temperature. It is a hint, not a result.
+
+## 2026-10-19 — history rewritten before first push
+
+Before `tc2-axes` was first pushed to the public repo, one line in `use_case/stakeholders.md` and one commit message were reworded across the unpushed history so that a real location and a personnel reference never become public. Every commit after `03994b9` got a new hash. The hashes quoted in this log have been updated.
+
+**Run manifests in `use_case/data/` were written before the rewrite and still record the old hashes:**
+
+| Old (in manifests) | New (in history) | Commit |
+|---|---|---|
+| `791f524` | `70f17d9` | Remove the deepeval export from generate.py |
+| `083213d` | `2718b05` | Add local open-weight sweep (sweep.py) |
+| `dc7234f` | `8498faf` | Code-pick employee names for fixed rows |
+| `32e81c8` | `7491c47` | Log the qwen3 4B and 8B grids |
+
+The code in each pair is identical; only the hash changed.
