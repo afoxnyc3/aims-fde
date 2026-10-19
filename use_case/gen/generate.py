@@ -2,7 +2,6 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "anthropic>=1.15",
-#     "deepeval>=4.3",
 #     "pydantic>=2",
 #     "python-dotenv>=1.0",
 # ]
@@ -12,8 +11,7 @@
     uv run use_case/gen/generate.py --role-fit venue_dependent --one-per-cell
 
 Labels come from picks.py and are never shown to the model. Each row is stored as
-picks + labels + ticket + provenance in use_case/data/synth_run_<timestamp>.jsonl,
-and the schema-valid rows are also saved as a deepeval EvaluationDataset.
+picks + labels + ticket + provenance in use_case/data/synth_run_<timestamp>.jsonl.
 """
 
 from __future__ import annotations
@@ -199,17 +197,6 @@ def build_prompt(row: dict) -> tuple[str, str]:
     return system, user
 
 
-def render_ticket(t: dict) -> str:
-    f, fm = t["fields"], t["form"]
-    lines = [f"Request type: {t['request_type']}", f"Summary: {t['summary']}", f"Created: {t['created']}"]
-    lines += [f"{k.replace('_', ' ').title()}: {v}" for k, v in f.items()]
-    lines += [f"{k.replace('_', ' ').title()}: {v}" for k, v in fm.items()]
-    lines.append(f"Notes: {t['notes']}")
-    for c in t["comments"]:
-        lines.append(f"Comment ({c['author_role']}, {c['timestamp']}): {c['body']}")
-    return "\n".join(lines)
-
-
 class AnthropicBackend:
     def __init__(self, model: str, temperature: float):
         import anthropic
@@ -309,7 +296,6 @@ def main() -> None:
     p.add_argument("--workers", type=int, default=4)
     args = p.parse_args()
 
-    os.environ.setdefault("DEEPEVAL_TELEMETRY_OPT_OUT", "YES")
     from dotenv import load_dotenv
 
     load_dotenv(REPO_ROOT / ".env")
@@ -339,17 +325,8 @@ def main() -> None:
             stored.append(rec)
             fh.write(json.dumps(rec) + "\n")
 
-    from deepeval.dataset import EvaluationDataset, Golden
-
-    label_keys = ("row_id", "cell_id", "axes", "fixed", "picks", "expected_status", "role_fit_observable",
-                  "expected_proposal", "expected_caveat", "expected_reason", "reference_versions")
-    goldens = [Golden(input=render_ticket(r["ticket"]), additional_metadata={k: r[k] for k in label_keys})
-               for r in stored if r["schema_valid"]]
-    ds_path = EvaluationDataset(goldens=goldens).save_as(
-        file_type="json", directory=str(DATA_DIR), file_name=f"synth_run_{ts}_goldens") if goldens else "(no goldens: nothing schema-valid)"
-
     ok = sum(r["schema_valid"] for r in stored)
-    print(f"wrote {out_path} ({ok}/{len(stored)} schema-valid)\nwrote {ds_path}", file=sys.stderr)
+    print(f"wrote {out_path} ({ok}/{len(stored)} schema-valid)", file=sys.stderr)
     print(out_path)
 
 
