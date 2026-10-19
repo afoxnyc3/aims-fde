@@ -66,6 +66,29 @@ gap is worth chasing — it usually means a proxy nobody documented.
 
 Compare the home probe with [Azure egress verification](#azure-egress-verification); the two tests cover different environments.
 
+### Egress — 2026-10-19 work laptop (Mac 1) / office network
+
+Same probe (`helpers/preflight.py`), with three hosts added that the home run did not cover. The network is recorded as the office network on the project owner's statement; the tooling could not read the Wi-Fi name to confirm it.
+
+| host | why | status | signed by |
+| --- | --- | --- | --- |
+| pypi.org | Python packages | OK | GlobalSign nv-sa |
+| files.pythonhosted.org | the actual wheel downloads | OK | GlobalSign nv-sa |
+| api.openai.com | the model API | OK | Google Trust Services |
+| cdn.jsdelivr.net | the CDN the Week 1 frontend uses | OK | Sectigo Limited |
+| huggingface.co | open weights, Weeks 2 and 8 | OK | Amazon |
+| registry-1.docker.io | container images | OK | Amazon |
+| github.com | this repository | OK | Sectigo Limited |
+| api.anthropic.com | approved LLM provider | OK | Google Trust Services |
+| openrouter.ai | approved LLM provider | OK | Google Trust Services |
+| registry.ollama.ai | local model weights | OK | Google Trust Services |
+
+**Probe verdict:** 10/10 reachable. Open network, public CAs, no proxy. No proxy environment variables and no macOS system proxy were set.
+
+**End-to-end app check:** The Week 1 app ran locally with `uv run python app.py` (not in Docker). One synthetic message ("Connectivity test: reply with the single word OK.", no history, no ticket or member data) went to the `chat` endpoint at `localhost:7860`. The app called the Anthropic API with the configured `LLM_MODEL` and returned `OK` in about 1.3 s, with no errors in the app log. The app was then stopped.
+
+**Qualification:** This verifies laptop egress and model access from the office network only. It does not verify Azure app-container egress, and OpenRouter was reached at the TLS level but not called with credentials.
+
 
 ### Azure egress verification
 
@@ -98,7 +121,7 @@ Supporting dependencies; internal evidence stays separate. The input contract is
 | Upstream hire provisioning | Know where onboarding tickets originate relative to account creation | New hires flow from the HR system through an identity-provisioning tool into Entra; none of it is connected to Azure. Confirm the provisioning-to-Jira handoff before relying on the webhook trigger; paid support for the provisioning tool is approved pending budget, with new build work deferred | Senior Systems Administrator |
 | Identity and role standard | Identity source, job-title mapping, permissions, venue add-ons, and login-email rules | Produce versioned drafts; confirm job levels, venue variation, and ratification owners | Product / role decision owners |
 | Hosting | Container runtime, image publishing, authentication, and secrets | Azure Container Apps selected; hosting pattern validated by the Senior Systems Administrator (2026-10-16). App egress uses the existing NAT gateways; confirm registry and cost; see [egress evidence](#azure-egress-verification). Use the tested amd64 image and initially one replica; enable Entra sign-in and use Key Vault | Senior Systems Administrator / Senior Director of IT |
-| Model access | Approved external LLM API | Anthropic available (CTO approval); the local Docker container called it successfully during Step 9. Azure app-container connectivity is unverified. OpenRouter approved (known from my role). No internal endpoint | CTO / project owner |
+| Model access | Approved external LLM API | Anthropic available (CTO approval); the local Docker container called it successfully during Step 9, and the local app called it from the office network on 2026-10-19 (see [office egress](#egress--2026-10-19-work-laptop-mac-1--office-network)). All tests worked as designed; not blocked. Azure app-container connectivity is unverified. OpenRouter approved (known from my role). No internal endpoint | CTO / project owner |
 | Credential delivery | Unique credentials through an approved channel outside ticket comments | Confirm delivery and first-login behavior before production | Account-system owner / security owner |
 | Production promotion | Ratified standard, write access, and 95% on synthetic tickets or 90% over at least 20 live tickets per role | CTO approves on reported results; set synthetic set size, coverage, and scoring rules (see [decisions](decisions.md)) | CTO / project owner / role decision owners |
 | Course review | Demonstrate the onboarding workflow and evaluation within the course window | Confirm deliverable fit | Course team |
