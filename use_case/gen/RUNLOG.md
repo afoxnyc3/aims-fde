@@ -36,3 +36,16 @@ After commit `a2903ae` (code-picked names, membership exclusion, no-explanation 
 - **Verified status mix:** 36 recommended / 48 needs_information / 36 human_review / 5 ignored (planned 36/49/36/5).
 - **Intent phrases matched:** returning → "coming back" 9, "returning" 7; transferring → "transferring" 16; promoted → "promoted" 16.
 - **Dedupe calibration:** highest same-cell Jaccard was 0.43 (mean 0.22, 36 pairs). Code-picked names, emails, and dates are part of the shingled content, so same-cell rows sit far below 0.85. Per the decisions.md rule, this is a signal to lower the threshold or exclude code-picked values from the shingles. Not yet decided.
+
+## 2026-10-18 — full run, repeat (`synth_run_20261018_224510`)
+
+Re-run to fill the dead cell, after `generate.py` started keeping the raw model reply on every failed attempt (`failed_attempts`).
+
+- **Scope, model, temperature:** as the previous full run (temperature not applied).
+- **Result:** 126 planned, 125 generated, 125 schema-valid, **125 verified**. After dedupe: 125 (0 dropped; same-cell Jaccard max 0.43, mean 0.21).
+- **Dead cell, same as before:** `exact|new_hire|internal_contradiction|beyond_template`. Cause now recorded: both attempts returned `stop_reason: "refusal"` with no content. **This is not a schema failure.**
+- **Diagnosis (one extra call per variant, so single samples):**
+  - As generated: refused, category `cyber`. That makes 5 refusals in 5 tries across the two runs and this test.
+  - Same row without "Do not explain, justify, or acknowledge the inconsistency.": generated normally.
+  - Same row with a hardware extra request instead of "access to the marketing email tool": generated normally.
+  - Reading: the refusal comes from a combination. The new account uses the manager's email (contradiction b), asks for access to an email system, and the prompt says to hide the inconsistency. Together these read as covert account takeover. No single instruction triggers it on its own.

@@ -220,7 +220,8 @@ class AnthropicBackend:
         self.temperature = temperature
         self.send_temperature = True  # dropped after the first 400 that names it
 
-    def call(self, system: str, user: str) -> dict | None:
+    def call(self, system: str, user: str) -> tuple[dict | None, object]:
+        """Returns (tool input or None, what the model actually returned)."""
         kwargs = dict(
             model=self.model, max_tokens=8000, system=system,
             messages=[{"role": "user", "content": user}],
@@ -239,9 +240,15 @@ class AnthropicBackend:
                 self.send_temperature = False
                 print(f"note: {self.model} rejects temperature; generating without it", file=sys.stderr)
             return self.call(system, user)
+        details = getattr(resp, "stop_details", None)
+        raw = {"stop_reason": resp.stop_reason,
+               "stop_details": details.model_dump() if details is not None else None, "content": [
+            {"type": b.type, **({"text": b.text} if b.type == "text" else {}),
+             **({"input": b.input} if b.type == "tool_use" else {})}
+            for b in resp.content]}
         if resp.stop_reason != "tool_use":
-            return None
-        return next((b.input for b in resp.content if b.type == "tool_use"), None)
+            return None, raw
+        return next((b.input for b in resp.content if b.type == "tool_use"), None), raw
 
 
 class OllamaBackend:
@@ -251,7 +258,8 @@ class OllamaBackend:
         self.send_temperature = True
         self.url = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/") + "/api/chat"
 
-    def call(self, system: str, user: str) -> dict | None:
+    def call(self, system: str, user: str) -> tuple[dict | None, object]:
+        """Returns (parsed JSON or None, the raw reply text)."""
         body = json.dumps({
             "model": self.model, "stream": False, "format": TICKET_SCHEMA,
             "options": {"temperature": self.temperature},
@@ -261,28 +269,32 @@ class OllamaBackend:
         with urllib.request.urlopen(req, timeout=300) as r:
             content = json.loads(r.read())["message"]["content"]
         try:
-            return json.loads(content)
+            return json.loads(content), content
         except json.JSONDecodeError:
-            return None
+            return None, content
 
 
 def generate_one(backend, row: dict) -> dict:
     system, user = build_prompt(row)
-    out = {"ticket": None, "schema_valid": False, "error": None,
+    out = {"ticket": None, "schema_valid": False, "error": None, "failed_attempts": [],
            "prompt_sha": hashlib.sha256((system + "\n\n" + user).encode()).hexdigest()}
-    for _attempt in range(2):  # one retry on invalid output, then schema_invalid
+    for attempt in range(2):  # one retry on invalid output, then schema_invalid
         try:
-            raw = backend.call(system, user)
+            parsed, raw = backend.call(system, user)
         except Exception as e:  # recorded on the row; the run continues
             out["error"] = f"{type(e).__name__}: {e}"
             return out
-        if raw is None:
+        if parsed is None:
+            # Keep what came back, so a dead cell has a cause and not just a count.
+            out["failed_attempts"].append({"attempt": attempt, "why": "no_parseable_output", "raw": raw})
             continue
         try:
-            out["ticket"] = Ticket.model_validate(raw).model_dump()
+            out["ticket"] = Ticket.model_validate(parsed).model_dump()
             out["schema_valid"] = True
             return out
-        except ValidationError:
+        except ValidationError as e:
+            out["failed_attempts"].append({"attempt": attempt, "why": "pydantic", "raw": raw,
+                                           "validation_errors": e.errors(include_url=False, include_input=False, include_context=False)})
             continue
     out["error"] = "schema_invalid"
     return out
