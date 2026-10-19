@@ -283,7 +283,8 @@ def _strings(x):
 
 
 def masked_text(rec: dict) -> str:
-    """Variable content only, with code-picked values masked (the decisions.md rule)."""
+    """Summary, notes and comment bodies, with code-picked values, emails and dates masked.
+    Differs from the dedupe rule recorded in decisions.md, which also shingles field values."""
     t = rec["ticket"]
     text = " ".join([t.get("summary") or "", t.get("notes") or ""] +
                     [(c.get("body") or "") for c in (t.get("comments") or [])])

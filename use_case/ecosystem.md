@@ -55,6 +55,8 @@ The amd64 image is built and tested locally. Configure Azure Container Apps and 
 | registry-1.docker.io | container images | OK | Amazon |
 | github.com | this repository | OK | Sectigo Limited |
 
+**Added 2026-10-18, outside the probe:** `registry.ollama.ai` (local model weights for TC2 Step 5) was reachable from this laptop. `qwen3:4b` and `qwen3:8b` pulled successfully through Ollama 0.40.6. The network it was on was not recorded, and the certificate signer was not checked.
+
 **Recorded verdict:** Open network, public CAs, no proxy. Nothing here will bite you.
 
 **Qualification:** Home-network results do not establish deployment access or rule out a proxy. Neither approved LLM provider was tested.

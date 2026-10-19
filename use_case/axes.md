@@ -34,7 +34,7 @@
 ### Who does what
 | Step | Owner |
 |---|---|
-| Pick the cell, role, title variant, club, blanked field, contradiction variant, changed detail, comment timestamp | **Code** (deterministic rotation, seeded) |
+| Pick the cell, role, title variant, club, blanked field, contradiction variant, changed detail, comment timestamp, and the requester / manager / employee names and `@example.com` emails | **Code** (deterministic rotation, seeded) |
 | Compute `expected_status`, `expected_proposal`, `expected_reason`, `expected_caveat` | **Code**, from the picks + status rule + v0.1 tables |
 | Write the ticket text (form fields, notes, comments) from the picks | **Model** — returns ticket JSON only, no labels |
 | Check the ticket contains every pick (exact title string, club, blank field actually blank, comment timestamp after creation, etc.) | **Code** — a row that fails is counted as a generation failure, not relabeled |
@@ -141,7 +141,7 @@ Where this file is silent, the generator assumes the following. Each is a choice
 2. **`expected_proposal` and `expected_caveat` are set only on `recommended` rows.** Other rows carry `null` for both and a short `expected_reason` code (e.g. `missing_required:due_date`, `human_review:returning_or_moving+beyond_template`).
 3. **Membership follows the ticket and its comments; login follows the standard.** `expected_proposal.membership_required` is the form value as amended by a later requester comment; `login_required` always comes from the role list or venue table (Rule 3).
 4. **Rule 4's agree/disagree start side is staggered by scope as well as by cell**, so each scope gets a balanced split (3 agree / 3 disagree per role fit) rather than 4/2.
-5. **Stored `picks` carry fields beyond the example above**: `standard_role`, `level`, `department`, `contradiction_club`, `extra_request`, `previous_club`, `intent_note`, `created`, `due_date`, `request_type`, and requester / manager / employee names and `@example.com` emails. Verification needs them to check a ticket against its picks.
+5. **Stored `picks` carry fields beyond the example above**: `standard_role`, `level`, `department`, `contradiction_club`, `extra_request`, `previous_club`, `intent_note`, `created`, `due_date`, `request_type`, and requester / manager / employee names and `@example.com` emails. Fixed rows carry a requester name; the three fixed rows about another employee (permission change, offboarding, promotion via general request) also carry that employee's name. Verification needs them to check a ticket against its picks.
 
 ### Removed, and why
 | Removed | Reason |

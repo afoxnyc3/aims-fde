@@ -207,7 +207,7 @@ class AnthropicBackend:
         self.client = anthropic.Anthropic()
         self.model = model
         self.temperature = temperature
-        self.send_temperature = True  # dropped after the first 400 that names it
+        self.send_temperature = temperature is not None  # dropped after the first 400 that names it
 
     def call(self, system: str, user: str) -> tuple[dict | None, object]:
         """Returns (tool input or None, what the model actually returned)."""
@@ -294,7 +294,8 @@ def main() -> None:
     P.add_filter_args(p)
     p.add_argument("--backend", choices=["anthropic", "ollama"], default="anthropic")
     p.add_argument("--model")
-    p.add_argument("--temperature", type=float, default=0.7)
+    p.add_argument("--temperature", type=float, default=None,
+                   help="Ollama defaults to 0.7; Anthropic sends nothing unless given (current models reject it)")
     p.add_argument("--workers", type=int, default=4)
     args = p.parse_args()
 
@@ -308,7 +309,7 @@ def main() -> None:
     else:
         if not args.model:
             p.error("--model is required with --backend ollama")
-        backend = OllamaBackend(args.model, args.temperature)
+        backend = OllamaBackend(args.model, 0.7 if args.temperature is None else args.temperature)
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     run = {"timestamp": ts, "role_fit": args.role_fit, "one_per_cell": args.one_per_cell, "limit": args.limit}
@@ -323,7 +324,7 @@ def main() -> None:
     with out_path.open("w") as fh:
         for row, res in zip(rows, results):
             rec = {**row, **res, "model": backend.model, "backend": args.backend, "seed": args.seed,
-                   "temperature": args.temperature if backend.send_temperature else None, "run": run}
+                   "temperature": backend.temperature if backend.send_temperature else None, "run": run}
             stored.append(rec)
             fh.write(json.dumps(rec) + "\n")
 

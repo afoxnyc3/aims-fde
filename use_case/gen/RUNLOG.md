@@ -70,6 +70,7 @@ Beyond the datasheet's leakage boxes, look for:
 - [ ] **Prompt-wording echo:** instruction text copied into notes or comments ("no other club", "use those words", "exactly"). The `echo` flag catches the known pattern, not every phrasing.
 - [ ] **Sign-off placement:** the requester's sign-off in the notes, not in a comment.
 - [ ] **Fields the picks don't call for:** for example `trainer_level` or `specialties` filled for non-trainer roles (seen on an Aquatics Lead in the 4B smoke test). `verify.py` does not check these.
+- [ ] **Notes that contradict the form:** for example a `membership_only` ticket (login NO) whose note says the person "will need access to the club-management system" (seen in the 8B base trial). Neither `verify.py` nor the echo check compares notes against form fields.
 
 ## 2026-10-19 — fixed rows regenerated with code-picked employee names (`synth_run_20261019_001640`)
 
