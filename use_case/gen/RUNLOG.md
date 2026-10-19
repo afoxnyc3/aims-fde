@@ -99,3 +99,20 @@ Beyond the datasheet's leakage boxes, look for:
 - **Timing:**
   - 4B: *measured*, median 4.5 s per ticket (range 3.9–7.2), wall 1,041 s ≈ sum of call latencies (1,035 s).
   - 8B: **not usable as a measurement.** The Mac went into idle sleep at 00:26:59, two minutes after the run started, and the run continued in maintenance wakes. Wall clock was 8,787 s against 4,078 s of summed call time, and per-call medians (11–25 s) are well above the awake 8B trial's 9.6 s. Rerun under `caffeinate -i` before citing any 8B time.
+
+## 2026-10-19 — 8B timing, reproducibility (question 3), declines vs recommended (question 1)
+
+**8B timing, rerun under `caffeinate -i`** (`sweep_qwen3-8b_base_20261019_061836`, `git 32e81c8`):
+- 24 generated, 24 schema-valid, 24 verified, 0 dead, echo 7. Same counts as the earlier 8B trial.
+- *Measured:* median **9.6 s** per ticket (range 8.9–11.6), warm-up 3.7 s, wall 242 s ≈ summed call time 237 s. No sleep during the run.
+- This replaces the 8B grid's unusable timing. The 4B (4.5 s per ticket in the grid) is about 2.1× faster.
+
+**Reproducibility (question 3).** Same model digest, seed, settings, and prompt:
+- **Immediate rerun:** 3 rows per model at (0.7, 0.8), regenerated straight after the grids. **6 of 6 byte-identical** to the grid file, including 8B rows whose grid run was interrupted by sleep.
+- **Across separate runs:** comparing the earlier base-setting trials with the grid at (0.7, 0.8) on all 24 rows: 4B **16 of 24** identical; 8B **21 of 24** (both 8B trials). Every mismatching row had identical seed, `prompt_sha`, `schema_sha`, options, and digest. Differences are small (character similarity 0.91–1.00) and confined to free text (notes, summary, comments), never a form field.
+- **Reading:** a fixed seed reproduces most output and often all of it, but it does not guarantee byte-identical tickets between runs on this setup. The cause was not isolated. Likely candidates are numerical non-determinism in GPU inference and Ollama's reuse of cached prompt prefixes between requests; neither is verified. For reproducibility, keep the generated file itself alongside the model digest, seed, settings, and prompt hash. Regenerating cannot be relied on to give the same text.
+
+**Question 1: declines vs recommended,** from both grid files. Declines = `outside_standard` `human_review` rows (**n=6**). Recommended = `venue_dependent` `recommended` rows (**n=4**: the slice has 4 such cells at one row each, not 6).
+- **Verified:** declines 6/6 at every setting on both models, except **4B at T 1.0: 5/6 (top-p 0.8) and 4/6 (top-p 0.95)**. Recommended 4/4 at every setting on both models.
+- **Echo:** declines 2/6 and recommended 0/4 at every setting on both models. This difference is structural, not about declining. The echo comes from `beyond_template` rows, and recommended rows can never be `beyond_template`.
+- **Reading:** with n=6 and n=4 and one sample per row, the only visible signal is the 4B losing declines first at the highest temperature. It is a hint, not a result.
