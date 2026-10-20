@@ -1,8 +1,5 @@
 # Datasheet
 
-<!-- Written in TC2, alongside your synthetic data. This file is committed; the
-     data itself is not. -->
-
 ## What this data is
 
 **Generated on:** 2026-10-20 (run `synth_run_20261020_113825`, saved as `synthetic_v1.jsonl`)
@@ -28,8 +25,6 @@
 
 ## Variation axes
 
-<!-- What you varied to get coverage: persona, format, difficulty, edge cases. -->
-
 Full definitions, generator instructions, and rules: [`use_case/axes.md`](../axes.md) (revision 6).
 
 | Axis | Values |
@@ -42,44 +37,36 @@ Full definitions, generator instructions, and rules: [`use_case/axes.md`](../axe
 
 ## What it can validate
 
-<!-- YOURS TO WRITE. Delete this comment when done. Evidence to draw on:
-- Every crossed axis combination appears at least once (95 of 96 cells verified); labels are computed by code, so each row's expected outcome is exactly what the provisional rule says.
-- 125 of 126 tickets verifiably contain their picks: exact titles, blanked fields, contradictions, timestamped changes, extra requests.
-- The decline path (outside_standard) and the needs_information / human_review / ignored branches all have rows.
-- So the narrow claim: whether the pipeline applies the PROVISIONAL rule correctly to tickets shaped like these, per axis value. -->
+These rows test whether the agent classifies onboarding tickets the way the draft rule says it should. The labels follow the draft rule, not what the Service Desk actually does, so a score on this data measures agreement with the draft rule, nothing more.
+
+Within that limit, the 113 verified rows cover all four outcomes (recommended, needs information, human review, ignored) and every axis value: exact, near-match, venue-dependent and outside-standard titles; new hires and returning or moving employees; clean tickets, internal contradictions and late changes; and requests inside and beyond the standard template. So the data can show whether the agent recognises each of those cases and routes it to the outcome the draft rule assigns.
+
+"Verified" means each ticket contains what it was generated to contain. It does not mean the ticket is realistic.
 
 ## What it cannot validate
 
-<!-- YOURS TO WRITE: the graded judgement, in your words, at least three things specific to this data. Delete this comment when done. Evidence to draw on:
-- Real distribution: your profiling of 257 tickets found about 60% of tickets tagged for the club-management system are permission changes and app or scanner problems; here they are 6 of 126 rows (fixed rows, one each).
-- Labels follow an unratified provisional rule. Pending Service Desk input would move about 18 of 36 recommended rows (Q7), 12 cells (Q1) and 36 cells (Q2); the reviewer's stated rule and practice disagreed on Q7 and Q2.
-- The v0.1 role standard is thin: the venue table rests on 6 aquatics tickets (3 YES / 3 NO).
-- Plausibility: verification proves a ticket contains its picks, not that it is realistic. The Service Desk judged 4 of 20 revision-5 tickets unrealistic (8, 11, 17, 18).
-- One model wrote every ticket, at default sampling: one writing style; revision 6 notes echo the prompt's two-jobs wording.
-- Not generated at all: Region B empty forms, comp-membership conversions, member-only requests from People Ops (Q8), batch hires, duplicates (removed by design).
-- A realistic ticket shape is missing: the model refuses one combination, so that cell has no row.
-- Real ticket text carries sensitive content (credentials, personal contact details, compensation, member identifiers) that synthetic text does not, so masking and leakage behaviour cannot be tested here.
-- From the fifty-row read and the Service Desk Manager (2026-10-20): every crossed row signs the notes with a requester who is not the listed manager, but on the fitness form the requester is always the hiring manager. Transfer and promotion rows ask for a new member record, which an existing employee already has. Fixed rows carry onboarding fields that IT help and other Jira request types don't have. Front-desk roles show department "Front Desk" where real tickets say "Hospitality". Change comments reuse identical wording and ISO dates.
-- People Ops' role-by-access matrix (dated 2026-10-07, internal, not in this repo) disagrees with the draft standard: Lifeguard and Aquatics Lead get a login at every club (the venue table says by club), the current title is "Hospitality Associate" (the draft calls it a legacy variant), and several "outside-standard" titles are real roles in the matrix. Babysitting Associate and Lead are missing from v1.
-- Intake varies by who you ask: the Technology Support Associate says offboarding and promotions come from People Ops; the Service Desk Manager says managers file them. v1 generates every ticket as manager-filed.
-- Coverage shrank after reading: 11 `missing_required` cells have no row, because the form requires the fields they blank. Missing information on real fitness tickets would look different (placeholders, wrong values, free text).
-- Consider: the promotion gate in decisions.md uses accuracy on synthetic tickets per role. Say what that gate can and cannot rest on while these labels are unratified. -->
+**The real mix of tickets.** About 60% of real tickets tagged for the club-management system are permission changes and app or scanner problems; in this data they are 5 of 113 rows. Only the fitness business unit's intake form is modelled, and roles that do come in, such as Babysitting Associate and Lead, are missing. A score here says nothing about how the agent performs on the traffic it will actually see.
+
+**Whether the labels are right.** Every label follows a draft rule nobody has ratified. People Ops' role-by-access matrix already contradicts it: Lifeguard and Aquatics Lead get a login at every club, not by club, and the draft standard's role names differ from the matrix's. The Service Desk's stated answers also differ from what they did with the same tickets (Q7, Q2). A high score can mean the agent faithfully reproduces a wrong rule.
+
+**How missing information really looks.** The fitness form requires location and start date, so a ticket can't arrive with those blank; the 11 rows that tested blanks were removed after reading. On real tickets, missing or wrong information probably shows up as placeholders, tentative dates or contradictory free text, which this data never generates. The agent's handling of real incomplete tickets is untested.
+
+**The promotion gate.** Nothing yet. The gate is meaningless until a role's standard is ratified. It is meant to work like this: for one role, run a batch of synthetic tickets (for example 200) through the pipeline. If at least 95% come back recommending the right role and access, with "right" meaning the ratified standard as confirmed by the Service Desk, the role can move from a recommendation posted as a Jira comment to automation. Until the standard is ratified, a 95% score here only shows agreement with a draft that is already known to be wrong for some roles. Synthetic accuracy shows the pipeline reads generator-style tickets; the live-ticket route (90% over 20 live tickets) is what shows it reads real ones.
 
 ## What it must never be compared against
 
-<!-- YOURS TO WRITE. Delete this comment when done. Evidence to draw on:
-- Real ground truth lives in the onboarding ticket history (Jira Service Management) and the role assignments actually recorded in the club-management system. Product (the Senior Product Manager) and IT administer them.
-- decisions.md already says historical grants are not ground truth either: they contain the variance the project exists to resolve.
-- So: accuracy on these rows must never be reported as accuracy on real tickets, and these labels must never be scored against historical grants as if either were the ratified standard. -->
+The real answer will be the ratified role standard: for each role, the exact permissions it receives. That doesn't exist yet. Until it does, the onboarding ticket is the source for **which role** a new hire has, and the draft standard is a placeholder for **what that role gets**. Neither these synthetic rows nor historical grants are ground truth: historical grants contain the drift this project exists to fix.
+
+So accuracy on this data must never be reported as accuracy on real tickets, and these labels must never be scored against what was historically granted, as if either were the ratified standard.
 
 ## Leakage check — outward (what left)
 
-- [ ] No real record was used as a seed.
+- [x] No real record was used as a seed.
 - [x] No real entity names, IDs, or identifiers appear.
 - [x] No distinctive internal formats that would identify the firm.
 - [x] Rare categories were generated, not copied.
 
-*Ticked by the reader after the fifty-row read (2026-10-20), which also confirmed "nothing here would embarrass us in a public repo". The first box describes how the data was made; tick it yourself if you agree.*
+*Ticked by the reader (2026-10-20). The first box reflects how the data was made: v1 was generated from `axes.md` and the schema, not from the goldens or any real ticket. The other three follow the fifty-row read, which also confirmed "nothing here would embarrass us in a public repo".*
 
 ### Fifty-row read (2026-10-20)
 
@@ -107,6 +94,6 @@ Full definitions, generator instructions, and rules: [`use_case/axes.md`](../axe
 ## Leakage check — inward (what the eval shares with the training data)
 
 **Are the goldens disjoint from anything the system was, or will be, tuned on?**
-<!-- YOURS TO ANSWER: yes, disjoint | no — overlap: <which goldens, which source> | unknown — who would know: <role>. Evidence: the six goldens were hand-written in TC1, modeled on real onboarding ticket patterns; the question is whether those same real tickets will ever feed a prompt, retrieval or fine-tune. -->
+**Unknown.** The six goldens were hand-written in TC1, modeled on real fitness onboarding tickets. Whether those source tickets will ever feed the agent's prompt, a retrieval corpus (Week 3) or a fine-tuning set (Week 8) is not yet decided. The project owner decides, and the answer will be recorded in `decisions.md` before any of those steps uses real tickets.
 
 **Overlap between `golden.jsonl` and this file, by the dedupe measure:** 0 pairs at Jaccard ≥ 0.85 (character 5-grams over variable content, with the goldens' form labels stripped). The closest golden-to-row similarity is 0.13 (DEMO-001).
