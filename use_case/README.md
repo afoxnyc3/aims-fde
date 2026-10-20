@@ -183,3 +183,27 @@ This checkout uses the challenge directory's `.env` for approved model configura
 **CDN dependency:** the browser loads `@gradio/client` from `https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js`. A browser on a network that blocks jsDelivr cannot connect the form, even when the container is healthy; this UI displays a connection error. The URL also omits a version, so a fresh fetch can load a newer client without an application rebuild, creating compatibility drift. For that environment, pin and bundle the client and its imports at build time, copy the bundle into the image, and serve it from this application. The current demo still uses the CDN; model API connectivity is a separate runtime dependency.
 
 A container image captures the Linux userspace, Python runtime, system libraries, installed dependencies, application code, and startup command; a virtual environment mainly isolates Python packages and relies on its host runtime and OS. The image gives the platform team a packaged runtime to run on a compatible container host; secrets and deployment configuration remain external.
+
+## Bring it to work
+
+**Project:** We can't decide which roles keep seats under a fixed AI-tool
+seat budget until someone clears analysis of the tool's chat export, which
+may contain personal and confidential data. The classifier labels the kind
+of work each conversation was for, so we can see which roles get value
+from a seat.
+
+- **Data:** Generate from a written description of the role mix (functions
+  and approximate headcounts), not from the export. The synthetic
+  conversations test the classifier's labels before any real record is
+  touched. Joining the real export to roles happens only after approval,
+  under the controls below. Owner of the real export: IT, as admin of the tool.
+- **Model or endpoint:** qwen3:8b via Ollama on a managed, encrypted laptop;
+  real export content does not leave the device. Latency was measured on
+  ticket generation (~300-token outputs); classification (long input, short
+  output) is not yet measured. Expected volume: a few thousand conversations
+  per export, so batch time depends on that measurement.
+- **Access or approval:** Naming a privacy reviewer for employee-conversation
+  analysis is the first step. That reviewer and the CTO (system owner) then
+  sign off on: employee notice under the acceptable-use policy; retention and
+  deletion covering every copy of the export; scope limited to conversation
+  records and usage metadata; and results reported by role, never by person.
