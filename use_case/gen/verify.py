@@ -18,8 +18,8 @@ from datetime import datetime
 from pathlib import Path
 
 SCOPE_FORM = {
-    "login_from_template": ("YES", "YES"),
-    "membership_only": ("NO", "YES"),
+    "member_plus_staff_login": ("YES", "YES"),
+    "member_record_only": ("NO", "YES"),
     "beyond_template": ("YES", "YES"),
 }
 # Accepted phrases for the Axis 2 note, checked case-insensitively in this order.
@@ -29,7 +29,6 @@ INTENT_PHRASES = {
     "transferring": ["transferring", "transfer", "moving over from", "moving from"],
     "promoted": ["promoted", "promotion"],
 }
-NEGATION = re.compile(r"\b(no|not|n't|don't|doesn't|without|cancel\w*|remove\w*|drop\w*)\b", re.I)
 
 
 def _ts(s: str) -> datetime | None:
@@ -122,8 +121,6 @@ def check(row: dict) -> tuple[list[dict], dict]:
             body = " ".join(c["body"] for c in later)
             if ch["detail"] in ("due_date", "club") and ch["to"] not in body:
                 fail("changed", f"comment does not state new {ch['detail']} {ch['to']!r}")
-            if ch["detail"] == "membership" and not ("membership" in body.lower() and NEGATION.search(body)):
-                fail("changed", "comment does not drop the membership")
     elif t["comments"]:
         fail("changed", f"{len(t['comments'])} unexpected comment(s)")
 

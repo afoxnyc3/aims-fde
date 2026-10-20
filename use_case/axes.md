@@ -1,4 +1,4 @@
-## Variation axes (revision 5)
+## Variation axes (revision 6)
 
 > **Label provenance:** Labels are **computed by code** from the cell picks, the status rule, and the v0.1 reference tables below. The status rule and the tables are **not ratified** by the Service Desk; the open questions at the end could change roughly half the labels.
 
@@ -42,11 +42,11 @@
 ### Rules
 1. **Conflict order:** each axis sets only its own fields; when instructions collide, Axis 3 > Axis 2 > Axis 4 > Axis 1.
 2. **Blank job title:** every `exact` × `missing_required` row blanks the job title (6 cells). Those rows record `role_fit_observable: false`. All other `missing_required` rows rotate the blank across start date, location, and employee email, and `venue_dependent` never blanks location.
-3. **Request vs. standard (all roles):** the role standard wins. `expected_proposal.login_required` comes from the standard role list (or the venue access table for by-club roles), never from the ticket's login field. When the ticket's login field disagrees with the standard, status stays `recommended` and `expected_caveat` = `request_differs_from_standard`. Under this rule, `login_from_template` and `membership_only` rows for the same role produce the **same expected proposal** and differ only in the caveat. *(Open question 7.)*
+3. **Request vs. standard (all roles):** the role standard wins. `expected_proposal.login_required` comes from the standard role list (or the venue access table for by-club roles), never from the ticket's login field. When the ticket's login field disagrees with the standard, status stays `recommended` and `expected_caveat` = `request_differs_from_standard`. Under this rule, `member_plus_staff_login` and `member_record_only` rows for the same role produce the **same expected proposal** and differ only in the caveat. *(Open question 7.)* **The member record follows the ticket and is always created** (`expected_proposal.membership_required` is always true). *(Open question 8.)*
 4. **Agree/disagree balance:** in every cell that can resolve to `recommended`, code alternates picks so the ticket's login field agrees with the standard on some rows and disagrees on others, starting on a different side per cell.
    - `exact`: alternate between login-YES roles and login-NO roles.
    - `venue_dependent`: alternate between login-required and not-required clubs. When `changed_after_submission` changes the club, code computes agree/disagree and `login_required` from the club **after** the change.
-   - **`near_match` cannot alternate.** Observed near-match variants exist only for login-YES roles (Personal Trainer, Front Desk Associate), so `near_match` × `login_from_template` always agrees and `near_match` × `membership_only` always disagrees. Agreement is confounded with scope in these cells, so **`near_match` results are not used as evidence for open question 7.**
+   - **`near_match` cannot alternate.** Observed near-match variants exist only for login-YES roles (Personal Trainer, Front Desk Associate), so `near_match` × `member_plus_staff_login` always agrees and `near_match` × `member_record_only` always disagrees. Agreement is confounded with scope in these cells, so **`near_match` results are not used as evidence for open question 7.**
 
 ### Axis 1: Role fit
 Real variation: how cleanly the job title maps to a standard role.
@@ -70,14 +70,16 @@ Real variation: how cleanly the job title maps to a standard role.
 | `clean` | All required fields present and consistent. |
 | `missing_required` | Leave the picked field blank (Rule 2). |
 | `internal_contradiction` | Apply the picked variant: (a) location field names one club and the notes name a different club; (b) employee email identical to manager email. |
-| `changed_after_submission` | Fill the form, then add a requester comment with the picked timestamp (after creation) changing the picked detail (start date, club, or membership) to the picked new value. |
+| `changed_after_submission` | Fill the form, then add a requester comment with the picked timestamp (after creation) changing the picked detail (start date or club) to the picked new value. The member record is never changed by a comment. |
 
 ### Axis 4: Provisioning scope
+Every onboarding ticket carries two jobs: (1) a **member record** in the club-management system, which every employee gets and which hiring managers or People Ops have traditionally handled, and (2) a **staff login** with a role, which depends on the role. The prompt states both jobs explicitly; the form fields are `membership_required` (job 1) and `login_required` (job 2).
+
 | Value | Generator instruction |
 |---|---|
-| `login_from_template` | System login: YES. Membership required: YES. Nothing else requested. |
-| `membership_only` | System login: NO. Membership required: YES. |
-| `beyond_template` | System login: YES. Membership required: YES. Plus a note requesting the picked extra (specific hardware, other named systems, or "same access as [named colleague]"). |
+| `member_plus_staff_login` | Member record: YES. Staff login: YES. Nothing else requested. |
+| `member_record_only` | Member record: YES. Staff login: NO. |
+| `beyond_template` | Member record: YES. Staff login: YES. Plus a note requesting the picked extra (specific hardware, other named systems, or "same access as [named colleague]"). |
 
 ### Fixed rows (not crossed)
 | # | Ticket | Expected status | Reason |
@@ -103,8 +105,8 @@ First match wins.
 ### Stored per row (computed by code)
 ```json
 {
-  "cell_id": "venue_dependent|new_hire|clean|membership_only",
-  "axes": {"role_fit": "venue_dependent", "intent": "new_hire", "reliability": "clean", "scope": "membership_only"},
+  "cell_id": "venue_dependent|new_hire|clean|member_record_only",
+  "axes": {"role_fit": "venue_dependent", "intent": "new_hire", "reliability": "clean", "scope": "member_record_only"},
   "picks": {"title": "Lifeguard", "club": "Club C", "near_match_variant": null, "blank_field": null,
             "contradiction_variant": null, "changed": null, "comment_ts": null},
   "expected_status": "recommended",
@@ -133,13 +135,13 @@ First match wins.
 - `venue_dependent` × `missing_required`: never blank location.
 - Job title blanked only, and always, in `exact` × `missing_required`.
 - Fixed rows never crossed.
-- `membership_only` × `changed_after_submission`: the change is to start date or club only, never membership.
+- `changed_after_submission` never changes the member record: the changed detail is start date or club only, and `membership_required` is YES on every generated row.
 
 ### Implementation assumptions (made in `use_case/gen/`, not ratified)
 Where this file is silent, the generator assumes the following. Each is a choice, not a Service Desk decision.
 1. **`exact` uses the 7 fixed-login roles only** (Group Fitness Instructor, Personal Trainer, Front Desk Associate, Massage Therapist, Membership Consultant, Cafe Associate, Housekeeping Associate). Lifeguard and Aquatics Lead are by-club and belong to `venue_dependent`.
 2. **`expected_proposal` and `expected_caveat` are set only on `recommended` rows.** Other rows carry `null` for both and a short `expected_reason` code (e.g. `missing_required:due_date`, `human_review:returning_or_moving+beyond_template`).
-3. **Membership follows the ticket and its comments; login follows the standard.** `expected_proposal.membership_required` is the form value as amended by a later requester comment; `login_required` always comes from the role list or venue table (Rule 3).
+3. **The member record follows the ticket and is always created; the staff login follows the standard.** `expected_proposal.membership_required` is always true; `login_required` always comes from the role list or venue table (Rule 3). *(Revised in revision 6; earlier runs let a requester comment drop the membership.)*
 4. **Rule 4's agree/disagree start side is staggered by scope as well as by cell**, so each scope gets a balanced split (3 agree / 3 disagree per role fit) rather than 4/2.
 5. **Stored `picks` carry fields beyond the example above**: `standard_role`, `level`, `department`, `contradiction_club`, `extra_request`, `previous_club`, `intent_note`, `created`, `due_date`, `request_type`, and requester / manager / employee names and `@example.com` emails. Fixed rows carry a requester name; the three fixed rows about another employee (permission change, offboarding, promotion via general request) also carry that employee's name. Verification needs them to check a ticket against its picks.
 
@@ -166,5 +168,6 @@ Where this file is silent, the generator assumes the following. Each is a choice
 | 5 | Does trainer/associate **level** change access? | If yes, near-match variants (a) and (b) become distinct roles: ~2/3 of `near_match` rows relabel |
 | 6 | Does access differ by club for roles beyond Lifeguard and Aquatics Lead? | Expands the venue access table |
 | 7 | When the ticket's login request disagrees with the role standard, provision per standard with a caveat, or treat as a contradiction? | ~18 of 36 `recommended` rows (the disagreeing half across `exact`, `near_match`, and `venue_dependent`) would move to `needs_information` or `human_review`. Largest single swing on the recommended set. |
+| 8 | Is member-record creation in scope for the agent, or redirected to People Ops? Owner: project owner, with People Ops. | All `member_record_only` rows: 44 rows across 32 cells. |
 
 - Evidence behind Q6: the venue access table rests on 6 aquatics tickets (3 YES / 3 NO). Ask: is login by club a real rule, or did managers fill the field inconsistently?

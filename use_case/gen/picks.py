@@ -54,7 +54,9 @@ REFERENCE_VERSIONS = {"role_list": "v0.1", "club_access": "v0.1", "status_rule":
 ROLE_FIT = ["exact", "near_match", "venue_dependent", "outside_standard"]
 INTENT = ["new_hire", "returning_or_moving"]
 RELIABILITY = ["clean", "missing_required", "internal_contradiction", "changed_after_submission"]
-SCOPE = ["login_from_template", "membership_only", "beyond_template"]
+# Every onboarding ticket carries two jobs: (1) a member record in the club-management
+# system (every employee), and (2) a staff login with a role (role-dependent).
+SCOPE = ["member_plus_staff_login", "member_record_only", "beyond_template"]
 
 # Fixed-login roles used for `exact`. Lifeguard and Aquatics Lead are by-club and
 # belong to `venue_dependent`; using them here would blur the two values.
@@ -146,7 +148,7 @@ def standard_login(role: str, club: str | None) -> bool | None:
 
 
 def ticket_login(scope: str) -> bool:
-    return scope != "membership_only"
+    return scope != "member_record_only"
 
 
 class Rotation:
@@ -192,8 +194,7 @@ def build_plan(seed: int = 42) -> list[dict]:
         "blank_any": Rotation(rng, ["due_date", "location", "employee_email"]),
         "blank_venue": Rotation(rng, ["due_date", "employee_email"]),
         "contradiction": Rotation(rng, ["a", "b"]),
-        "changed": Rotation(rng, ["due_date", "club", "membership"]),
-        "changed_no_membership": Rotation(rng, ["due_date", "club"]),
+        "changed": Rotation(rng, ["due_date", "club"]),  # the member record is never changed
         "intent_note": Rotation(rng, INTENT_NOTES),
         "first": Rotation(rng, FIRST_NAMES),
         "last": Rotation(rng, LAST_NAMES),
@@ -249,9 +250,7 @@ def build_plan(seed: int = 42) -> list[dict]:
             elif reliability == "internal_contradiction":
                 picks["contradiction_variant"] = rot["contradiction"].take()
             elif reliability == "changed_after_submission":
-                # Exclusion: membership_only cells never change membership.
-                pool = rot["changed_no_membership"] if scope == "membership_only" else rot["changed"]
-                picks["changed"] = {"detail": pool.take(), "from": None, "to": None}
+                picks["changed"] = {"detail": rot["changed"].take(), "from": None, "to": None}
                 picks["comment_ts"] = (created + timedelta(hours=rot["comment_hours"].take())).isoformat(timespec="seconds")
 
             changed_detail = picks["changed"]["detail"] if picks["changed"] else None
@@ -314,8 +313,6 @@ def build_plan(seed: int = 42) -> list[dict]:
                 picks["changed"].update({"from": due.isoformat(), "to": new_due.isoformat()})
             elif changed_detail == "club":
                 picks["changed"].update({"from": club, "to": club_after})
-            elif changed_detail == "membership":
-                picks["changed"].update({"from": "YES", "to": "NO"})
 
             # Axis 2.
             if intent == "returning_or_moving":
@@ -367,7 +364,7 @@ def _label(cell_id, role_fit, intent, reliability, scope, picks, k) -> dict:
             "level": picks["level"],
             "club": club,
             "login_required": login,
-            "membership_required": not (changed.get("detail") == "membership"),
+            "membership_required": True,  # the member record follows the ticket and is always created
             "extra_requests": [],
         }
         if login != ticket_login(scope):

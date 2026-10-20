@@ -13,14 +13,14 @@
 
 <!-- What you varied to get coverage: persona, format, difficulty, edge cases. -->
 
-Full definitions, generator instructions, and rules: [`use_case/axes.md`](../axes.md) (revision 5).
+Full definitions, generator instructions, and rules: [`use_case/axes.md`](../axes.md) (revision 6).
 
 | Axis | Values |
 | --- | --- |
 | Role fit | `exact` · `near_match` · `venue_dependent` · `outside_standard` (calibrated decline) |
 | Request intent | `new_hire` · `returning_or_moving` |
 | Data reliability | `clean` · `missing_required` · `internal_contradiction` · `changed_after_submission` |
-| Provisioning scope | `login_from_template` · `membership_only` · `beyond_template` |
+| Provisioning scope | `member_plus_staff_login` · `member_record_only` · `beyond_template` |
 | Fixed rows (not crossed) | login problem · permission change · outage · offboarding (all `ignored`) · promotion via general request (`ignored`) · vague account request (`needs_information`) |
 
 ## What it can validate

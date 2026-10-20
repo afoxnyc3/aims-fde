@@ -96,8 +96,8 @@ HOUSE_RULES = """Rules for every ticket:
 - Return the ticket only, by calling the submit_ticket tool once."""
 
 SCOPE_TEXT = {
-    "login_from_template": ("YES", "YES"),
-    "membership_only": ("NO", "YES"),
+    "member_plus_staff_login": ("YES", "YES"),
+    "member_record_only": ("NO", "YES"),
     "beyond_template": ("YES", "YES"),
 }
 
@@ -148,8 +148,9 @@ def instructions(row: dict) -> str:
     else:
         lines.append(f'- employee_email: exactly "{p["employee_email"]}"')
     lines += [
-        f"- login_required: {login}",
-        f"- membership_required: {membership}",
+        "- This request covers two jobs: (1) a member record in the club-management system, which every employee gets, and (2) a staff login with a role, which depends on the role.",
+        f"- membership_required (the member record): {membership}",
+        f"- login_required (the staff login): {login}",
         "- user_to_replicate: blank",
         "- employment_type: Full-time, Part-time, or Seasonal (your choice)",
         "- specialties and trainer_level: fill only if they fit the job title, and never contradict it; otherwise blank",
@@ -181,7 +182,6 @@ def instructions(row: dict) -> str:
         what = {
             "due_date": f'the start date is now {ch["to"]} (write the date exactly as {ch["to"]})',
             "club": f'the person will now work at {ch["to"]} instead of {ch["from"]}',
-            "membership": "the person no longer needs a membership",
         }[ch["detail"]]
         lines.append(f'- comments: exactly one comment, author_role "requester", timestamp exactly "{p["comment_ts"]}", saying {what}. Leave the form fields as originally submitted.')
     else:

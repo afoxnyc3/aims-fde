@@ -132,3 +132,13 @@ Before `tc2-axes` was first pushed to the public repo, one line in `use_case/sta
 | `32e81c8` | `7491c47` | Log the qwen3 4B and 8B grids |
 
 The code in each pair is identical; only the hash changed.
+
+## 2026-10-20 — axes revision 6: two jobs per ticket (plan and prompt change)
+
+- **Context correction:** every onboarding ticket carries two jobs: (1) a member record in the club-management system, for every employee, traditionally handled by the hiring manager or People Ops; (2) a staff login with a role, which depends on the role.
+- **Renamed scope values:** `login_from_template` → `member_plus_staff_login`; `membership_only` → `member_record_only` (`axes.md`, `DATASHEET.md`, `picks.py`, `generate.py`, `verify.py`).
+- **Member record never changed:** "membership" was removed from the changed-detail pool; changes are now start date or club only (18 each). `membership_required` is YES on every generated row, and `expected_proposal.membership_required` is always true.
+- **Rule 3 addition:** "the member record follows the ticket and is always created." The login rule is unchanged.
+- **New open question Q8:** is member-record creation in scope for the agent, or redirected to People Ops? Impact: all `member_record_only` rows (44 rows, 32 cells).
+- **Prompt change:** the generation prompt now states both jobs explicitly, and the comment instruction no longer offers a membership change. **Every `prompt_sha` changes.** All runs before this entry (hosted runs, both qwen3 grids, the fixed-row regeneration, and the 20-ticket review set) used the old wording and the old scope names, and their stored `axes.scope` values use the old names.
+- **Plan check:** 126 rows, 36/49/36/5 mix, and Rule 4 balance (3 agree / 3 disagree per scope) all unchanged.
