@@ -189,7 +189,7 @@ The code in each pair is identical; only the hash changed.
 
 ## 2026-10-20 — Service Desk staff-login check
 
-- **Answered:** all 9 roles, on the Service Desk copy of the staff-login check. The Senior Product Manager's copy is unanswered so far.
+- **Answered:** all 9 roles, by the Technology Support Associate, on the Service Desk copy of the staff-login check. The Senior Product Manager's copy is unanswered so far.
 - **Agrees with the draft standard and the role matrix (7 of 9):** Group Fitness Instructor, Personal Trainer, Front Desk Associate, Massage Therapist and Membership Consultant yes; Cafe Associate and Housekeeping Associate no.
-- **Disagrees (2 of 9):** Lifeguard and Aquatics Lead "depend on club", at two named clubs only (names kept out of the repo). The matrix says every club; the draft venue table names different clubs. A possible reconciliation, to confirm: those are the only clubs with pools.
+- **Disagrees (2 of 9):** Lifeguard and Aquatics Lead "depend on club", at two named clubs only (names kept out of the repo). The same associate said "one rule per role everywhere" on 2026-10-19. The matrix says every club; the draft venue table names different clubs. A possible reconciliation, to confirm: those are the only clubs with pools.
 - **No labels changed.** All answers are unratified input.
