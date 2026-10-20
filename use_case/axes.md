@@ -169,6 +169,7 @@ Where this file is silent, the generator assumes the following. Each is a choice
 | 6 | Does access differ by club for roles beyond Lifeguard and Aquatics Lead? | Expands the venue access table |
 | 7 | When the ticket's login request disagrees with the role standard, provision per standard with a caveat, or treat as a contradiction? | ~18 of 36 `recommended` rows (the disagreeing half across `exact`, `near_match`, and `venue_dependent`) would move to `needs_information` or `human_review`. Largest single swing on the recommended set. |
 | 8 | Is member-record creation in scope for the agent, or redirected to People Ops? Owner: project owner, with People Ops. | All `member_record_only` rows: 44 rows across 32 cells. |
+| 9 | Who files offboarding, promotions and transfers: the hiring manager, People Ops, or both? The Service Desk Manager says managers; the Technology Support Associate says People Ops for offboarding and promotions. Owner: Service Desk Manager, with People Ops. | Decides whether manager-filed promotion and offboarding tickets (fixed rows 4 and 5, the "promoted" intent) are realistic, and whether a People Ops requester axis is needed. |
 
 - Evidence behind Q6: the venue access table rests on 6 aquatics tickets (3 YES / 3 NO). Ask: is login by club a real rule, or did managers fill the field inconsistently?
 
@@ -178,9 +179,9 @@ Where this file is silent, the generator assumes the following. Each is a choice
 |---|---|---|---|
 | 1 | Recommend, with a note to check the existing account | Yes (tickets 5, 6, 7 processed) | Recorded; pending ratification |
 | 2 | Send for review first | No (ticket 9: "membership only no login") | Needs reconciling with the decider |
-| 3 | Not decided | — | Open |
+| 3 | Not decided | — | Open. Fixed row 6 (vague request) was removed from v1 after the fifty-row read: with no required field filled, it cannot be submitted through either form |
 | 4 | Requester or listed manager only | Matches the current rule | Access-control decision; pending the security owner |
-| 5 | Same access at every level | Yes; matches the current assumption | Pending the VP Hospitality |
-| 6 | One rule per role everywhere (rule not stated) | Tickets 12 and 13 suggest lifeguards get a login everywhere | Pending the VP Hospitality |
+| 5 | Same access at every level | Yes; matches the current assumption | People Ops' role matrix (2026-10-07) agrees: Level 1–4 Trainers get the same access. Unratified |
+| 6 | One rule per role everywhere (rule not stated) | Tickets 12 and 13 suggest lifeguards get a login everywhere | People Ops' role matrix (2026-10-07) agrees: Lifeguard and Aquatics Lead get a login at every club, so the venue table above is likely wrong. Unratified |
 | 7 | Treat as a contradiction and ask the requester | No (processed 2, 3, 4, 13; login per role on 12) | Needs reconciling with the decider |
 | 8 | Not asked (added in revision 6) | — | Open |

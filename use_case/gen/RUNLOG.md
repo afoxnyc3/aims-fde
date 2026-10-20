@@ -160,3 +160,29 @@ The code in each pair is identical; only the hash changed.
 - **Dead cell:** `outside_standard|new_hire|internal_contradiction|beyond_template` (Department Manager). Both attempts returned `stop_reason: refusal`, category `cyber`. Its picks are the same combination as the earlier dead cell: contradiction b (employee email = manager email) plus "access to the marketing email tool". Revision 6 shifted the pick rotation, so the combination landed on a different cell. This confirms the refusal follows the pick combination, not the cell. Left dead, as decided on 2026-10-18.
 - **`synthetic_v1.jsonl`** is this run file unchanged: all 126 rows, including the failed row with `verified: false` (failed rows are never relabelled or dropped from the file). Consumers should filter on `verified`.
 - **The Service Desk's 20-ticket review used revision 5 tickets**, not this file.
+
+## 2026-10-20 — fifty-row read: mechanical pre-check
+
+- **Scope:** the 50 stratified rows on the reading page (11 per role fit plus all 6 fixed rows) from `synthetic_v1.jsonl`. These are automated checks only; the keep/remove calls are the reader's.
+- **Prompt-wording echo:** 44 of 44 crossed rows in the sample repeat the revision 6 prompt's terms "member record" and "staff login" in the notes. The 6 fixed rows are clean. **Decision:** keep v1 as is and document the artifact in the datasheet; fix in revision 7 by asking for the form's own terms in notes.
+- **One field to judge:** #33 (Babysitter, outside-standard role) has `trainer_level` = "Not applicable".
+- **Clean:** no sign-off in a comment, no note contradicting the form's login field, no literal "None", no club outside A–E, no email outside `@example.com`.
+
+## 2026-10-20 — fifty-row read: results and removals
+
+- **Read:** 49 of 50 rows marked on the reading page (keep 39 · remove 4 · unsure 6). All three leakage checks were ticked by the reader; no leak concerns were found. "Copies prompt wording" was flagged on 1 row, and the echo is documented for all crossed rows.
+- **Removed from `synthetic_v1.jsonl` (12 rows):** all 4 location-blank rows and all 7 start-date-blank rows (both fields are required on the fitness form, per the Service Desk Manager), plus fixed row 6 (vague request; no required field filled, so it cannot be submitted). Three start-date rows marked "keep, needs a start date" on the page were removed under the same required-field rule. The pre-read file is kept locally as `synthetic_v1_pre_read.jsonl`; removed rows and reasons as `synthetic_v1_removed.jsonl`.
+- **Kept with a flag:** the Foundation Coordinator row (`outside_standard|returning_or_moving|missing_required|beyond_template#0`): "foundation employees do not get access to staff app".
+- **After reading:** 114 rows in the file, 113 verified, status mix 36 / 36 / 36 / 5, 13 dead combinations (1 refused, 11 `missing_required` cells, fixed row 6).
+- **Pending:** 6 blank-job-title rows (Rule 2), until it is confirmed whether Position Title is required on the new-hire topic.
+- **Generator findings for revision 7:**
+  - the requester must equal the hiring manager (fitness form);
+  - transfer and promoted rows must not request a new member record (existing employees already have one);
+  - department for front-desk roles is "Hospitality";
+  - fixed rows need their own request type's shape, without onboarding fields;
+  - "missing" information should be modelled as placeholders or wrong values, since required fields can't be blank;
+  - change comments reuse one phrasing and ISO dates;
+  - the outside-standard titles should come from real roles not yet standardised.
+- **New evidence:**
+  - **People Ops' role-by-access matrix** (2026-10-07; internal, not committed). It agrees with the draft standard on most roles. It contradicts it on Lifeguard and Aquatics Lead (login at every club), names the front-desk role "Hospitality Associate", and lists Babysitting Associate and Lead (login yes), which v1 lacks.
+  - **Intake accounts differ:** the associate says offboarding and promotions come from People Ops; the manager says managers file them (open question 9).
