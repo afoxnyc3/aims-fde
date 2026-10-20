@@ -186,3 +186,10 @@ The code in each pair is identical; only the hash changed.
 - **New evidence:**
   - **People Ops' role-by-access matrix** (2026-10-07; internal, not committed). It agrees with the draft standard on most roles. It contradicts it on Lifeguard and Aquatics Lead (login at every club), names the front-desk role "Hospitality Associate", and lists Babysitting Associate and Lead (login yes), which v1 lacks.
   - **Intake accounts differ:** the associate says offboarding and promotions come from People Ops; the manager says managers file them (open question 9).
+
+## 2026-10-20 — Service Desk staff-login check
+
+- **Answered:** all 9 roles, on the Service Desk copy of the staff-login check. The Senior Product Manager's copy is unanswered so far.
+- **Agrees with the draft standard and the role matrix (7 of 9):** Group Fitness Instructor, Personal Trainer, Front Desk Associate, Massage Therapist and Membership Consultant yes; Cafe Associate and Housekeeping Associate no.
+- **Disagrees (2 of 9):** Lifeguard and Aquatics Lead "depend on club", at two named clubs only (names kept out of the repo). The matrix says every club; the draft venue table names different clubs. A possible reconciliation, to confirm: those are the only clubs with pools.
+- **No labels changed.** All answers are unratified input.
