@@ -2,7 +2,7 @@
 
 Synthetic onboarding tickets for an agent that recommends new-hire system access from a role standard, and a datasheet that says what they can and cannot prove. This page indexes each deliverable; the detail lives in the linked files.
 
-**Loom:** [link]
+**Loom:** https://www.loom.com/share/e2d662a1acce4a55aae2d53124b902f4
 **Branch:** `tc2-axes`
 
 ## Step 1: variation axes
