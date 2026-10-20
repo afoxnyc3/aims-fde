@@ -142,3 +142,21 @@ The code in each pair is identical; only the hash changed.
 - **New open question Q8:** is member-record creation in scope for the agent, or redirected to People Ops? Impact: all `member_record_only` rows (44 rows, 32 cells).
 - **Prompt change:** the generation prompt now states both jobs explicitly, and the comment instruction no longer offers a membership change. **Every `prompt_sha` changes.** All runs before this entry (hosted runs, both qwen3 grids, the fixed-row regeneration, and the 20-ticket review set) used the old wording and the old scope names, and their stored `axes.scope` values use the old names.
 - **Plan check:** 126 rows, 36/49/36/5 mix, and Rule 4 balance (3 agree / 3 disagree per scope) all unchanged.
+
+## 2026-10-19 — Service Desk review of the 20-ticket set
+
+- **Reviewer:** a Technology Support Associate who works the onboarding queue. **Material:** `review_20` (Part A blind, Part B with labels), generated under revision 5 wording from `synth_run_20261018_221844` plus the regenerated fixed rows (`synth_run_20261019_001640`).
+- **Realism:** 16 of 20 judged realistic. Judged unrealistic: ticket 8 (outside-standard role, employee email blank), ticket 11 (trainer's membership dropped by a comment; this change type was removed in revision 6), and both fixed rows (17 promotion via general request, 18 vague account request). Both planted oddities (19 trainer level "None", 20 "Aquatics" specialty) were accepted as realistic.
+- **Policy answers:** recorded in `axes.md` as unratified input. None had a named decider.
+- **Stated policy and practice diverge on Q7 and Q2:** see the `decisions.md` Step 6 row.
+- **Step 6 coverage:** the session covered "which would never happen?". The other two questions were sent by Teams on 2026-10-20.
+- **Fifty-row read additions:** treat the judged-unrealistic patterns as generator checks (outside-standard role with a blank employee email; both fixed-row types). Check whether a literal "None" in a form field really occurs, since the reviewer accepted it.
+
+## 2026-10-20 — v1 run, revision 6 (`synth_run_20261020_113825` → `use_case/data/synthetic_v1.jsonl`)
+
+- **Scope:** all 126 rows, seed 42, axes revision 6 (new scope names, both jobs stated in the prompt). Model `claude-opus-5-5`, Anthropic backend, effort `low`; no temperature sent (the model rejects it). 126 distinct `prompt_sha` values.
+- **Result:** 126 planned, 125 generated, 125 schema-valid, **125 verified**. After dedupe: 125 (0 same-cell rows dropped at Jaccard ≥ 0.85; same-cell max 0.38, mean 0.22 over 36 pairs; 0 cross-cell pairs). 1 dead cell.
+- **Verified status mix:** 36 recommended / 48 needs_information / 36 human_review / 5 ignored (planned 36/49/36/5).
+- **Dead cell:** `outside_standard|new_hire|internal_contradiction|beyond_template` (Department Manager). Both attempts returned `stop_reason: refusal`, category `cyber`. Its picks are the same combination as the earlier dead cell: contradiction b (employee email = manager email) plus "access to the marketing email tool". Revision 6 shifted the pick rotation, so the combination landed on a different cell. This confirms the refusal follows the pick combination, not the cell. Left dead, as decided on 2026-10-18.
+- **`synthetic_v1.jsonl`** is this run file unchanged: all 126 rows, including the failed row with `verified: false` (failed rows are never relabelled or dropped from the file). Consumers should filter on `verified`.
+- **The Service Desk's 20-ticket review used revision 5 tickets**, not this file.

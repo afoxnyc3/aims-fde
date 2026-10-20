@@ -171,3 +171,16 @@ Where this file is silent, the generator assumes the following. Each is a choice
 | 8 | Is member-record creation in scope for the agent, or redirected to People Ops? Owner: project owner, with People Ops. | All `member_record_only` rows: 44 rows across 32 cells. |
 
 - Evidence behind Q6: the venue access table rests on 6 aquatics tickets (3 YES / 3 NO). Ask: is login by club a real rule, or did managers fill the field inconsistently?
+
+**Service Desk input, 2026-10-19 (Technology Support Associate; unratified, no decider named).** Labels do not change until an answer is ratified.
+
+| # | Stated answer | Matches the blind-read practice? | Status |
+|---|---|---|---|
+| 1 | Recommend, with a note to check the existing account | Yes (tickets 5, 6, 7 processed) | Recorded; pending ratification |
+| 2 | Send for review first | No (ticket 9: "membership only no login") | Needs reconciling with the decider |
+| 3 | Not decided | — | Open |
+| 4 | Requester or listed manager only | Matches the current rule | Access-control decision; pending the security owner |
+| 5 | Same access at every level | Yes; matches the current assumption | Pending the VP Hospitality |
+| 6 | One rule per role everywhere (rule not stated) | Tickets 12 and 13 suggest lifeguards get a login everywhere | Pending the VP Hospitality |
+| 7 | Treat as a contradiction and ask the requester | No (processed 2, 3, 4, 13; login per role on 12) | Needs reconciling with the decider |
+| 8 | Not asked (added in revision 6) | — | Open |
