@@ -55,6 +55,8 @@ The amd64 image is built and tested locally. Configure Azure Container Apps and 
 | registry-1.docker.io | container images | OK | Amazon |
 | github.com | this repository | OK | Sectigo Limited |
 
+**Added 2026-10-18, outside the probe:** `registry.ollama.ai` (local model weights for TC2 Step 5) was reachable from this laptop. `qwen3:4b` and `qwen3:8b` pulled successfully through Ollama 0.40.6. The network it was on was not recorded, and the certificate signer was not checked.
+
 **Recorded verdict:** Open network, public CAs, no proxy. Nothing here will bite you.
 
 **Qualification:** Home-network results do not establish deployment access or rule out a proxy. Neither approved LLM provider was tested.
@@ -64,10 +66,35 @@ gap is worth chasing — it usually means a proxy nobody documented.
 
 Compare the home probe with [Azure egress verification](#azure-egress-verification); the two tests cover different environments.
 
+### Egress — 2026-10-19 work laptop (Mac 1) / office network
+
+Same probe (`helpers/preflight.py`), with three hosts added that the home run did not cover. The network is recorded as the office network on the project owner's statement; the tooling could not read the Wi-Fi name to confirm it.
+
+| host | why | status | signed by |
+| --- | --- | --- | --- |
+| pypi.org | Python packages | OK | GlobalSign nv-sa |
+| files.pythonhosted.org | the actual wheel downloads | OK | GlobalSign nv-sa |
+| api.openai.com | the model API | OK | Google Trust Services |
+| cdn.jsdelivr.net | the CDN the Week 1 frontend uses | OK | Sectigo Limited |
+| huggingface.co | open weights, Weeks 2 and 8 | OK | Amazon |
+| registry-1.docker.io | container images | OK | Amazon |
+| github.com | this repository | OK | Sectigo Limited |
+| api.anthropic.com | approved LLM provider | OK | Google Trust Services |
+| openrouter.ai | approved LLM provider | OK | Google Trust Services |
+| registry.ollama.ai | local model weights | OK | Google Trust Services |
+
+**Probe verdict:** 10/10 reachable. Open network, public CAs, no proxy. No proxy environment variables and no macOS system proxy were set.
+
+**End-to-end app check:** The Week 1 app ran locally with `uv run python app.py` (not in Docker). One synthetic message ("Connectivity test: reply with the single word OK.", no history, no ticket or member data) went to the `chat` endpoint at `localhost:7860`. The app called the Anthropic API with the configured `LLM_MODEL` and returned `OK` in about 1.3 s, with no errors in the app log. The app was then stopped.
+
+**Qualification:** This verifies laptop egress and model access from the office network only. It does not verify Azure app-container egress, and OpenRouter was reached at the TLS level but not called with credentials.
+
 
 ### Azure egress verification
 
 Separate test and production VNets use NAT gateways with the provisioned public IPs. The project owner queried `api.ipify.org` from all four VMs on October 12, 2026, and verified the expected outbound addresses. No addresses are published here.
+
+The VMs are a governance and testing environment, separate from the container app: a Windows host runs the account-system client, and the Ubuntu hosts test the API while standards are established and automations are tested. The container app will egress through the same NAT gateways, so it uses the allowlisted addresses; its API credentials will come from Key Vault.
 
 | Environment | Device | Result |
 | --- | --- | --- |
@@ -76,7 +103,24 @@ Separate test and production VNets use NAT gateways with the provisioned public 
 | Production | Ubuntu VM | Expected outbound IP confirmed |
 | Production | Windows VM | Expected outbound IP confirmed |
 
-**Current status:** Test and production API tokens are received. These were outbound-IP checks, not account-system API calls. API tests can proceed through the already-allowlisted office/VPN connection. The provider has not updated the Azure allowlist request; Azure API access, app-container egress, and write permissions remain unverified.
+#### Egress — 2026-10-19 Azure VMs
+
+| Host | Why | Ubuntu TEST | Ubuntu PROD | Windows TEST | Windows PROD | Verified by |
+| --- | --- | --- | --- | --- | --- | --- |
+| api.anthropic.com | Anthropic API (auth verified, 200) | PASS | PASS | PASS | PASS | Project owner |
+| openrouter.ai | OpenRouter model API (200) | PASS | PASS | PASS | PASS | Project owner |
+| JSM site | Ticket intake, outbound status check (RUNNING) | PASS | PASS | PASS | PASS | Project owner |
+| Account-system API (own environment) | Read access for onboarding agent; IP allowlist confirmed by Basic auth challenge | PASS | PASS | PASS | PASS | Project owner |
+| Account-system API (other environment) | Isolation check; must be rejected | PASS (403) | PASS (403) | PASS (403) | PASS (403) | Project owner |
+
+**Current status (2026-10-19):** Verified on all four VMs (Ubuntu and Windows, TEST and PROD). Each VM egresses directly through its VNet NAT IP, with no proxy. Certificate issuers for all external endpoints are public CAs (Google Trust Services, Amazon), so there is no TLS inspection on Azure egress. Each VM reaches only its own account-system environment, and TEST and PROD are isolated at the vendor IP allowlist. Authenticated account-system reads were tested from the Ubuntu TEST VM only; no writes were made in any environment.
+
+Earlier history: test and production API tokens were received; API access requires an allowlisted IP plus credentials. The provider confirmed the allowlisting on 2026-10-14, and production API login and reads succeeded from Azure on 2026-10-16.
+
+**Open:**
+- Confirm least-privilege read roles on the account-system API accounts (tracked internally).
+- Inbound JSM to Azure webhook is not yet verified.
+- Container app egress is not yet verified (pending deployment).
 
 This section is the source of access status; update it when confirmation or test results arrive.
 
@@ -91,14 +135,15 @@ Supporting dependencies; internal evidence stays separate. The input contract is
 | JSM onboarding intake | Complete readable ticket text, masking, source/author labels, and chronology | Confirm cloud vs. self-hosted JSM and webhook reachability; use polling or an approved relay if ingress is unavailable. Extraction stays inside `solve()` | Technology Support Associate / intake owner / Senior Systems Administrator |
 | Input credential masking | Mask before model calls and logs; stop on errors or discovered misses | Confirm handling rules; defer contract tests to the Week 2 validator | Adapter implementer / security owner |
 | Account-system API | Read access, create accounts, assign roles/permissions/venues, and verify results | Verify supported operations and write permissions; see [access status](#azure-egress-verification) | Senior Product Manager / Engineering |
+| Upstream hire provisioning | Know where onboarding tickets originate relative to account creation | New hires flow from the HR system through an identity-provisioning tool into Entra; none of it is connected to Azure. Confirm the provisioning-to-Jira handoff before relying on the webhook trigger; paid support for the provisioning tool is approved pending budget, with new build work deferred | Senior Systems Administrator |
 | Identity and role standard | Identity source, job-title mapping, permissions, venue add-ons, and login-email rules | Produce versioned drafts; confirm job levels, venue variation, and ratification owners | Product / role decision owners |
-| Hosting | Container runtime, image publishing, authentication, and secrets | Azure Container Apps selected; confirm registry, app-container routing, and cost; see [egress evidence](#azure-egress-verification). Use the tested amd64 image and initially one replica; enable Entra sign-in and use Key Vault | Senior Systems Administrator / Senior Director of IT |
-| Model access | Approved external LLM API | Anthropic available (CTO approval); the local Docker container called it successfully during Step 9. Azure app-container connectivity is unverified. OpenRouter approved (known from my role). No internal endpoint | CTO / project owner |
+| Hosting | Container runtime, image publishing, authentication, and secrets | Azure Container Apps selected; hosting pattern validated by the Senior Systems Administrator (2026-10-16). App egress uses the existing NAT gateways; confirm registry and cost; see [egress evidence](#azure-egress-verification). Use the tested amd64 image and initially one replica; enable Entra sign-in and use Key Vault | Senior Systems Administrator / Senior Director of IT |
+| Model access | Approved external LLM API | Anthropic available (CTO approval); the local Docker container called it successfully during Step 9, and the local app called it from the office network on 2026-10-19 (see [office egress](#egress--2026-10-19-work-laptop-mac-1--office-network)). All tests worked as designed; not blocked. Azure app-container connectivity is unverified. OpenRouter approved (known from my role). No internal endpoint | CTO / project owner |
 | Credential delivery | Unique credentials through an approved channel outside ticket comments | Confirm delivery and first-login behavior before production | Account-system owner / security owner |
-| Production promotion | Ratified standard, write access, and sufficient live accuracy per role | Confirm approver, scoring rules, and threshold | Project owner / role decision owners |
+| Production promotion | Ratified standard, write access, and 95% on synthetic tickets or 90% over at least 20 live tickets per role | CTO approves on reported results; set synthetic set size, coverage, and scoring rules (see [decisions](decisions.md)) | CTO / project owner / role decision owners |
 | Course review | Demonstrate the onboarding workflow and evaluation within the course window | Confirm deliverable fit | Course team |
 
-Conversations are recorded in [stakeholders.md](stakeholders.md). Build in test against draft standards while ratification proceeds. Keep production tokens only in Key Vault for the production runtime, never on laptops, in `.env` files, or in the test runtime; production writes remain gated per role. Offboarding stays out of scope.
+Conversations are recorded in [stakeholders.md](stakeholders.md). Build in test against draft standards while ratification proceeds. For the container app, keep production tokens only in Key Vault for the production runtime, never on laptops, in `.env` files, or in the test runtime; production writes remain gated per role. Offboarding stays out of scope.
 
 ## Credential masking response
 
