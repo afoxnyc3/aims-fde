@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from schema import Recommendation, Request, Response, Status
+from schema import REVIEW_STATUSES, Recommendation, Request, Response, Status
 
 STANDARD_PATH = Path(__file__).with_name("demo_standard.json")
 
@@ -107,7 +107,7 @@ def load_standard() -> dict:
 def outcome(request: Request, status: Status, reason: str, **details) -> Response:
     return Response(
         ticket_ref=request.ticket_ref, status=status,
-        needs_human=status in {Status.NEEDS_INFORMATION, Status.HUMAN_REVIEW, Status.FAILED},
+        needs_human=status in REVIEW_STATUSES,
         rationale=reason, jira_comment=None if status is Status.IGNORED else reason,
         **details,
     )
