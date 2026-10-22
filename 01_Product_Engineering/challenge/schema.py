@@ -23,6 +23,9 @@ class Status(str, Enum):
     FAILED = "failed"
 
 
+REVIEW_STATUSES = {Status.NEEDS_INFORMATION, Status.HUMAN_REVIEW, Status.FAILED}
+
+
 class TicketComment(BaseModel):
     """Masked comment text with authorship supplied by trusted JSM metadata.
 
@@ -218,24 +221,46 @@ class Response(BaseModel):
     )
 
     @model_validator(mode="after")
-    def _status_is_consistent(self) -> Response:
-        review_statuses = {Status.NEEDS_INFORMATION, Status.HUMAN_REVIEW, Status.FAILED}
-        if self.needs_human != (self.status in review_statuses):
+    def _needs_human_matches_status(self) -> Response:
+        """Statuses that hand work to a person must say so; the others must not."""
+        if self.needs_human != (self.status in REVIEW_STATUSES):
             raise ValueError("needs_human must agree with status")
-        if self.status is Status.IGNORED:
-            if self.jira_comment is not None:
-                raise ValueError("ignored tickets must not receive a Jira comment")
-        elif self.jira_comment is None:
-            raise ValueError("non-ignored outcomes require an internal Jira comment")
+        return self
+
+    @model_validator(mode="after")
+    def _jira_comment_matches_status(self) -> Response:
+        """Ignored tickets get no Jira comment; every other outcome gets one."""
+        if (self.jira_comment is None) != (self.status is Status.IGNORED):
+            raise ValueError("ignored tickets get no Jira comment; all other outcomes need one")
+        return self
+
+    @model_validator(mode="after")
+    def _answer_matches_status(self) -> Response:
+        """Only a recommendation carries an answer, and caveats only accompany an answer."""
         if self.status is Status.RECOMMENDED:
             if self.answer is None:
                 raise ValueError("recommended requires an answer")
         elif self.answer is not None or self.caveats:
             raise ValueError("no-answer outcomes cannot carry an answer or answer caveats")
+        return self
+
+    @model_validator(mode="after")
+    def _missing_fields_match_status(self) -> Response:
+        """missing_fields is filled exactly when the ticket needs more information."""
         if bool(self.missing_fields) != (self.status is Status.NEEDS_INFORMATION):
             raise ValueError("missing_fields is required only for needs_information")
+        return self
+
+    @model_validator(mode="after")
+    def _review_reason_matches_status(self) -> Response:
+        """review_reason is set exactly when the ticket goes to human review."""
         if (self.review_reason is not None) != (self.status is Status.HUMAN_REVIEW):
             raise ValueError("review_reason is required only for human_review")
+        return self
+
+    @model_validator(mode="after")
+    def _exception_details_match_reason(self) -> Response:
+        """Exception reviews carry the standard baseline and the differences; nothing else does."""
         if self.review_reason == "exception":
             if self.standard_proposal is None or not self.exception_difference:
                 raise ValueError("exception review requires a standard proposal and differences")
