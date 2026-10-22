@@ -96,8 +96,8 @@ class Request(BaseModel):
         default_factory=list,
         description=(
             "Labels of the ticket sections that were redacted, such as description or "
-            "comment:<comment_id>. The only place redactions are recorded; empty when nothing "
-            "was redacted."
+            "comment:<comment_id>. The only redaction metadata; the masked text keeps its own "
+            "inline redaction markers. Empty when nothing was redacted."
         ),
     )
     unavailable_sections: list[str] = Field(
@@ -192,7 +192,7 @@ class Recommendation(BaseModel):
     job_title: str = Field(
         min_length=1,
         description=(
-            "The job title exactly as written in the ticket, "
+            "The full job title from the ticket, with surrounding whitespace trimmed, "
             "before it was matched to a standard role."
         ),
     )
