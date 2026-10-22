@@ -35,13 +35,32 @@ class TicketComment(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    comment_id: str = Field(min_length=1)
-    text: str = Field(description="Full credential-masked comment, without relevance filtering")
-    created_at: datetime = Field(description="JSM timestamp, including timezone")
-    author_type: Literal["agent", "human", "unknown"] = Field(
-        description="Authorship from trusted adapter metadata, not comment text"
+    comment_id: str = Field(
+        min_length=1,
+        description=(
+            "JSM's ID for this comment. Redacted comments are listed in redacted_sections "
+            "as comment:<comment_id>."
+        ),
     )
-    author_id: str | None = Field(default=None)
+    text: str = Field(
+        description=(
+            "The comment's full text, with credentials masked. "
+            "Must not be trimmed or filtered for relevance."
+        )
+    )
+    created_at: datetime = Field(
+        description="When the comment was posted, from JSM. Must include a timezone."
+    )
+    author_type: Literal["agent", "human", "unknown"] = Field(
+        description=(
+            "Who posted the comment: this app's automated agent, a person, or unknown. "
+            "Comes from trusted JSM metadata, never from the comment text."
+        )
+    )
+    author_id: str | None = Field(
+        default=None,
+        description="The author's JSM account ID. Required unless author_type is unknown.",
+    )
 
     @model_validator(mode="after")
     def _metadata_is_consistent(self) -> TicketComment:
@@ -57,23 +76,36 @@ class Request(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    ticket_ref: str = Field(min_length=1)
+    ticket_ref: str = Field(
+        min_length=1, description="The JSM ticket key, such as DEMO-001. Copied into the response."
+    )
     ticket_text: str = Field(
         description=(
-            "Full raw title, description, and all readable form questions/answers, "
-            "labelled by source and credential-masked. Comments are supplied separately. "
-            "No relevance filtering, silent truncation, or pre-parsed onboarding fields."
+            "The ticket's title, description, and every readable form question and answer, "
+            "each labelled by source, with credentials masked. Sent whole: not filtered, "
+            "truncated, or pre-parsed. Comments go in comments."
         )
     )
     comments: list[TicketComment] = Field(
-        description="All readable comments in chronological order; explicitly [] if none"
+        description=(
+            "Every readable comment on the ticket, oldest first. "
+            "An empty list means the ticket has no readable comments."
+        )
     )
     redacted_sections: list[str] = Field(
         default_factory=list,
-        description="Redacted source labels, including comment:<comment_id>; the only redaction metadata"
+        description=(
+            "Labels of the ticket sections that were redacted, such as description or "
+            "comment:<comment_id>. The only place redactions are recorded; empty when nothing "
+            "was redacted."
+        ),
     )
     unavailable_sections: list[str] = Field(
-        default_factory=list, description="Source sections the adapter could not read"
+        default_factory=list,
+        description=(
+            "Labels of the ticket sections the adapter couldn't read. "
+            "Empty when every section was read."
+        ),
     )
 
     @model_validator(mode="after")
@@ -89,8 +121,8 @@ class NamedReference(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    id: str = Field(min_length=1)
-    name: str = Field(min_length=1)
+    id: str = Field(min_length=1, description="The account system's ID for this item.")
+    name: str = Field(min_length=1, description="The item's display name in the account system.")
 
 
 class ScopeType(str, Enum):
@@ -104,10 +136,16 @@ class RoleAssignment(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    role: NamedReference
-    scope_type: ScopeType
+    role: NamedReference = Field(description="The role to assign.")
+    scope_type: ScopeType = Field(
+        description="Where the role applies: the whole system, one business unit, or one venue."
+    )
     scope: NamedReference | None = Field(
-        default=None, description="Required for business-unit and venue scope; absent for system"
+        default=None,
+        description=(
+            "The business unit or venue the role applies to. "
+            "Must be null for system scope; required otherwise."
+        ),
     )
 
     @model_validator(mode="after")
@@ -124,9 +162,17 @@ class StaffGroupAssignment(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    staff_group: NamedReference
-    scope_type: ScopeType
-    scope: NamedReference | None = Field(default=None)
+    staff_group: NamedReference = Field(description="The staff group to add the person to.")
+    scope_type: ScopeType = Field(
+        description="Where the membership applies: the whole system, one business unit, or one venue."
+    )
+    scope: NamedReference | None = Field(
+        default=None,
+        description=(
+            "The business unit or venue the membership applies to. "
+            "Must be null for system scope; required otherwise."
+        ),
+    )
 
     @model_validator(mode="after")
     def _scope_is_consistent(self) -> StaffGroupAssignment:
@@ -142,35 +188,64 @@ class Recommendation(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    person_name: str = Field(min_length=1)
-    job_title: str = Field(min_length=1)
-    start_date: date
+    person_name: str = Field(min_length=1, description="The new hire's name, as given in the ticket.")
+    job_title: str = Field(
+        min_length=1,
+        description=(
+            "The job title exactly as written in the ticket, "
+            "before it was matched to a standard role."
+        ),
+    )
+    start_date: date = Field(description="The new hire's first day.")
     login_email: str = Field(
         min_length=1,
         description=(
-            "Proposed using the standard's login rule; email availability and existing-account "
-            "status are unchecked. The associate verifies both before provisioning; "
-            "recommendations must not claim those checks were performed."
+            "The proposed login, built from the employee's email with the standard's login rule. "
+            "Not checked for availability or an existing account; the associate verifies both, "
+            "and the proposal must not claim otherwise."
         ),
     )
-    assignments: list[RoleAssignment] = Field(min_length=1)
+    assignments: list[RoleAssignment] = Field(
+        min_length=1, description="The roles to assign, each with where it applies. Always at least one."
+    )
     permissions: list[NamedReference] = Field(
-        description="Independent permission grants; empty in the inherited-role-only demo. "
-        "Effective permissions come from the assigned roles."
+        description=(
+            "Permissions granted directly, on top of the roles. Effective permissions come from "
+            "the assigned roles; empty when the standard grants nothing directly."
+        )
     )
     venues: list[NamedReference] = Field(
         min_length=1,
-        description="Target account venues; venue-scoped assignments must reference these IDs/names",
+        description=(
+            "The venues the account needs access to. Every venue-scoped role or staff-group "
+            "assignment must match one of these by ID and name."
+        ),
     )
-    standard_version: str = Field(min_length=1)
+    standard_version: str = Field(
+        min_length=1, description="The version of the access standard this proposal was built from."
+    )
     proposed_changes: list[str] = Field(
-        min_length=1, description="Exact provisioning steps; no credentials"
+        min_length=1,
+        description="The provisioning steps for the associate, in order. Must not contain credentials.",
     )
-    person_id: str | None = Field(default=None, description="Staff identifier, if available")
+    person_id: str | None = Field(
+        default=None,
+        description="The person's existing account-system ID, if the ticket gives one; null otherwise.",
+    )
     matrix_entry_id: str | None = Field(
-        default=None, description="Source row identifier within standard_version, if the standard has rows"
+        default=None,
+        description=(
+            "The ID of the access-standard row that matched the job title. "
+            "Null if the standard has no rows."
+        ),
     )
-    staff_groups: list[StaffGroupAssignment] = Field(default_factory=list)
+    staff_groups: list[StaffGroupAssignment] = Field(
+        default_factory=list,
+        description=(
+            "Staff groups to add the person to, each with where it applies. "
+            "Empty when the role needs none."
+        ),
+    )
 
     @model_validator(mode="after")
     def _venues_are_consistent(self) -> Recommendation:
@@ -200,24 +275,79 @@ class Response(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    ticket_ref: str = Field(min_length=1)
-    status: Status
-    needs_human: bool = Field(description="Review required beyond applying a normal proposal")
-    rationale: str = Field(min_length=1, description="Actionable explanation or no-answer reason")
+    ticket_ref: str = Field(
+        min_length=1, description="The ticket this response is for, copied from the request."
+    )
+    status: Status = Field(
+        description="The outcome: recommended, needs_information, human_review, ignored, or failed."
+    )
+    needs_human: bool = Field(
+        description=(
+            "True when a person must resolve the ticket before any proposal can be applied: "
+            "needs_information, human_review, or failed. A recommended proposal is still checked "
+            "and applied by an associate. Always follows from status."
+        )
+    )
+    rationale: str = Field(
+        min_length=1,
+        description=(
+            "A short, actionable explanation of the outcome: what is proposed, "
+            "or why there is no proposal."
+        ),
+    )
     jira_comment: str | None = Field(
         default=None, min_length=1,
-        description="Proposed internal comment; required except for ignored tickets; no credentials",
+        description=(
+            "The internal comment to post on the ticket. Required for every status except "
+            "ignored, where it must be null. Must not contain credentials."
+        ),
     )
-    answer: Recommendation | None = Field(default=None)
-    caveats: list[str] = Field(default_factory=list, description="Cautions accompanying an answer")
-    missing_fields: list[str] = Field(default_factory=list)
-    review_reason: Literal["ambiguous_identity", "ambiguous_mapping", "exception"] | None = None
+    answer: Recommendation | None = Field(
+        default=None,
+        description="The proposed access. Required when status is recommended; null otherwise.",
+    )
+    caveats: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Points the associate should check before applying the answer. "
+            "Allowed only when status is recommended; empty otherwise."
+        ),
+    )
+    missing_fields: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Names of the ticket facts to ask the requester for, such as job_title or "
+            "employee_email. Required when status is needs_information; empty otherwise."
+        ),
+    )
+    review_reason: Literal["ambiguous_identity", "ambiguous_mapping", "exception"] | None = Field(
+        default=None,
+        description=(
+            "Why a person needs to review the ticket: conflicting identities, a mixed job title "
+            "or a unit or venue that can't be mapped to the standard, or a request for access "
+            "beyond the standard. Required when status is human_review; null otherwise."
+        ),
+    )
     standard_proposal: Recommendation | None = Field(
-        default=None, description="Unapproved standard baseline for exception review, never authorization"
+        default=None,
+        description=(
+            "What the standard alone would propose, for comparison. Required for exception "
+            "reviews; null otherwise. Not an approval, and never authorizes an access change."
+        ),
     )
-    exception_difference: list[str] = Field(default_factory=list)
+    exception_difference: list[str] = Field(
+        default_factory=list,
+        description=(
+            "The access requested beyond the standard. Required for exception reviews; "
+            "empty otherwise."
+        ),
+    )
     approval_owner_role: str | None = Field(
-        default=None, description="Exception approver's role; None explicitly means unknown"
+        default=None,
+        description=(
+            "For exception reviews: the role that can approve the exception, or null if unknown. "
+            "Must be null for every other outcome."
+        ),
     )
 
     @model_validator(mode="after")
