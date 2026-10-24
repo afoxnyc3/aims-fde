@@ -89,3 +89,23 @@ every later week runs. `python use_case/evals/run.py` is the whole interface.
 | 8 | **The bar.** `harness.compare(harness.load("baseline.json"), finetuned)` is the pass/fail — and it refuses if the case set changed. |
 | 9 | The harness gates the deploy. |
 | 10 | A sampled version runs on live traffic. |
+
+## `retrieval.jsonl`
+
+Ten questions, written in TC3 Step 1, each labelled with the page(s) that
+should answer it. Page names are the corpus ids built by
+`01_Product_Engineering/challenge/corpus.py`: `STD-*` for the draft standard,
+`SYN-*` for synthetic tickets (a hash of the TC2 `row_id`).
+
+```json
+{"id": "q03", "question": "...", "gold": ["SYN-95265d", "STD-venue-access"], "kind": "lookup | multi-hop | decline", "expected_terms": ["..."], "why": "...", "origin": "..."}
+```
+
+`expected_terms` are what a passing answer must contain; an entry that is a
+list means any one of those phrasings. On a `decline` question they are the
+forbidden phrases: a pass is a refusal that contains none of them. Substring
+terms cannot tell a confident answer from a hedged one; the Week 4 judge can.
+
+**Top-k floor: 4 of the 10 need two records (q03, q04, q08, q09), so top-1 is
+ruled out; k is at least 2.** 7 of the 10 carry a name, a title or a club, which
+is the case for keeping a lexical index (Session 6, question 8).
