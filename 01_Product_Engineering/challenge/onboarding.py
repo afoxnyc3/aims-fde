@@ -115,7 +115,10 @@ def outcome(request: Request, status: Status, reason: str, **details) -> Respons
 
 
 class EarlyOutcome(Exception):
-    """A pipeline step settled the ticket before a proposal could be built."""
+    """A pipeline step settled the ticket before a proposal could be built.
+
+    Only recommend_access catches this, so call the step functions through it.
+    """
 
     def __init__(self, status: Status, reason: str, **details):
         super().__init__(reason)
@@ -187,7 +190,10 @@ def classify_ticket(facts: ExtractedTicket, standard: dict) -> dict:
 
 
 def resolve_targets(facts: ExtractedTicket, standard: dict) -> Targets:
-    """Map the ticket's business unit, venues, and email to records in the standard."""
+    """Map the ticket's business unit, venues, and email to records in the standard.
+
+    Assumes classify_ticket has passed, so these facts are present.
+    """
     unit_lookup = {normalize(unit["name"]): unit for unit in standard["business_units"]}
     business_unit = unit_lookup.get(normalize(facts.business_unit))
     if business_unit is None:
