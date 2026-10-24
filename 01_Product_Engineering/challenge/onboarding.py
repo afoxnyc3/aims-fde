@@ -5,13 +5,14 @@ import re
 import time
 from datetime import date
 from pathlib import Path
-from typing import Literal
+from typing import Literal, NamedTuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from schema import REVIEW_STATUSES, Recommendation, Request, Response, Status
 
 STANDARD_PATH = Path(__file__).with_name("demo_standard.json")
+PREFLIGHT = "Associate must verify identity, existing accounts, rehire/transfer history, and login availability before provisioning."
 
 
 class ExtractedTicket(BaseModel):
@@ -113,6 +114,25 @@ def outcome(request: Request, status: Status, reason: str, **details) -> Respons
     )
 
 
+class EarlyOutcome(Exception):
+    """A pipeline step settled the ticket before a proposal could be built.
+
+    Only recommend_access catches this, so call the step functions through it.
+    """
+
+    def __init__(self, status: Status, reason: str, **details):
+        super().__init__(reason)
+        self.status, self.reason, self.details = status, reason, details
+
+
+class Targets(NamedTuple):
+    """Standard records the ticket's business unit, venues, and email resolved to."""
+
+    business_unit: dict
+    venues: list[dict]
+    login_email: str
+
+
 def recommend_access(request: Request) -> Response:
     try:
         standard = load_standard()
@@ -122,26 +142,38 @@ def recommend_access(request: Request) -> Response:
         facts = extract_ticket(request)
     except ExtractionError as exc:
         return outcome(request, Status.FAILED, str(exc))
+    # Order matters: classification runs before resolution, and each step checks in the order written.
+    try:
+        row = classify_ticket(facts, standard)
+        targets = resolve_targets(facts, standard)
+    except EarlyOutcome as early:
+        return outcome(request, early.status, early.reason, **early.details)
+    proposal = build_proposal(facts, standard, row, targets)
+    baseline = f"{row['role']['name']}; venues: {', '.join(v['name'] for v in targets.venues)}; standard: {standard['version']}."
+    return decide_status(request, facts, targets, proposal, baseline)
 
+
+def classify_ticket(facts: ExtractedTicket, standard: dict) -> dict:
+    """Decide whether the ticket is supported and complete; return its standard row."""
     if facts.request_kind == "other" or facts.login_required is False:
-        return outcome(request, Status.IGNORED, "This ticket does not request supported account onboarding.")
+        raise EarlyOutcome(Status.IGNORED, "This ticket does not request supported account onboarding.")
     if not facts.job_title:
-        return outcome(request, Status.NEEDS_INFORMATION, "Provide the new hire's job title.",
-                       missing_fields=["job_title"])
+        raise EarlyOutcome(Status.NEEDS_INFORMATION, "Provide the new hire's job title.",
+                           missing_fields=["job_title"])
 
     aliases = {normalize(alias): row for row in standard["rows"] for alias in row["aliases"]}
     row = aliases.get(normalize(facts.job_title))
     if row is None:
         parts = re.split(r"\s*/\s*|\s+or\s+", facts.job_title, flags=re.IGNORECASE)
         if len(parts) > 1 and any(normalize(part) in aliases for part in parts):
-            return outcome(request, Status.HUMAN_REVIEW,
-                           "The mixed job title does not identify one standard row; confirm the role. Do not mirror a peer.",
-                           review_reason="ambiguous_mapping")
-        return outcome(request, Status.IGNORED, "This job title has no supported row in the demo standard.")
+            raise EarlyOutcome(Status.HUMAN_REVIEW,
+                               "The mixed job title does not identify one standard row; confirm the role. Do not mirror a peer.",
+                               review_reason="ambiguous_mapping")
+        raise EarlyOutcome(Status.IGNORED, "This job title has no supported row in the demo standard.")
 
     if facts.ambiguous_identity:
-        return outcome(request, Status.HUMAN_REVIEW, "Resolve the conflicting identities in the ticket.",
-                       review_reason="ambiguous_identity")
+        raise EarlyOutcome(Status.HUMAN_REVIEW, "Resolve the conflicting identities in the ticket.",
+                           review_reason="ambiguous_identity")
 
     required = {
         "person_name": facts.person_name, "start_date": facts.start_date,
@@ -152,61 +184,75 @@ def recommend_access(request: Request) -> Response:
         required["personal_trainer_level"] = facts.personal_trainer_level
     missing = [field for field, value in required.items() if not value]
     if missing:
-        return outcome(request, Status.NEEDS_INFORMATION, "Provide: " + ", ".join(missing) + ".",
-                       missing_fields=missing)
+        raise EarlyOutcome(Status.NEEDS_INFORMATION, "Provide: " + ", ".join(missing) + ".",
+                           missing_fields=missing)
+    return row
 
+
+def resolve_targets(facts: ExtractedTicket, standard: dict) -> Targets:
+    """Map the ticket's business unit, venues, and email to records in the standard.
+
+    Assumes classify_ticket has passed, so these facts are present.
+    """
     unit_lookup = {normalize(unit["name"]): unit for unit in standard["business_units"]}
     business_unit = unit_lookup.get(normalize(facts.business_unit))
     if business_unit is None:
-        return outcome(request, Status.HUMAN_REVIEW,
-                       "The requested business unit cannot be mapped to the demo standard.",
-                       review_reason="ambiguous_mapping")
+        raise EarlyOutcome(Status.HUMAN_REVIEW,
+                           "The requested business unit cannot be mapped to the demo standard.",
+                           review_reason="ambiguous_mapping")
 
     venue_lookup = {normalize(venue["name"]): venue for venue in standard["venues"]}
     if any(normalize(name) not in venue_lookup for name in facts.venue_names):
-        return outcome(request, Status.HUMAN_REVIEW, "A requested venue cannot be mapped to the demo standard.",
-                       review_reason="ambiguous_mapping")
+        raise EarlyOutcome(Status.HUMAN_REVIEW, "A requested venue cannot be mapped to the demo standard.",
+                           review_reason="ambiguous_mapping")
     venues = list({venue_lookup[normalize(name)]["id"]: venue_lookup[normalize(name)]
                    for name in facts.venue_names}.values())
     local_part, separator, _ = facts.employee_email.partition("@")
     if not separator or not local_part or any(ch.isspace() for ch in facts.employee_email):
-        return outcome(request, Status.NEEDS_INFORMATION, "Provide a valid employee email.",
-                       missing_fields=["employee_email"])
+        raise EarlyOutcome(Status.NEEDS_INFORMATION, "Provide a valid employee email.",
+                           missing_fields=["employee_email"])
     local_part = local_part.removesuffix(standard["login_rule"]["strip_suffix"])
     if not local_part:
-        return outcome(request, Status.NEEDS_INFORMATION, "Provide a usable employee email.",
-                       missing_fields=["employee_email"])
-    login_email = local_part + "@" + standard["login_rule"]["domain"]
-    scopes = venues if row["scope_type"] == "venue" else [business_unit]
+        raise EarlyOutcome(Status.NEEDS_INFORMATION, "Provide a usable employee email.",
+                           missing_fields=["employee_email"])
+    return Targets(business_unit, venues, local_part + "@" + standard["login_rule"]["domain"])
+
+
+def build_proposal(facts: ExtractedTicket, standard: dict, row: dict, targets: Targets) -> Recommendation:
+    """Assemble the standard access proposal from the resolved records."""
+    scopes = targets.venues if row["scope_type"] == "venue" else [targets.business_unit]
     assignments = [dict(role=row["role"], scope_type=row["scope_type"], scope=scope) for scope in scopes]
     staff_groups = []
     if row["requires_trainer_level"]:
-        staff_groups = [dict(staff_group=row["staff_group"], scope_type="venue", scope=venue) for venue in venues]
+        staff_groups = [dict(staff_group=row["staff_group"], scope_type="venue", scope=venue) for venue in targets.venues]
         staff_groups.append(dict(staff_group=row["level_groups"][str(facts.personal_trainer_level)],
-                                 scope_type="business_unit", scope=business_unit))
-    preflight = "Associate must verify identity, existing accounts, rehire/transfer history, and login availability before provisioning."
+                                 scope_type="business_unit", scope=targets.business_unit))
     changes = [
-        preflight,
+        PREFLIGHT,
         "Create a staff record only if no applicable account exists; otherwise review the existing account.",
-        f"Create login {login_email} only if needed and available; otherwise review the existing login.",
+        f"Create login {targets.login_email} only if needed and available; otherwise review the existing login.",
     ]
     changes.extend(f"Assign {item['role']['name']} at {item['scope']['name']}." for item in assignments)
     changes.extend(f"Assign staff group {item['staff_group']['name']} at {item['scope']['name']}." for item in staff_groups)
-    proposal = Recommendation(
+    return Recommendation(
         person_name=facts.person_name, person_id=facts.person_id, job_title=facts.job_title,
-        start_date=facts.start_date, login_email=login_email, assignments=assignments, permissions=[],
-        venues=venues, standard_version=standard["version"], matrix_entry_id=row["id"],
+        start_date=facts.start_date, login_email=targets.login_email, assignments=assignments, permissions=[],
+        venues=targets.venues, standard_version=standard["version"], matrix_entry_id=row["id"],
         staff_groups=staff_groups, proposed_changes=changes,
     )
-    baseline = f"{row['role']['name']}; venues: {', '.join(v['name'] for v in venues)}; standard: {standard['version']}."
+
+
+def decide_status(request: Request, facts: ExtractedTicket, targets: Targets,
+                  proposal: Recommendation, baseline: str) -> Response:
+    """Recommend the proposal, or route it to exception review when extra access was requested."""
     if facts.additional_access_request:
         difference = "Requested outside the baseline: " + facts.additional_access_request
         return outcome(request, Status.HUMAN_REVIEW,
                        "Exception review. Standard baseline: " + baseline + " " + difference
-                       + " Approval owner is undefined in the demo standard. Prior automated comments and nonspecific replies are not authorization. " + preflight,
+                       + " Approval owner is undefined in the demo standard. Prior automated comments and nonspecific replies are not authorization. " + PREFLIGHT,
                        review_reason="exception", standard_proposal=proposal,
                        exception_difference=[difference], approval_owner_role=None)
     return outcome(request, Status.RECOMMENDED,
                    f"Proposed access for {facts.person_name}, starting {facts.start_date}: " + baseline
-                   + f" Proposed login: {login_email}. " + preflight,
+                   + f" Proposed login: {targets.login_email}. " + PREFLIGHT,
                    answer=proposal, caveats=["Existing-account status and login-email availability were not checked."])
