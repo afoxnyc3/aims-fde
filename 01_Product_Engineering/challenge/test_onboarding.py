@@ -102,6 +102,24 @@ class OnboardingTests(unittest.TestCase):
         self.assertIsNone(result.jira_comment)
         self.assertIsNone(result.answer)
 
+    def test_earlier_check_wins_when_two_apply(self):
+        # Check order is policy: each ticket trips two neighbouring checks, and the earlier one must decide.
+        cases = [
+            (facts(request_kind="other", job_title=None), "ignored", "does not request supported"),
+            (facts(job_title="Hospitality Manager/ AGM", ambiguous_identity=True), "human_review", "mixed job title"),
+            (facts(ambiguous_identity=True, employee_email=None), "human_review", "conflicting identities"),
+            (facts(person_name=None, business_unit="Sports"), "needs_information", "person_name"),
+            (facts(business_unit="Sports", venue_names=["Unknown Venue"]), "human_review", "business unit"),
+            (facts(venue_names=["Unknown Venue"], employee_email="no-at-sign"), "human_review", "venue"),
+            (facts(employee_email=".personal@example.invalid", additional_access_request="sell memberships"),
+             "needs_information", "usable employee email"),
+        ]
+        for extracted, status, reason in cases:
+            with self.subTest(expected=reason):
+                result = self.run_with(extracted)
+                self.assertEqual(result.status.value, status)
+                self.assertIn(reason, result.rationale)
+
     def test_bad_provider_request_returns_failed(self):
         from litellm import BadRequestError
         error = BadRequestError("synthetic provider rejection", model="demo", llm_provider="openai")
