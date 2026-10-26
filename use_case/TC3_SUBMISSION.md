@@ -3,7 +3,7 @@
 A question endpoint over the synthetic onboarding tickets and the draft access standard. It answers with the records it used, or declines. Five retrieval techniques were measured against labelled questions before one was picked. This page indexes each deliverable; the detail lives in the linked files.
 
 **Loom:** **[YOU: link, ≤ 5 min — the endpoint answering two questions with sources, then the results table]**
-**Branches:** `tc3/labels-and-corpus` → `tc3/retrieval-measurement` → `tc3/question-endpoint` → `tc3/decision-docs`
+**Pull requests (merged to `main`):** [#13](https://github.com/afoxnyc3/aims-fde/pull/13) corpus and labels → [#14](https://github.com/afoxnyc3/aims-fde/pull/14) measurement → [#15](https://github.com/afoxnyc3/aims-fde/pull/15) endpoint → [#16](https://github.com/afoxnyc3/aims-fde/pull/16) decision docs → [#17](https://github.com/afoxnyc3/aims-fde/pull/17) "Ask the records" panel
 
 ## Step 1: labelled questions
 
