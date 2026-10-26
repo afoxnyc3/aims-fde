@@ -32,6 +32,17 @@ def get_retriever() -> retrieval.Retriever:
     return retrieval.Retriever(corpus.load_corpus(), cache_dir=Path(cache_dir) if cache_dir else None)
 
 
+def source_page(name: str) -> corpus.Page | None:
+    """One corpus page by name, so a reader can check a source an answer cited.
+
+    The corpus is loaded first, so a missing corpus is reported whatever name
+    was sent. Only full page names match (SYN-xxxxxx or STD-...).
+    """
+    retriever = get_retriever()
+    page = retriever.get_page(name)
+    return page if page and retrieval.PAGE_ID.fullmatch(page.name) else None
+
+
 def answer_question(request: QuestionRequest) -> QuestionAnswer:
     retriever = get_retriever()
     try:

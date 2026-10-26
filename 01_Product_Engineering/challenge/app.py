@@ -5,6 +5,7 @@ queueing, streaming, and MCP for free, but you bring your own frontend. That
 split is the point: the API is the product, the UI is disposable.
 """
 
+import json
 import os
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from pydantic import ValidationError
 
 from corpus import CorpusMissing
 from llm import ReplyError, stream_reply
-from qa import AnswerUnavailable, answer_question
+from qa import AnswerUnavailable, answer_question, source_page
 from qa_schema import QuestionRequest
 from schema import Request, solve
 
@@ -33,6 +34,8 @@ def _validation_details(exc: ValidationError) -> str:
         for error in exc.errors(include_input=False)
     )
 
+
+CORPUS_MISSING = "The retrieval corpus is not mounted; set CORPUS_PATH."
 
 # The `-> str` return annotation is REQUIRED. Without it Gradio infers zero
 # output components and silently returns nothing. Ask us how we know.
@@ -88,9 +91,30 @@ def answer_onboarding_question(question_json: str) -> str:
     try:
         return answer_question(request).model_dump_json()
     except CorpusMissing:
-        raise Error("The retrieval corpus is not mounted; set CORPUS_PATH.") from None
+        raise Error(CORPUS_MISSING) from None
     except AnswerUnavailable as exc:
         raise Error(f"No answer: {exc}. Try again later.") from None
+
+
+@app.api(name="read_source_record")
+def read_source_record(page_name: str) -> str:
+    """Return the full text of one record by name, so a reader can check a cited source.
+
+    Send a page name as it appears in an answer's `sources`: SYN-* is a
+    synthetic onboarding ticket, STD-* a page of the draft v0.1 standard
+    (unratified). Returns JSON {"name", "title", "text"}. Read-only. An unknown
+    name is an error, not an empty record. Any page can be read, not only cited
+    ones: fine for the synthetic corpus, and a per-user access check to add
+    before a real one is mounted (Week 9).
+    """
+    try:
+        page = source_page(page_name)
+    except CorpusMissing:
+        raise Error(CORPUS_MISSING) from None
+    if page is None:
+        # The name is not echoed back, the same rule as the validation errors above.
+        raise Error("Unknown record: send a name from an answer's sources, such as STD-role-list.")
+    return json.dumps({"name": page.name, "title": page.title, "text": page.text})
 
 
 # --- The frontend ------------------------------------------------------------

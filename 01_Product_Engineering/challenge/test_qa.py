@@ -90,5 +90,37 @@ class ContractTests(unittest.TestCase):
                 app.answer_onboarding_question(json.dumps({"question": "q"}))
 
 
+
+class SourceRecordTests(unittest.TestCase):
+    """read_source_record lets a reader open a cited record; nothing else."""
+
+    def setUp(self):
+        patcher = patch.object(qa, "get_retriever", return_value=retrieval.Retriever(PAGES))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_cited_record_is_returned_whole(self):
+        page = PAGES[0]
+        record = json.loads(app.read_source_record(page.name))
+        self.assertEqual(record, {"name": page.name, "title": page.title, "text": page.text})
+
+    def test_unknown_or_malformed_names_are_errors_that_do_not_echo_input(self):
+        for name in ["SYN-ffffff", "../etc/passwd", "", "STD-role-list; drop"]:
+            with self.subTest(name=name), self.assertRaises(Error) as caught:
+                app.read_source_record(name)
+            if name:
+                self.assertNotIn(name, str(caught.exception))
+
+    def test_name_copied_with_brackets_still_opens(self):
+        page = PAGES[1]
+        self.assertEqual(json.loads(app.read_source_record(f"[{page.name}]"))["name"], page.name)
+
+    def test_missing_corpus_is_reported_whatever_the_name(self):
+        with patch.object(qa, "get_retriever", side_effect=CorpusMissing("x")):
+            for name in ["STD-role-list", "not-a-page"]:
+                with self.subTest(name=name), self.assertRaisesRegex(Error, "CORPUS_PATH"):
+                    app.read_source_record(name)
+
+
 if __name__ == "__main__":
     unittest.main()

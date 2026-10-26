@@ -199,8 +199,15 @@ class Retriever:
         ]
         return "\n".join(matches[:GREP_LINES]) or "(no matches)"
 
+    def get_page(self, name: str) -> Page | None:
+        """The one lookup by name: the agent's read_page and the public endpoint both use it.
+
+        Accepts a name as an answer prints it, with or without its [ ].
+        """
+        return self.pages.get(name.strip().strip("[]"))
+
     def read_page(self, page: str) -> str:
-        found = self.pages.get(page.strip().strip("[]"))
+        found = self.get_page(page)
         return found.text[:READ_CHARS] if found else f"(unknown page: {page})"
 
 
