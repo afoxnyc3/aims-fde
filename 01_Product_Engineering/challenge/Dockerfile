@@ -20,6 +20,14 @@ RUN uv export --frozen --no-dev --no-emit-project -o requirements.txt \
  && uv pip install --system --no-cache -r requirements.txt
 
 COPY llm.py app.py schema.py onboarding.py demo_standard.json ./
+COPY corpus.py retrieval.py qa.py qa_schema.py standard_v0_1.md ./
+
+# The ticket corpus is NOT copied in: use_case/data/ is gitignored, and an image
+# carries whatever is baked into it to everyone who can pull it. Mount it
+# read-only at runtime instead:
+#   docker run -v "$PWD/../../use_case/data:/data:ro" \
+#     -e CORPUS_PATH=/data/synthetic_v1.jsonl --env-file .env ...
+# Without the mount the question endpoint says so; onboarding still works.
 COPY frontend/ ./frontend/
 
 # Don't run as root. Your security review will ask about this.
