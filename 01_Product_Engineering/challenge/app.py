@@ -29,10 +29,12 @@ FRONTEND = Path(__file__).parent / "frontend" / "index.html"
 
 def _validation_details(exc: ValidationError) -> str:
     """Field paths and messages only: the rejected input is never echoed back."""
-    return "; ".join(
-        ".".join(str(part) for part in error["loc"]) + ": " + error["msg"]
-        for error in exc.errors(include_input=False)
-    )
+    problems = []
+    for error in exc.errors(include_input=False):
+        field = ".".join(str(part) for part in error["loc"])
+        # Whole-input errors (not JSON, not an object) have no field to name.
+        problems.append(f"{field}: {error['msg']}" if field else error["msg"])
+    return "; ".join(problems)
 
 
 CORPUS_MISSING = "The retrieval corpus is not mounted; set CORPUS_PATH."
@@ -63,7 +65,7 @@ def recommend_onboarding_access(onboarding_ticket_json: str) -> str:
     try:
         request = Request.model_validate_json(onboarding_ticket_json)
     except ValidationError as exc:
-        raise Error("Invalid onboarding request: " + _validation_details(exc)) from None
+        raise Error(f"Invalid onboarding request: {_validation_details(exc)}") from None
     return solve(request).model_dump_json()
 
 

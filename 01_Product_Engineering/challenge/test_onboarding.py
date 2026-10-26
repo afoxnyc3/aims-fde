@@ -278,6 +278,20 @@ class OnboardingTests(unittest.TestCase):
         with self.assertRaises(Error):
             app.recommend_onboarding_access('{"ticket_text":"missing reference"}')
 
+    def test_endpoint_error_names_each_field_or_none(self):
+        cases = [
+            ('{"ticket_ref": 5, "ticket_text": "x", "comments": []}',
+             "Invalid onboarding request: ticket_ref: Input should be a valid string"),
+            ('{"ticket_ref": "T", "ticket_text": "x", "comments": [{"comment_id": "c1", "text": "y", "author_type": "human"}]}',
+             "Invalid onboarding request: comments.0.created_at: Field required"),
+            ("[]", "Invalid onboarding request: Input should be an object"),
+        ]
+        for payload, expected in cases:
+            with self.subTest(payload=payload):
+                with self.assertRaises(Error) as caught:
+                    app.recommend_onboarding_access(payload)
+                self.assertEqual(caught.exception.message, expected)
+
     def test_endpoint_serializes_valid_response(self):
         with patch("onboarding.extract_ticket", return_value=facts(request_kind="other")):
             result = Response.model_validate_json(app.recommend_onboarding_access(self.request.model_dump_json()))
