@@ -44,10 +44,10 @@ The Technology Support Associate can apply the proposed access from the ticket c
 | --- | --- |
 | Associate handling minutes per scoped ticket | Reduce; set target after measuring baseline |
 | Replayed proposals matching the standard | At least 90%, proposed |
-| Recommendation recorded on the ticket | 100% of recommendations posted before manual provisioning; baseline unmeasured |
+| Recommendation recorded on the ticket | At least 95% of recommendations posted before manual provisioning, proposed; baseline unmeasured |
 | Tickets completed automatically | Report count and share of eligible live tickets for promoted roles |
 
-The caller posts proposed roles and the standard version. Reconcile returned recommendations with JSM comments and report posted/returned counts. Zero recommendations means not assessed.
+The caller posts proposed roles and the standard version. Reconcile returned recommendations with JSM comments and report posted/returned counts. For the posting target, count every returned outcome except ignored, which posts no comment, and count a post only when its timestamp precedes manual provisioning. Zero recommendations means not assessed.
 
 ---
 
