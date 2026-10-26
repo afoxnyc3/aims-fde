@@ -12,7 +12,10 @@ from fastapi.responses import HTMLResponse
 from gradio import Error, Server
 from pydantic import ValidationError
 
+from corpus import CorpusMissing
 from llm import ReplyError, stream_reply
+from qa import AnswerUnavailable, answer_question
+from qa_schema import QuestionRequest
 from schema import Request, solve
 
 app = Server()
@@ -21,6 +24,16 @@ FRONTEND = Path(__file__).parent / "frontend" / "index.html"
 
 
 # --- The API -----------------------------------------------------------------
+
+
+def _validation_details(exc: ValidationError) -> str:
+    """Field paths and messages only: the rejected input is never echoed back."""
+    return "; ".join(
+        ".".join(str(part) for part in error["loc"]) + ": " + error["msg"]
+        for error in exc.errors(include_input=False)
+    )
+
+
 # The `-> str` return annotation is REQUIRED. Without it Gradio infers zero
 # output components and silently returns nothing. Ask us how we know.
 
@@ -47,12 +60,37 @@ def recommend_onboarding_access(onboarding_ticket_json: str) -> str:
     try:
         request = Request.model_validate_json(onboarding_ticket_json)
     except ValidationError as exc:
-        details = "; ".join(
-            ".".join(str(part) for part in error["loc"]) + ": " + error["msg"]
-            for error in exc.errors(include_input=False)
-        )
-        raise Error("Invalid onboarding request: " + details) from None
+        raise Error("Invalid onboarding request: " + _validation_details(exc)) from None
     return solve(request).model_dump_json()
+
+
+@app.api(name="answer_onboarding_question")
+def answer_onboarding_question(question_json: str) -> str:
+    """Answer a question about onboarding tickets or the draft access standard, citing records.
+
+    Send JSON {"question": "..."}: one plain-language question, up to 2000
+    characters. For example: which clubs give a Lifeguard a staff login; what
+    standard role a ticket's job title maps to; what happened on a named new
+    hire's ticket; how a kind of ticket is routed.
+
+    Returns QuestionAnswer JSON. When answered, `answer` names its records in
+    square brackets and `sources` lists them: SYN-* pages are synthetic
+    onboarding tickets, STD-* pages are the draft v0.1 standard (unratified).
+    When the records do not support an answer, `declined` is true, `answer` is
+    null and `decline_reason` says why; do not answer from elsewhere. `trace`
+    lists every retrieval call. Read-only: no tickets or accounts are changed,
+    and it never returns credentials. Invalid JSON is a validation error.
+    """
+    try:
+        request = QuestionRequest.model_validate_json(question_json)
+    except ValidationError as exc:
+        raise Error("Invalid question: " + _validation_details(exc)) from None
+    try:
+        return answer_question(request).model_dump_json()
+    except CorpusMissing:
+        raise Error("The retrieval corpus is not mounted; set CORPUS_PATH.") from None
+    except AnswerUnavailable as exc:
+        raise Error(f"No answer: {exc}. Try again later.") from None
 
 
 # --- The frontend ------------------------------------------------------------
