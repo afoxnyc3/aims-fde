@@ -32,6 +32,17 @@ def get_retriever() -> retrieval.Retriever:
     return retrieval.Retriever(corpus.load_corpus(), cache_dir=Path(cache_dir) if cache_dir else None)
 
 
+def source_page(name: str) -> corpus.Page | None:
+    """One corpus page by its exact name, so a reader can check a source an answer cited.
+
+    Only full page names are looked up (SYN-xxxxxx or STD-...); anything else is None.
+    """
+    name = name.strip()
+    if not retrieval.PAGE_ID.fullmatch(name):
+        return None
+    return get_retriever().pages.get(name)
+
+
 def answer_question(request: QuestionRequest) -> QuestionAnswer:
     retriever = get_retriever()
     try:

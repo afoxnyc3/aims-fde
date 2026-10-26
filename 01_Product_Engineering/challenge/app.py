@@ -5,6 +5,7 @@ queueing, streaming, and MCP for free, but you bring your own frontend. That
 split is the point: the API is the product, the UI is disposable.
 """
 
+import json
 import os
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from pydantic import ValidationError
 
 from corpus import CorpusMissing
 from llm import ReplyError, stream_reply
-from qa import AnswerUnavailable, answer_question
+from qa import AnswerUnavailable, answer_question, source_page
 from qa_schema import QuestionRequest
 from schema import Request, solve
 
@@ -91,6 +92,25 @@ def answer_onboarding_question(question_json: str) -> str:
         raise Error("The retrieval corpus is not mounted; set CORPUS_PATH.") from None
     except AnswerUnavailable as exc:
         raise Error(f"No answer: {exc}. Try again later.") from None
+
+
+@app.api(name="read_source_record")
+def read_source_record(page_name: str) -> str:
+    """Return the full text of one record an answer cited, so a reader can check it.
+
+    Send a page name exactly as it appears in an answer's `sources`: SYN-* is a
+    synthetic onboarding ticket, STD-* a page of the draft v0.1 standard
+    (unratified). Returns JSON {"name", "title", "text"}. Read-only. An unknown
+    name is an error, not an empty record.
+    """
+    try:
+        page = source_page(page_name)
+    except CorpusMissing:
+        raise Error("The retrieval corpus is not mounted; set CORPUS_PATH.") from None
+    if page is None:
+        # The name is not echoed back, the same rule as the validation errors above.
+        raise Error("Unknown record: send a name from an answer's sources, such as STD-role-list.")
+    return json.dumps({"name": page.name, "title": page.title, "text": page.text})
 
 
 # --- The frontend ------------------------------------------------------------

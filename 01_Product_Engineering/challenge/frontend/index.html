@@ -22,6 +22,14 @@
     .turn { margin-bottom: .8rem; } .who { font-weight: 600; }
     #form { display: flex; gap: .5rem; } #input { flex: 1; min-width: 0; padding: .5rem; font: inherit; }
     @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+    /* Ask the records: the question endpoint, with every cited record one click away. */
+    #ask-form { display: flex; gap: .5rem; } #question { flex: 1; min-width: 0; padding: .6rem; font: inherit; border: 1px solid #91a7b2; border-radius: .4rem; }
+    #answer { white-space: pre-wrap; margin: 1rem 0 .5rem; }
+    .declined { border-left: 4px solid #a8660b; background: #fbf1e1; padding: .6rem .8rem; border-radius: 0 .4rem .4rem 0; }
+    #sources { display: flex; flex-wrap: wrap; gap: .4rem; margin: .5rem 0; }
+    #sources button { background: #dcefeb; color: #155f63; font: .85rem monospace; padding: .3rem .6rem; }
+    #sources button[aria-pressed="true"] { background: #155f63; color: white; }
+    #source-text { background: #f3f6f7; border: 1px solid #d4dfe4; border-radius: .4rem; padding: .8rem; max-height: 24rem; overflow-y: auto; }
   </style>
 </head>
 <body>
@@ -32,6 +40,20 @@
     <p><strong>Synthetic demo only.</strong> No accounts are created and no JSM comments are posted. Use invented people and IDs; never paste credentials or real tickets.</p>
     <p id="connection" role="status">Connecting to the application…</p>
   </header>
+  <section class="panel" aria-live="polite">
+    <h2>Ask the records</h2>
+    <p class="muted">Ask an onboarding question in your own words. The answer names the tickets (SYN-…) and draft standard pages (STD-…) it came from; click one to read it. If the records don't support an answer, it says so instead.</p>
+    <form id="ask-form">
+      <input id="question" aria-label="Question" maxlength="2000" placeholder="e.g. At which clubs does a Lifeguard get a staff login?" autocomplete="off" />
+      <button id="ask-button" disabled>Ask</button>
+    </form>
+    <p id="ask-status" class="status" hidden></p>
+    <div id="answer" hidden></div>
+    <div id="sources" hidden></div>
+    <pre id="source-text" hidden></pre>
+    <p id="trace" class="muted" hidden></p>
+    <p id="ask-error" role="alert" hidden></p>
+  </section>
   <div class="grid">
     <section class="panel">
       <form id="onboarding-form">
@@ -69,6 +91,7 @@
       client = await Client.connect(window.location.origin, { events: ["data", "status"] });
       byId("connection").textContent = "Connected · Versioned synthetic standard";
       byId("recommend-button").disabled = false; byId("chat-button").disabled = false;
+      byId("ask-button").disabled = false;
     } catch {
       byId("connection").textContent = "Connection failed. Check the server and CDN access, then reload.";
       byId("connection").className = "error";
@@ -95,6 +118,55 @@
         showError("request-error", String(error.message || "Request rejected or server error. Check the request fields and try again."));
       } finally { byId("recommend-button").disabled = false; }
     });
+    // --- Ask the records ---------------------------------------------------
+    // Everything the model wrote is set with textContent, never innerHTML:
+    // answers quote ticket text, and ticket text is data.
+    function showSource(button, name) {
+      const pressed = button.getAttribute("aria-pressed") === "true";
+      for (const other of byId("sources").children) other.setAttribute("aria-pressed", "false");
+      if (pressed) { byId("source-text").hidden = true; return; }
+      button.setAttribute("aria-pressed", "true");
+      byId("source-text").hidden = false; byId("source-text").textContent = "Loading " + name + "…";
+      client.predict("/read_source_record", { page_name: name })
+        .then((result) => { byId("source-text").textContent = JSON.parse(result.data[0]).text; })
+        .catch((error) => { byId("source-text").textContent = String(error.message || "Could not load that record."); });
+    }
+    byId("ask-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const question = byId("question").value.trim(); if (!question) return;
+      for (const id of ["answer", "sources", "source-text", "trace", "ask-error"]) byId(id).hidden = true;
+      byId("sources").replaceChildren();
+      byId("ask-status").hidden = false; byId("ask-status").textContent = "Searching the records…";
+      byId("ask-button").disabled = true;
+      try {
+        const result = await client.predict("/answer_onboarding_question", { question_json: JSON.stringify({ question }) });
+        const reply = JSON.parse(result.data[0]);
+        const answer = byId("answer"); answer.hidden = false;
+        if (reply.declined) {
+          byId("ask-status").textContent = "No answer from the records";
+          answer.className = "declined"; answer.textContent = reply.decline_reason;
+        } else {
+          byId("ask-status").textContent = "Answer";
+          answer.className = ""; answer.textContent = reply.answer;
+          for (const name of reply.sources) {
+            const button = document.createElement("button"); button.type = "button";
+            button.textContent = (name.startsWith("STD-") ? "Standard " : "Ticket ") + name;
+            button.setAttribute("aria-pressed", "false");
+            button.addEventListener("click", () => showSource(button, name));
+            byId("sources").appendChild(button);
+          }
+          byId("sources").hidden = false;
+        }
+        const t = reply.trace;
+        byId("trace").hidden = false;
+        byId("trace").textContent = `${t.steps.length} search call(s) · ${t.evidence_chars.toLocaleString()} characters read · ${t.latency_s.toFixed(1)} s`
+          + (reply.dropped_citations.length ? ` · ignored invented record names: ${reply.dropped_citations.join(", ")}` : "");
+      } catch (error) {
+        byId("ask-status").hidden = true;
+        showError("ask-error", String(error.message || "The question could not be answered. Try again."));
+      } finally { byId("ask-button").disabled = false; }
+    });
+
     const history = [];
     function addTurn(who, text) {
       const turn = document.createElement("div"); turn.className = "turn";
