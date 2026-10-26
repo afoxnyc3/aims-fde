@@ -40,15 +40,16 @@
     <p><strong>Synthetic demo only.</strong> No accounts are created and no JSM comments are posted. Use invented people and IDs; never paste credentials or real tickets.</p>
     <p id="connection" role="status">Connecting to the application…</p>
   </header>
-  <section class="panel" aria-live="polite">
+  <section class="panel">
     <h2>Ask the records</h2>
     <p class="muted">Ask an onboarding question in your own words. The answer names the tickets (SYN-…) and draft standard pages (STD-…) it came from; click one to read it. If the records don't support an answer, it says so instead.</p>
     <form id="ask-form">
       <input id="question" aria-label="Question" maxlength="2000" placeholder="e.g. At which clubs does a Lifeguard get a staff login?" autocomplete="off" />
       <button id="ask-button" disabled>Ask</button>
     </form>
-    <p id="ask-status" class="status" hidden></p>
-    <div id="answer" hidden></div>
+    <!-- Announce the status and the answer only, not the record text a reader opens. -->
+    <p id="ask-status" class="status" role="status" hidden></p>
+    <div id="answer" aria-live="polite" hidden></div>
     <div id="sources" hidden></div>
     <pre id="source-text" hidden></pre>
     <p id="trace" class="muted" hidden></p>
@@ -121,21 +122,31 @@
     // --- Ask the records ---------------------------------------------------
     // Everything the model wrote is set with textContent, never innerHTML:
     // answers quote ticket text, and ticket text is data.
-    function showSource(button, name) {
+    // Only the latest click may write the record text: a slow earlier response
+    // must not show one record under another record's pressed chip.
+    let sourceRequest = 0;
+    async function showSource(button, name) {
       const pressed = button.getAttribute("aria-pressed") === "true";
       for (const other of byId("sources").children) other.setAttribute("aria-pressed", "false");
+      const request = ++sourceRequest;
       if (pressed) { byId("source-text").hidden = true; return; }
       button.setAttribute("aria-pressed", "true");
       byId("source-text").hidden = false; byId("source-text").textContent = "Loading " + name + "…";
-      client.predict("/read_source_record", { page_name: name })
-        .then((result) => { byId("source-text").textContent = JSON.parse(result.data[0]).text; })
-        .catch((error) => { byId("source-text").textContent = String(error.message || "Could not load that record."); });
+      let text;
+      try {
+        const result = await client.predict("/read_source_record", { page_name: name });
+        text = JSON.parse(result.data[0]).text;
+        if (typeof text !== "string") throw new Error();
+      } catch (error) {
+        text = error.message || "Could not load that record.";
+      }
+      if (request === sourceRequest) byId("source-text").textContent = text;
     }
     byId("ask-form").addEventListener("submit", async (event) => {
       event.preventDefault();
       const question = byId("question").value.trim(); if (!question) return;
       for (const id of ["answer", "sources", "source-text", "trace", "ask-error"]) byId(id).hidden = true;
-      byId("sources").replaceChildren();
+      byId("sources").replaceChildren(); sourceRequest++;  // drop any record still loading
       byId("ask-status").hidden = false; byId("ask-status").textContent = "Searching the records…";
       byId("ask-button").disabled = true;
       try {

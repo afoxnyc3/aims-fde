@@ -90,9 +90,6 @@ class ContractTests(unittest.TestCase):
                 app.answer_onboarding_question(json.dumps({"question": "q"}))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class SourceRecordTests(unittest.TestCase):
     """read_source_record lets a reader open a cited record; nothing else."""
@@ -114,7 +111,16 @@ class SourceRecordTests(unittest.TestCase):
             if name:
                 self.assertNotIn(name, str(caught.exception))
 
-    def test_missing_corpus_is_a_clear_error(self):
+    def test_name_copied_with_brackets_still_opens(self):
+        page = PAGES[1]
+        self.assertEqual(json.loads(app.read_source_record(f"[{page.name}]"))["name"], page.name)
+
+    def test_missing_corpus_is_reported_whatever_the_name(self):
         with patch.object(qa, "get_retriever", side_effect=CorpusMissing("x")):
-            with self.assertRaisesRegex(Error, "CORPUS_PATH"):
-                app.read_source_record("STD-role-list")
+            for name in ["STD-role-list", "not-a-page"]:
+                with self.subTest(name=name), self.assertRaisesRegex(Error, "CORPUS_PATH"):
+                    app.read_source_record(name)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -33,14 +33,14 @@ def get_retriever() -> retrieval.Retriever:
 
 
 def source_page(name: str) -> corpus.Page | None:
-    """One corpus page by its exact name, so a reader can check a source an answer cited.
+    """One corpus page by name, so a reader can check a source an answer cited.
 
-    Only full page names are looked up (SYN-xxxxxx or STD-...); anything else is None.
+    The corpus is loaded first, so a missing corpus is reported whatever name
+    was sent. Only full page names match (SYN-xxxxxx or STD-...).
     """
-    name = name.strip()
-    if not retrieval.PAGE_ID.fullmatch(name):
-        return None
-    return get_retriever().pages.get(name)
+    retriever = get_retriever()
+    page = retriever.get_page(name)
+    return page if page and retrieval.PAGE_ID.fullmatch(page.name) else None
 
 
 def answer_question(request: QuestionRequest) -> QuestionAnswer:
