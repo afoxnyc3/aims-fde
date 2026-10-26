@@ -50,7 +50,8 @@ def recommend_onboarding_access(onboarding_ticket_json: str) -> str:
         problems = []
         for error in exc.errors(include_input=False):
             field = ".".join(str(part) for part in error["loc"])
-            problems.append(f"{field}: {error['msg']}")
+            # Whole-input errors (not JSON, not an object) have no field to name.
+            problems.append(f"{field}: {error['msg']}" if field else error["msg"])
         raise Error(f"Invalid onboarding request: {'; '.join(problems)}") from None
     return solve(request).model_dump_json()
 

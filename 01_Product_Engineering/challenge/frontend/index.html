@@ -78,8 +78,13 @@
       byId("result-json").textContent = ""; byId("result-summary").textContent = "";
       byId("result-status").textContent = "No result"; byId("result-status").className = "status";
       const onboarding_ticket_json = byId("ticket-json").value;
-      try { JSON.parse(onboarding_ticket_json); }
+      if (!onboarding_ticket_json.trim()) { showError("request-error", "Invalid input: paste one ticket as a JSON object."); return; }
+      let parsed;
+      try { parsed = JSON.parse(onboarding_ticket_json); }
       catch (error) { showError("request-error", `Invalid input: not valid JSON (${error.message}).`); return; }
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+        showError("request-error", "Invalid input: valid JSON, but not an object. Paste one ticket as {…}."); return;
+      }
       byId("recommend-button").disabled = true;
       byId("result-status").textContent = "Reading ticket and checking the standard…";
       byId("result-status").className = "status";
