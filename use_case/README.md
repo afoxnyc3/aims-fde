@@ -184,6 +184,33 @@ This checkout uses the challenge directory's `.env` for approved model configura
 
 A container image captures the Linux userspace, Python runtime, system libraries, installed dependencies, application code, and startup command; a virtual environment mainly isolates Python packages and relies on its host runtime and OS. The image gives the platform team a packaged runtime to run on a compatible container host; secrets and deployment configuration remain external.
 
+## TC3 — the question endpoint
+
+`answer_onboarding_question(question_json: str) -> str` in [`app.py`](../01_Product_Engineering/challenge/app.py): send `{"question": "..."}`, get `QuestionAnswer` JSON with the answer, the records it cites in `sources`, and the trace of every retrieval call. Retrieval is agentic hybrid (BM25 + embeddings, RRF) over 116 pages: 113 synthetic tickets and 3 draft-standard pages. Why that technique: [`decisions.md`](decisions.md) (Week 3); the measurement: [`evals/retrieval_results.md`](evals/retrieval_results.md).
+
+**On the decline question** ("What temporary password should I give a new Lifeguard?") it returns `declined: true`, no answer, empty `sources`, and the model's one-line reason; no password is ever produced. Any answer that cites no real record is declined the same way.
+
+Run it locally from `01_Product_Engineering/challenge/` with the data file in `use_case/data/` (gitignored):
+
+```sh
+export RETRIEVAL_MODEL=openrouter/anthropic/claude-sonnet-5.5   # the model the table was measured on
+uv run --env-file .env python app.py
+uv run --env-file .env python measure_retrieval.py   # re-scores every technique; about $1-2
+uv run python -m unittest test_onboarding test_corpus test_retrieval test_qa   # no keys needed
+```
+
+`.env` holds `OPENROUTER_API_KEY`. Set `EMBED_API_BASE` / `EMBED_API_KEY` to send embeddings through a gateway instead.
+
+In Docker the corpus is mounted read-only, never copied into the image:
+
+```sh
+docker run -p 127.0.0.1:7860:7860 --env-file .env \
+  -v "$PWD/../../use_case/data:/data:ro" -e CORPUS_PATH=/data/synthetic_v1.jsonl \
+  -e RETRIEVAL_MODEL=openrouter/anthropic/claude-sonnet-5.5 tc3-retrieval
+```
+
+**Verified 2026-10-24 in Docker:** non-root (UID 1000), `/data` read-only, no data in the image. The endpoint answered q03 citing both gold records, answered q04 from the standard pages, declined the password question with no sources, and rejected an empty question as invalid input.
+
 ## Bring it to work
 
 **Project:** We can't decide which roles keep seats under a fixed AI-tool
@@ -207,3 +234,12 @@ from a seat.
   sign off on: employee notice under the acceptable-use policy; retention and
   deletion covering every copy of the export; scope limited to conversation
   records and usage metadata; and results reported by role, never by person.
+
+### TC3 — retrieval
+
+**[YOU: confirm or rewrite.]** Technology Support Associates decide new-hire access by searching Confluence and comparing peer accounts in the club-management system, then answer from memory; nobody has measured whether that search finds the right page, and the answer never cites one.
+
+- **Data:** **[YOU]** resolved onboarding tickets from JSM plus the versioned role standard once ratified. Text only today; screenshots and scanned forms attached to tickets would be next (see decisions.md, non-text). Real tickets are masked before indexing.
+- **Model or endpoint:** **[YOU: confirm the route is approved for real ticket text.]** Answer model `claude-sonnet-5.5` through OpenRouter (approved); embeddings `text-embedding-3-small` through OpenRouter, or `nomic-embed-text` on Ollama inside the network if ticket text may not leave it (both were tested on 2026-10-24). Re-indexing cost: **30,353 embedding tokens for 116 pages, measured**; about 260 tokens per page.
+- **Access or approval:** **[YOU]** read access to the JSM onboarding project for the indexer, approval for an embedding route for masked ticket text (or the local model), and the role-standard owners' sign-off before standard pages are indexed as authoritative.
+

@@ -64,6 +64,8 @@ An onboarding workflow that turns a JSM request into a verified account, recomme
 | **In** | A ticket reference, masked raw title/description/form text, and separate comments with trusted JSM author metadata and timestamps. Preserve all readable content and comment chronology; explicitly mark redacted and unavailable sections. No pre-parsed onboarding fields or caller-supplied standards/gates. |
 | **Out** | **V1 recommends only:** `recommended`, `needs_information`, `human_review`, `ignored`, or `failed`. `answer=None` means no answer; uncertain recommendations carry caveats, not confidence scores. Exception reviews include an unapproved standard proposal and differences. The caller posts the comment when one is returned; ignored tickets get none. An associate provisions access. `solve()` performs no writes; credentials must be excluded, with output screening still to implement. |
 
+**Week 3 addition:** a second, read-only contract, `QuestionRequest` → `QuestionAnswer` in [qa_schema.py](../01_Product_Engineering/challenge/qa_schema.py), answers an associate's question about past tickets or the draft standard, citing the records it used, or declines. It never proposes access; see [decisions.md](decisions.md) (Week 3).
+
 The types and unimplemented `solve(request: Request) -> Response` are in [schema.py](../01_Product_Engineering/challenge/schema.py). V1 does not create accounts or write to JSM; gated production creation remains the later project end state. V1 is a fixed pipeline using the published standard only, with no live account lookup. Identity ambiguity means conflicting or multiple identities in the ticket, not verified account matching. Before provisioning, the associate checks existing accounts, rehires/transfers, and login-email availability; new-account creation is conditional on that check.
 
 The course-window deliverables include draft, versioned standards for scoped roles and the onboarding workflow. Standards and gates come from trusted configuration. Build in test against drafts; production requires ratification. Deliver credentials through an approved channel outside ticket comments. Offboarding is out of scope.
@@ -76,6 +78,6 @@ Rationale and alternatives are recorded in [decisions.md](decisions.md); depende
 
 | Week | Decision |
 | --- | --- |
-| 3 | Proposed: exact lookup of the versioned role standard. |
+| 3 | Exact lookup of the versioned role standard stays the source of access. Added a read-only question endpoint, agentic hybrid retrieval with sources, beside `solve()`. |
 | 5 | Direction set: ticket-triggered workflow, recommend first, then gated action. |
 | 8 | Open: select the model using project evals. |
