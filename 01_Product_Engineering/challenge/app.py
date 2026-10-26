@@ -47,11 +47,11 @@ def recommend_onboarding_access(onboarding_ticket_json: str) -> str:
     try:
         request = Request.model_validate_json(onboarding_ticket_json)
     except ValidationError as exc:
-        details = "; ".join(
-            ".".join(str(part) for part in error["loc"]) + ": " + error["msg"]
-            for error in exc.errors(include_input=False)
-        )
-        raise Error("Invalid onboarding request: " + details) from None
+        problems = []
+        for error in exc.errors(include_input=False):
+            field = ".".join(str(part) for part in error["loc"])
+            problems.append(f"{field}: {error['msg']}")
+        raise Error(f"Invalid onboarding request: {'; '.join(problems)}") from None
     return solve(request).model_dump_json()
 
 

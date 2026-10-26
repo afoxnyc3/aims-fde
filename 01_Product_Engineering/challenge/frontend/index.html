@@ -79,7 +79,7 @@
       byId("result-status").textContent = "No result"; byId("result-status").className = "status";
       const onboarding_ticket_json = byId("ticket-json").value;
       try { JSON.parse(onboarding_ticket_json); }
-      catch { showError("request-error", "Invalid input: enter a JSON object, not the whole JSONL line."); return; }
+      catch (error) { showError("request-error", `Invalid input: not valid JSON (${error.message}).`); return; }
       byId("recommend-button").disabled = true;
       byId("result-status").textContent = "Reading ticket and checking the standard…";
       byId("result-status").className = "status";
