@@ -97,8 +97,10 @@ ticket. `strength` says how real the wording is:
 
 `evidence_tickets` counts the tickets showing the pattern, not traffic.
 
-**Top-k floor: 3 of the 10 need two records (q04, q08, q09), so top-1 is
-ruled out; k is at least 2.** 8 of the 10 carry a name, a title or a club.
+**Top-k floor: 5 of the 15 need two records (q04, q08, q09, q11, q13), so
+top-1 is ruled out; k is at least 2.** 13 of the 15 carry a name, a title or a club.
+q11–q15 are the Step 6 associate's own questions, typed into the tool on
+2026-10-27; their `strength` is `verbatim` because he wrote them.
 In the real export, 51 of 84 substantive question-bearing comments on
 onboarding tickets (61%) carry a name, email, title, date or club, which is
 the case for keeping a lexical index next to dense search (Session 6,
