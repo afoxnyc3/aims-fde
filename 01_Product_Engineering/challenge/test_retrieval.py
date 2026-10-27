@@ -80,6 +80,48 @@ class AnswerRuleTests(unittest.TestCase):
         self.assertIn("only if a record states it", retrieval.SYSTEM)
 
 
+class RetryTests(unittest.TestCase):
+    """The answer call owns one classified retry; litellm's own wrapper stays off."""
+
+    def errors(self):
+        from litellm import AuthenticationError, ServiceUnavailableError
+        return (ServiceUnavailableError("down", llm_provider="x", model="m"),
+                AuthenticationError("bad key", llm_provider="x", model="m"))
+
+    def test_transient_error_is_retried_once_without_litellm_retries(self):
+        unavailable, _ = self.errors()
+        calls = []
+
+        def completion(**kwargs):
+            calls.append(kwargs)
+            if len(calls) == 1:
+                raise unavailable
+            return reply("Answer [STD-role-list]")
+
+        with patch.object(retrieval.litellm, "completion", side_effect=completion), \
+                patch.object(retrieval.time, "sleep"):
+            result = retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES))
+        self.assertEqual(len(calls), 2)
+        self.assertTrue(all(call["num_retries"] == 0 for call in calls))
+        self.assertEqual(result["stopped"], "answer")
+
+    def test_client_error_is_not_retried(self):
+        _, bad_key = self.errors()
+        with patch.object(retrieval.litellm, "completion", side_effect=bad_key) as completion, \
+                patch.object(retrieval.time, "sleep"):
+            with self.assertRaises(type(bad_key)):
+                retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES))
+        self.assertEqual(completion.call_count, 1)
+
+    def test_second_transient_error_is_raised(self):
+        unavailable, _ = self.errors()
+        with patch.object(retrieval.litellm, "completion", side_effect=unavailable) as completion, \
+                patch.object(retrieval.time, "sleep"):
+            with self.assertRaises(type(unavailable)):
+                retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES))
+        self.assertEqual(completion.call_count, 2)
+
+
 class LoopTests(unittest.TestCase):
     def test_model_cannot_call_methods_outside_its_technique(self):
         retriever = retrieval.Retriever(PAGES)
