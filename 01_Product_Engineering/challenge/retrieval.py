@@ -143,7 +143,8 @@ class Retriever:
     # --- embeddings ----------------------------------------------------------
 
     def _embed(self, texts: list[str]) -> np.ndarray:
-        response = litellm.embedding(model=self.embed_model, input=texts, timeout=120, **EMBED_KWARGS)
+        response = llm.call_with_retry(litellm.embedding, model=self.embed_model, input=texts, timeout=120,
+                                       **EMBED_KWARGS)
         self.embed_tokens += int(getattr(response.usage, "total_tokens", 0) or 0)
         vectors = np.array([item["embedding"] for item in response.data], dtype=np.float32)
         return vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
@@ -255,26 +256,6 @@ def cited_pages(answer: str, retriever: Retriever) -> list[str]:
     return seen
 
 
-def _complete(**kwargs):
-    """One chat call with one retry on a transient error, the policy onboarding.py uses.
-
-    num_retries=0 keeps litellm's own retry wrapper off: it retries every APIError,
-    including a bad key or a malformed request, with no wait, and it needs tenacity,
-    which this app does not install.
-    """
-    from litellm import APIConnectionError, RateLimitError, ServiceUnavailableError, Timeout
-
-    for attempt in range(2):
-        try:
-            return litellm.completion(timeout=120, num_retries=0, **CHAT_KWARGS, **kwargs)
-        except APIError as exc:
-            transient = isinstance(exc, (APIConnectionError, RateLimitError, ServiceUnavailableError, Timeout))
-            transient = transient or (getattr(exc, "status_code", None) or 0) >= 500
-            if not transient or attempt == 1:
-                raise
-            time.sleep(1)
-
-
 def run_agent(question: str, technique: str, retriever: Retriever,
               model: str = CHAT_MODEL, max_turns: int = MAX_TURNS) -> dict:
     """Session 5's loop: the model calls tools until it answers or runs out of turns."""
@@ -286,7 +267,8 @@ def run_agent(question: str, technique: str, retriever: Retriever,
     trace, evidence_chars, tokens = [], 0, 0
     started = time.perf_counter()
     for _ in range(max_turns):
-        response = _complete(model=model, messages=messages, tools=tools)
+        response = llm.call_with_retry(litellm.completion, model=model, messages=messages, tools=tools,
+                                       timeout=120, num_retries=0, **CHAT_KWARGS)
         tokens += int(getattr(response.usage, "total_tokens", 0) or 0)
         message = response.choices[0].message
         if not message.tool_calls:
@@ -318,8 +300,8 @@ def answer_once(question: str, retriever: Retriever, model: str = CHAT_MODEL, k:
     """Fixed pipeline: one hybrid retrieval, one answer call. Two model-free steps and one model call."""
     started = time.perf_counter()
     hits = retriever.search_hybrid(question, k)
-    response = _complete(
-        model=model,
+    response = llm.call_with_retry(
+        litellm.completion, model=model, timeout=120, num_retries=0, **CHAT_KWARGS,
         messages=[{"role": "system", "content": SYSTEM},
                   {"role": "user", "content": f"Evidence:\n\n{hits}\n\nQuestion: {question}"}],
     )
