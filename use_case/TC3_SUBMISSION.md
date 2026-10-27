@@ -2,7 +2,7 @@
 
 A question endpoint over the synthetic onboarding tickets and the draft access standard. It answers with the records it used, or declines. Five retrieval techniques were measured against labelled questions before one was picked. This page indexes each deliverable; the detail lives in the linked files.
 
-**Loom:** **[YOU: link, ≤ 5 min — the endpoint answering two questions with sources, then the results table]**
+**Loom:** [TC3 demo](https://www.loom.com/share/6dbd0d99d2974d10b6a9a2fa3e556cfb)
 **Pull requests (merged to `main`):** [#13](https://github.com/afoxnyc3/aims-fde/pull/13) corpus and labels → [#14](https://github.com/afoxnyc3/aims-fde/pull/14) measurement → [#15](https://github.com/afoxnyc3/aims-fde/pull/15) endpoint → [#16](https://github.com/afoxnyc3/aims-fde/pull/16) decision docs → [#17](https://github.com/afoxnyc3/aims-fde/pull/17) "Ask the records" panel
 
 ## Step 1: labelled questions
@@ -105,7 +105,7 @@ Every agentic technique's three misses are the same three routing questions. A l
 
 ## Step 7: bring it to work
 
-[`README.md`](README.md#tc3--retrieval), under "Bring it to work": the search it is for, and the data, model and approval swap lines, with the measured token count. **[YOU]** Confirm the lines marked there; they are claims about your company.
+[`README.md`](README.md#tc3--retrieval), under "Bring it to work": the search it is for, and the data, model and approval swap lines, with the measured token count.
 
 ## Lessons learned
 
