@@ -139,7 +139,7 @@ Supporting dependencies; internal evidence stays separate. The input contract is
 | Identity and role standard | Identity source, job-title mapping, permissions, venue add-ons, and login-email rules | Produce versioned drafts; confirm job levels, venue variation, and ratification owners | Product / role decision owners |
 | Hosting | Container runtime, image publishing, authentication, and secrets | Azure Container Apps selected; hosting pattern validated by the Senior Systems Administrator (2026-10-16). App egress uses the existing NAT gateways; confirm registry and cost; see [egress evidence](#azure-egress-verification). Use the tested amd64 image and initially one replica; enable Entra sign-in and use Key Vault | Senior Systems Administrator / Senior Director of IT |
 | Model access | Approved external LLM API | Anthropic available (CTO approval); the local Docker container called it successfully during Step 9, and the local app called it from the office network on 2026-10-19 (see [office egress](#egress--2026-10-19-work-laptop-mac-1--office-network)). All tests worked as designed; not blocked. Azure app-container connectivity is unverified. OpenRouter approved (known from my role). No internal endpoint | CTO / project owner |
-| Embeddings (Week 3) | An embedding route for retrieval over ticket text | **Synthetic corpus only:** `openai/text-embedding-3-small` through OpenRouter (approved), measured 30,353 tokens for 116 pages on 2026-10-24. `nomic-embed-text` on local Ollama also answered the same probe. Not yet asked: whether masked **real** ticket text may go to an external embedding route; until then the local model is the fallback, and agentic BM25 needs no embedding model at all (see [decisions](decisions.md), Week 3) | CTO / security owner |
+| Embeddings (Week 3) | An embedding route for retrieval over ticket text | **Synthetic corpus only:** `openai/text-embedding-3-small` through OpenRouter (approved), measured 30,353 tokens for 116 pages on 2026-10-24. `nomic-embed-text` on local Ollama also answered the same probe. **Real ticket text (2026-10-27):** OpenRouter chosen for embeddings, since Anthropic's API has none; sending masked real ticket text to it needs the CTO and ISO sign-off for indexing real tickets, with the Senior Engineering Director's independent review (see [Week 3 — retrieval access scope](#week-3--retrieval-access-scope)). Until then the local model is the fallback, and agentic BM25 needs no embedding model at all (see [decisions](decisions.md), Week 3) | CTO / security owner |
 | Credential delivery | Unique credentials through an approved channel outside ticket comments | Confirm delivery and first-login behavior before production | Account-system owner / security owner |
 | Production promotion | Ratified standard, write access, and 95% on synthetic tickets or 90% over at least 20 live tickets per role | CTO approves on reported results; set synthetic set size, coverage, and scoring rules (see [decisions](decisions.md)) | CTO / project owner / role decision owners |
 | Course review | Demonstrate the onboarding workflow and evaluation within the course window | Confirm deliverable fit | Course team |
@@ -167,25 +167,25 @@ Docker Desktop built and ran the application on October 13, 2026. The Mac is arm
 
 ## Week 3 — retrieval access scope
 
-What the question endpoint would need to index real tickets. From a query to Atlassian Rovo against the JSM configuration, 2026-10-27; **confirm the permission scheme with the Jira admin**, since Rovo hedged on it.
+What the question endpoint would need to index real tickets. Drawn from a query to the JSM configuration on 2026-10-27; the specifics (project key, request-type names, roles) are kept in an internal note, not here. **The Jira admin still has to confirm the permission scheme.**
 
-- **Source:** a shared IT service desk project (26 request types, including incidents, offboarding and security-camera footage requests), not a dedicated onboarding project. Onboarding uses two regional request types on an "employee onboarding" issue type. Promotions, transfers and title changes have no request type of their own: they arrive through the general service request, with software requests used for permission changes.
-- **Access is the whole project.** Jira grants Browse Projects per project. This project is not private and has no issue security levels, so any account that can browse it reads every ticket in it. There is no native way to grant a service account only the onboarding request types.
-- **The service account:** read-only, in a dedicated project role rather than an existing one (not the general managers' view-only role), so it can be audited and revoked on its own.
-- **The indexing filter is the control.** It decides what is fetched, masked and stored; nothing outside it is read into the index. The project key and request-type names are local configuration, not committed:
+- **Source:** onboarding runs in a shared IT service desk project, not a dedicated one. Promotions, transfers and title changes have no request type of their own: they arrive through the general service request. Software requests carry permission changes, which status rule 1 treats as not onboarding, so they are not indexed.
+- **Access is the whole project.** Jira grants Browse Projects per project, and nothing finer is configured for this one, so an account that can browse it can read every ticket in it, not only onboarding.
+- **The service account:** read-only, in a dedicated project role rather than an existing one, so it can be audited and revoked on its own.
+- **The indexing filter is the control.** It decides what is fetched, masked and stored. The project key and request-type values are local configuration, not committed:
 
   ```
   project = $JSM_PROJECT AND (
     "Request Type" in ($ONBOARDING_REQUEST_TYPES)
     OR ("Request Type" in ($GENERAL_REQUEST_TYPES)
-        AND text ~ "promotion OR transfer OR \"title change\"")
+        AND text ~ "promotion OR promoted OR \"title change\" OR \"internal transfer\" OR \"transferring to\"")
   )
   ```
 
-  The field name is as Rovo gave it; check it in the instance. The text match for promotions is imprecise: measure its recall against the ticket export before relying on it, and treat a missed promotion as a ticket the associate handles by hand.
+  Three checks before the first index. **Format:** the field name and value format are as reported; some instances need `"Customer Request Type"` or portal-qualified values, and a wrong format matches nothing without an error, so the indexer must stop on an empty clause. **Precision:** a bare `transfer` would pull in file and call transfers, so the terms are phrases; measure how many fetched general requests are not promotions or transfers, because over-matching is what puts unrelated tickets into the index. **Recall:** measure the promotions the text match misses against the ticket export; a missed promotion is a ticket the associate handles by hand.
 - **Masking** runs in the JSM adapter before indexing, per "Credential masking response" above. Planned, not built.
-- **Out of scope for now:** a separate People Ops service project also has an employee-onboarding issue type, probably the upstream HR handoff. Ask People Ops whether it holds anything the queue needs.
-- **Sign-off:** the CTO and the Information Security Officer approve indexing real tickets. The ISO also built the system, so the Senior Engineering Director performs the independent review.
+- **Out of scope for now:** a separate People Ops project also has an onboarding issue type, probably the upstream HR handoff. Ask People Ops whether it holds anything the queue needs.
+- **Sign-off:** the CTO and the Information Security Officer approve indexing real tickets and the embedding route for masked ticket text. The ISO also built the system, so the Senior Engineering Director performs the independent review.
 
 ---
 

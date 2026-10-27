@@ -127,5 +127,6 @@ Every agentic technique's three misses are the same three routing questions. A l
 - [x] Demo with the Technology Support Associate; five questions (q11–q15) labelled and scored; decisions line
 - [x] Stakeholder row in my own words
 - [x] Lessons learned reviewed and edited
-- [x] Bring-it-to-work lines confirmed (access scope from the JSM configuration)
+- [x] Bring-it-to-work lines written (access scope from the JSM configuration)
+- [ ] **[YOU]** Jira admin confirms the permission scheme; sign-off from the CTO and ISO, independent review by the Senior Engineering Director (before any real ticket is indexed, not before submission)
 - [ ] **[YOU]** Loom, Maven post, two peer comments
