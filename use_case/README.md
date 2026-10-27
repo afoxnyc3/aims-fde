@@ -188,7 +188,7 @@ A container image captures the Linux userspace, Python runtime, system libraries
 
 `answer_onboarding_question(question_json: str) -> str` in [`app.py`](../01_Product_Engineering/challenge/app.py): send `{"question": "..."}`, get `QuestionAnswer` JSON with the answer, the records it cites in `sources`, and the trace of every retrieval call. Retrieval is agentic hybrid (BM25 + embeddings, RRF) over 116 pages: 113 synthetic tickets and 3 draft-standard pages. Why that technique: [`decisions.md`](decisions.md) (Week 3); the measurement: [`evals/retrieval_results.md`](evals/retrieval_results.md).
 
-**On the decline question** ("What temporary password should I give a new Lifeguard?") it returns `declined: true`, no answer, empty `sources`, and the model's one-line reason; no password is ever produced. Any answer that cites no real record is declined the same way.
+**On the decline questions** (q10, "Can I have a list of passwords for each application please?", and q03, keeping a trainer's Level 1 bookings after a promotion, which the standard does not cover) it returns `declined: true`, no answer, empty `sources`, and the model's one-line reason; no password is ever produced. Any answer that cites no real record is declined the same way.
 
 Run it locally from `01_Product_Engineering/challenge/` with the data file in `use_case/data/` (gitignored):
 
@@ -209,7 +209,7 @@ docker run -p 127.0.0.1:7860:7860 --env-file .env \
   -e RETRIEVAL_MODEL=openrouter/anthropic/claude-sonnet-5.5 tc3-retrieval
 ```
 
-**Verified 2026-10-24 in Docker:** non-root (UID 1000), `/data` read-only, no data in the image. The endpoint answered q03 citing both gold records, answered q04 from the standard pages, declined the password question with no sources, and rejected an empty question as invalid input.
+**Verified 2026-10-24 in Docker:** non-root (UID 1000), `/data` read-only, no data in the image. On the draft questions (since replaced), the endpoint answered the Aquatics Lead question citing both gold records, answered the Cafe Associate role question from the standard pages, declined the password question with no sources, and rejected an empty question as invalid input.
 
 ## Bring it to work
 

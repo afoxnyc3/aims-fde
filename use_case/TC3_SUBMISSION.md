@@ -9,9 +9,11 @@ A question endpoint over the synthetic onboarding tickets and the draft access s
 
 [`evals/retrieval.jsonl`](evals/retrieval.jsonl): ten questions, each with the page(s) that should answer it, its kind, the terms a passing answer must contain, and why. Format and page names: [`evals/README.md`](evals/README.md#retrievaljsonl).
 
-- **Top-k floor:** 4 of 10 need two records (q03, q04, q08, q09), so top-1 is ruled out.
-- **Decline:** q10 asks for a temporary password; no record holds one, and none should.
-- **[YOU] Status: drafts.** The ten are shaped on the associate's job but were written for this run, not taken from a ticket or a colleague. Replace or confirm each one from a real source, fill its `origin` field, and re-run `measure_retrieval.py`.
+- **Source:** a JSM ticket export of about 1,000 tickets (Oct 2025 to Sep 2026), read on a separate machine. The export never entered this repo. Only the question shape crossed over: real names became the synthetic names on the matching gold record, and each line's `origin` gives the kind of source and the month.
+- **How real:** each line has a `strength`. Three are verbatim (q01, q03, q10), three are paraphrased clarifications (q05, q06, q07), and four are decision points (q02, q04, q08, q09). A decision point is a real situation that the ticket fields forced, but nobody wrote the question; the wording is ours. The Step 6 demo is the place to replace those four with a colleague's own words.
+- **Top-k floor:** 3 of 10 need two records (q04, q08, q09), so top-1 is ruled out.
+- **Declines:** q10 is a real request for a list of passwords; no record holds credentials, and none should. q03 asks to keep Level 1 booking access after a promotion. It came up on 14 real tickets, and the standard doesn't cover level-specific rights.
+- **What replacing the drafts changed:** two drafts had no real counterpart (Lifeguard logins by club, an Aquatics Lead club change), so they were replaced. q08's "wrong channel" premise didn't hold up: in the export, 48 promotions arrive through the general request channel by design. The label now accepts any wording that says it isn't an onboarding request.
 
 ## Step 2: the schema
 
@@ -19,15 +21,17 @@ A question endpoint over the synthetic onboarding tickets and the draft access s
 
 ## Step 3: the measurement
 
-Full table, per-question results and settings: [`evals/retrieval_results.md`](evals/retrieval_results.md). Third run, 2026-10-24, one run per question per technique.
+Full table, per-question results and settings: [`evals/retrieval_results.md`](evals/retrieval_results.md). Run on the real questions, 2026-10-27, one run per question per technique.
 
 | Technique | Pass | Cited every gold | Avg calls | Avg evidence (chars) | Avg tokens | Median latency (s) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Agentic RAG (BM25 `search_chunks`) | 10/10 | 9/9 | 2.6 | 18,594 | 13,779 | 5.3 |
-| Direct corpus interaction (list / grep / read) | 10/10 | 9/9 | 4.9 | 14,784 | 17,143 | 6.5 |
-| Agentic dense | 10/10 | 9/9 | 2.1 | 15,384 | 9,841 | 5.3 |
-| **Agentic hybrid (BM25 + dense, RRF) — shipped** | 10/10 | 9/9 | 2.0 | 14,551 | 8,638 | 5.2 |
-| Fixed pipeline (one hybrid retrieval, one answer) | 8/10 | 7/9 | 1 | 4,813 | 2,729 | 5.3 |
+| Agentic RAG (BM25 `search_chunks`) | 8/10 | 8/8 | 2.6 | 18,803 | 12,949 | 5.3 |
+| Direct corpus interaction (list / grep / read) | 8/10 | 8/8 | 4.9 | 14,719 | 19,460 | 7.8 |
+| Agentic dense | 8/10 | 8/8 | 2.7 | 19,936 | 15,719 | 5.8 |
+| **Agentic hybrid (BM25 + dense, RRF) — shipped** | 8/10 | 8/8 | 2.5 | 17,911 | 13,638 | 6.6 |
+| Fixed pipeline (one hybrid retrieval, one answer) | 6/10 | 4/8 | 1 | 4,865 | 2,706 | 5.7 |
+
+The earlier draft-question runs (2026-10-24) are superseded. Every agentic technique passed 10 of 10 on the drafts, so the drafts didn't separate the techniques.
 
 **Settings:**
 - **Answer model:** `openrouter/anthropic/claude-sonnet-5.5`.
@@ -39,11 +43,16 @@ Full table, per-question results and settings: [`evals/retrieval_results.md`](ev
 
 **Embedding tokens: 30,353 to embed all 116 pages, measured** from the provider's `usage.total_tokens`.
 
-**Variance:** one run per cell, three runs in total. Agentic BM25 cited 8 of 9 in the second run and 9 of 9 in the third. Hybrid cited 9 of 9 in all three. A one-question difference is within noise.
+**Variance:** one run per cell, so a one-question difference is noise until repeated.
+
+**What the real questions found:** the four agentic techniques tie, and they share the same two failures. q01 and q05 ask about a fact the record doesn't hold. q01 asks for the new hire's email, which is blank. q05 asks whether the account was set up, but the ticket holds only a recommendation. Every technique found and cited the right ticket and said, correctly, that the fact was missing. But it put that behind `CANNOT ANSWER:`, and the endpoint turns that into a decline with no answer and no sources. The associate loses the useful part: "it isn't on the ticket, the ticket is needs_information, ask the requester." This is answer behaviour, not retrieval. The draft questions never asked about a missing fact, so they couldn't show it.
+
+**What the label review found:** a code review of the labels caught three that scored the wrong thing. q03's forbidden phrases ("he keeps") could appear inside a correct refusal. q05 passed any answer containing "recommended", including "yes, it was set up". q08's reason term matched the ticket's own request-type field. After tightening them, direct corpus interaction's earlier q05 pass (3 of 3) disappeared. Its answers had named the recommendation without declining, and the loose label passed that. The real gap was never retrieval.
 
 **What the pipeline's misses show:**
-- **q04:** it answered from precedent tickets, never reaching the standard.
-- **q02:** it declined, because the role list gives only "Level 1" as an example level suffix. That ambiguity in the standard is worth raising with the Hospitality owner.
+- **q04:** it answered from precedent tickets, never reaching the standard (as on the drafts).
+- **q07:** its one retrieval found the precedent ticket but not the status rule, so it declined: it never reached the page that defines the routing.
+- **Citations:** 4 of 8. With one retrieval it often names a precedent ticket in place of the standard page.
 
 **What the first run found:** a 1,000-character hit cap cut the role list before the Cafe Associate row. Every search technique answered q04 from inference until hits carried whole records. The pass rate didn't show it; only reading the traces did.
 
@@ -53,7 +62,7 @@ Full table, per-question results and settings: [`evals/retrieval_results.md`](ev
 
 > Answer a question about onboarding tickets or the draft access standard, citing records. Send JSON {"question": "..."}: one plain-language question, up to 2000 characters. For example: which clubs give a Lifeguard a staff login; what standard role a ticket's job title maps to; what happened on a named new hire's ticket; how a kind of ticket is routed. Returns QuestionAnswer JSON. When answered, `answer` names its records in square brackets and `sources` lists them: SYN-* pages are synthetic onboarding tickets, STD-* pages are the draft v0.1 standard (unratified). When the records do not support an answer, `declined` is true, `answer` is null and `decline_reason` says why; do not answer from elsewhere. `trace` lists every retrieval call. Read-only: no tickets or accounts are changed, and it never returns credentials. Invalid JSON is a validation error.
 
-**On the decline question:** `declined: true`, no answer, empty `sources`, and the model's one-line reason; no password is produced. Verified in Docker on 2026-10-24 ([README](README.md#tc3--the-question-endpoint)).
+**On the decline question:** `declined: true`, no answer, empty `sources`, and the model's one-line reason; no password is produced. Verified in Docker on 2026-10-24, on the draft password question ([README](README.md#tc3--the-question-endpoint)).
 
 ## Step 5: the decision
 
@@ -85,13 +94,13 @@ Then record it in three places:
 
 ## Checklist
 
-- [x] Ten labelled questions, decline included (**drafts**; replace from real sources)
+- [x] Ten labelled questions from the JSM export, two declines included
 - [x] Schema: `solve()` unchanged; second contract recorded in the charter and decisions
 - [x] Five techniques measured, table and settings in the repo, token count measured
 - [x] `@app.api` endpoint over the TC2 data, sources on every answer
 - [x] Retrieval decision row and four non-text answers
 - [x] Runs in Docker, data mounted read-only
-- [ ] **[YOU]** Real questions and re-run
+- [x] Real questions and re-run (2026-10-27)
 - [ ] **[YOU]** Demo, stakeholder row, five questions, decisions line
 - [ ] **[YOU]** Confirm the Bring-it-to-work lines
 - [ ] **[YOU]** Loom, Maven post, two peer comments

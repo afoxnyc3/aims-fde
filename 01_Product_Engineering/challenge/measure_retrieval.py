@@ -88,7 +88,7 @@ def write_report(table, rows, cases, similarities, retriever, started, technique
     ]
     lines += [f"| `{r['technique']}` | {r['pass']} | {r['cited']} | {r['calls']} | {r['evidence']:,} | "
               f"{r['tokens']:,} | {r['latency']} | {r['max_turns']} |" for r in table]
-    lines += ["", "Citation is counted over the questions with gold records (the decline question has none).", "",
+    lines += ["", "Citation is counted over the questions with gold records (decline questions have none).", "",
               "## Per question", "",
               "| Question | Kind | Top cosine | " + " | ".join(f"`{t}`" for t in techniques) + " |",
               "| --- | --- | --- | " + " | ".join("---" for _ in techniques) + " |"]
