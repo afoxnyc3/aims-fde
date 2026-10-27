@@ -80,6 +80,78 @@ class AnswerRuleTests(unittest.TestCase):
         self.assertIn("only if a record states it", retrieval.SYSTEM)
 
 
+class RetryTests(unittest.TestCase):
+    """Provider calls get one classified retry (llm.call_with_retry); litellm's own stays off."""
+
+    @staticmethod
+    def unavailable():
+        from litellm import ServiceUnavailableError
+        return ServiceUnavailableError("down", llm_provider="x", model="m")
+
+    def test_transient_error_is_retried_once_without_litellm_retries(self):
+        calls = []
+
+        def completion(**kwargs):
+            calls.append(kwargs)
+            if len(calls) == 1:
+                raise self.unavailable()
+            return reply("Answer [STD-role-list]")
+
+        with patch.object(retrieval.litellm, "completion", side_effect=completion), \
+                patch.object(retrieval.llm.time, "sleep"):
+            result = retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES))
+        self.assertEqual(len(calls), 2)
+        self.assertTrue(all(call["num_retries"] == 0 for call in calls))
+        self.assertEqual(result["stopped"], "answer")
+
+    def test_client_error_is_not_retried(self):
+        from litellm import AuthenticationError
+        bad_key = AuthenticationError("bad key", llm_provider="x", model="m")
+        with patch.object(retrieval.litellm, "completion", side_effect=bad_key) as completion, \
+                patch.object(retrieval.llm.time, "sleep"):
+            with self.assertRaises(AuthenticationError):
+                retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES))
+        self.assertEqual(completion.call_count, 1)
+
+    def test_second_transient_error_is_raised(self):
+        with patch.object(retrieval.litellm, "completion", side_effect=self.unavailable()) as completion, \
+                patch.object(retrieval.llm.time, "sleep"):
+            with self.assertRaises(type(self.unavailable())):
+                retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES))
+        self.assertEqual(completion.call_count, 2)
+
+    def test_pipeline_answer_call_is_retried_too(self):
+        replies = iter([self.unavailable(), reply("Answer [STD-role-list]")])
+
+        def completion(**kwargs):
+            item = next(replies)
+            if isinstance(item, Exception):
+                raise item
+            return item
+
+        with patch.object(retrieval.Retriever, "search_hybrid", return_value="evidence"), \
+                patch.object(retrieval.litellm, "completion", side_effect=completion) as call, \
+                patch.object(retrieval.llm.time, "sleep"):
+            result = retrieval.answer_once("q", retrieval.Retriever(PAGES))
+        self.assertEqual(call.call_count, 2)
+        self.assertEqual(result["stopped"], "answer")
+
+    def test_embedding_call_is_retried_too(self):
+        vector = SimpleNamespace(usage=SimpleNamespace(total_tokens=3), data=[{"embedding": [1.0, 0.0]}])
+        with patch.object(retrieval.litellm, "embedding", side_effect=[self.unavailable(), vector]) as embed, \
+                patch.object(retrieval.llm.time, "sleep"):
+            vectors = retrieval.Retriever(PAGES)._embed(["x"])
+        self.assertEqual(embed.call_count, 2)
+        self.assertEqual(vectors.shape, (1, 2))
+
+    def test_classifier(self):
+        from litellm import BadRequestError, Timeout
+        self.assertTrue(retrieval.llm.is_transient(Timeout("slow", model="m", llm_provider="x")))
+        self.assertTrue(retrieval.llm.is_transient(SimpleNamespace(status_code=502)))
+        self.assertFalse(retrieval.llm.is_transient(BadRequestError("bad", model="m", llm_provider="x")))
+        self.assertFalse(retrieval.llm.is_transient(SimpleNamespace(status_code=404)))
+
+
 class LoopTests(unittest.TestCase):
     def test_model_cannot_call_methods_outside_its_technique(self):
         retriever = retrieval.Retriever(PAGES)

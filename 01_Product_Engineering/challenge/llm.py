@@ -10,8 +10,13 @@ That property matters more than it looks like it does right now -- see the
 
 import json
 import os
+import time
 
-from litellm import completion, decode, encode, token_counter
+from litellm import (
+    APIConnectionError, RateLimitError, ServiceUnavailableError, Timeout,
+    completion, decode, encode, token_counter,
+)
+from openai import APIError
 
 # LiteLLM picks the provider from the model string:
 #   "gpt-4.1-mini"                    -> OpenAI
@@ -31,6 +36,29 @@ SYSTEM_PROMPT = os.getenv(
 
 class ReplyError(RuntimeError):
     """A safe, caller-visible failure to obtain usable model text."""
+
+
+def is_transient(exc: Exception) -> bool:
+    """Worth one more attempt: a connection error, rate limit, 503, timeout or any 5xx. Never a 4xx."""
+    if isinstance(exc, (APIConnectionError, RateLimitError, ServiceUnavailableError, Timeout)):
+        return True
+    return (getattr(exc, "status_code", None) or 0) >= 500
+
+
+def call_with_retry(call, **kwargs):
+    """Make one provider call with one retry on a transient error, one second later.
+
+    The caller passes num_retries=0 (or leaves it unset on embedding) so this is the
+    only retry: litellm's own (num_retries > 0) needs tenacity, which this app does
+    not install, and does not apply is_transient.
+    """
+    for attempt in range(2):
+        try:
+            return call(**kwargs)
+        except APIError as exc:
+            if not is_transient(exc) or attempt == 1:
+                raise
+            time.sleep(1)
 
 
 def build_messages(

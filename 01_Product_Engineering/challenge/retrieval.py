@@ -143,7 +143,8 @@ class Retriever:
     # --- embeddings ----------------------------------------------------------
 
     def _embed(self, texts: list[str]) -> np.ndarray:
-        response = litellm.embedding(model=self.embed_model, input=texts, timeout=120, **EMBED_KWARGS)
+        response = llm.call_with_retry(litellm.embedding, model=self.embed_model, input=texts, timeout=120,
+                                       **EMBED_KWARGS)
         self.embed_tokens += int(getattr(response.usage, "total_tokens", 0) or 0)
         vectors = np.array([item["embedding"] for item in response.data], dtype=np.float32)
         return vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
@@ -266,8 +267,8 @@ def run_agent(question: str, technique: str, retriever: Retriever,
     trace, evidence_chars, tokens = [], 0, 0
     started = time.perf_counter()
     for _ in range(max_turns):
-        response = litellm.completion(model=model, messages=messages, tools=tools, timeout=120, num_retries=2,
-                                      **CHAT_KWARGS)
+        response = llm.call_with_retry(litellm.completion, model=model, messages=messages, tools=tools,
+                                       timeout=120, num_retries=0, **CHAT_KWARGS)
         tokens += int(getattr(response.usage, "total_tokens", 0) or 0)
         message = response.choices[0].message
         if not message.tool_calls:
@@ -299,8 +300,8 @@ def answer_once(question: str, retriever: Retriever, model: str = CHAT_MODEL, k:
     """Fixed pipeline: one hybrid retrieval, one answer call. Two model-free steps and one model call."""
     started = time.perf_counter()
     hits = retriever.search_hybrid(question, k)
-    response = litellm.completion(
-        model=model, timeout=120, num_retries=2, **CHAT_KWARGS,
+    response = llm.call_with_retry(
+        litellm.completion, model=model, timeout=120, num_retries=0, **CHAT_KWARGS,
         messages=[{"role": "system", "content": SYSTEM},
                   {"role": "user", "content": f"Evidence:\n\n{hits}\n\nQuestion: {question}"}],
     )

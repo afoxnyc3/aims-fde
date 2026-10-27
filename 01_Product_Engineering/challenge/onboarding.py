@@ -67,7 +67,7 @@ def extract_ticket(request: Request) -> ExtractedTicket:
         APIConnectionError, APIError, AuthenticationError, BadRequestError, ContextWindowExceededError,
         RateLimitError, ServiceUnavailableError, Timeout,
     )
-    from llm import ReplyError, stream_reply
+    from llm import ReplyError, is_transient, stream_reply
 
     prompt = EXTRACTION_PROMPT + "\nSchema:\n" + json.dumps(ExtractedTicket.model_json_schema())
     for attempt in range(2):
@@ -84,9 +84,7 @@ def extract_ticket(request: Request) -> ExtractedTicket:
         except (BadRequestError, AuthenticationError, ContextWindowExceededError):
             raise ExtractionError("The extraction service rejected the request; review manually.") from None
         except (APIError, APIConnectionError, RateLimitError, ServiceUnavailableError, Timeout) as exc:
-            transient = isinstance(exc, (APIConnectionError, RateLimitError, ServiceUnavailableError, Timeout))
-            transient = transient or (getattr(exc, "status_code", None) or 0) >= 500
-            if not transient or attempt == 1:
+            if not is_transient(exc) or attempt == 1:
                 raise ExtractionError("The extraction service could not complete the request; review manually.") from None
             time.sleep(1)
     if not final_text.strip():
