@@ -165,6 +165,30 @@ Docker Desktop built and ran the application on October 13, 2026. The Mac is arm
 
 ---
 
+## Week 3 — retrieval access scope
+
+What the question endpoint would need to index real tickets. From a query to Atlassian Rovo against the JSM configuration, 2026-10-27; **confirm the permission scheme with the Jira admin**, since Rovo hedged on it.
+
+- **Source:** a shared IT service desk project (26 request types, including incidents, offboarding and security-camera footage requests), not a dedicated onboarding project. Onboarding uses two regional request types on an "employee onboarding" issue type. Promotions, transfers and title changes have no request type of their own: they arrive through the general service request, with software requests used for permission changes.
+- **Access is the whole project.** Jira grants Browse Projects per project. This project is not private and has no issue security levels, so any account that can browse it reads every ticket in it. There is no native way to grant a service account only the onboarding request types.
+- **The service account:** read-only, in a dedicated project role rather than an existing one (not the general managers' view-only role), so it can be audited and revoked on its own.
+- **The indexing filter is the control.** It decides what is fetched, masked and stored; nothing outside it is read into the index. The project key and request-type names are local configuration, not committed:
+
+  ```
+  project = $JSM_PROJECT AND (
+    "Request Type" in ($ONBOARDING_REQUEST_TYPES)
+    OR ("Request Type" in ($GENERAL_REQUEST_TYPES)
+        AND text ~ "promotion OR transfer OR \"title change\"")
+  )
+  ```
+
+  The field name is as Rovo gave it; check it in the instance. The text match for promotions is imprecise: measure its recall against the ticket export before relying on it, and treat a missed promotion as a ticket the associate handles by hand.
+- **Masking** runs in the JSM adapter before indexing, per "Credential masking response" above. Planned, not built.
+- **Out of scope for now:** a separate People Ops service project also has an employee-onboarding issue type, probably the upstream HR handoff. Ask People Ops whether it holds anything the queue needs.
+- **Sign-off:** the CTO and the Information Security Officer approve indexing real tickets. The ISO also built the system, so the Senior Engineering Director performs the independent review.
+
+---
+
 ## Week 9 — the full checklist
 
 <!--

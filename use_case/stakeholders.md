@@ -53,7 +53,10 @@ gap is more useful than a silent one.
 - Talk with the VP Finance about prior consulting on the second region.
 - HR system owner: whether new-hire names can be validated against the HR system.
 - Service Desk Manager (manages the Technology Support Associates): ownership of post-automation audits, verification sampling, and revert decisions.
-- Security owner: confirm credential masking, delivery, and the independent review for a deployment built by its approver.
+- Security owner (the Information Security Officer, who also built this): confirm credential masking and delivery before real tickets are indexed.
+- Senior Engineering Director: the independent review of the deployment, since its security approver also built it.
+- Jira admin: confirm the IT service desk project's permission scheme, and create a dedicated read-only project role for the indexer's service account.
+- People Ops: whether their onboarding project holds anything the onboarding queue needs.
 - Product Manager: confirm the client-access rule (managers on duty and the assistant GM; Product Manager approves) so it can be written into the standard.
 - Role-standard owners, with the Technology Support Associate: a manager-confirmed reference account per role, read into category and scope. That is how the queue already settles a mirroring discrepancy.
 

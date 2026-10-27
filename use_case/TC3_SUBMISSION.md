@@ -105,7 +105,7 @@ Every agentic technique's three misses are the same three routing questions. A l
 
 ## Step 7: bring it to work
 
-[`README.md`](README.md#tc3--retrieval), under "Bring it to work": the search it is for, and the data, model and approval swap lines, with the measured token count. **[YOU]** Confirm the lines marked there; they are claims about your company.
+[`README.md`](README.md#tc3--retrieval), under "Bring it to work": the search it is for (mirroring a colleague, not a search at all), and the data, model and approval swap lines, with the measured token count. The access scope and the indexing filter for real tickets are in [`ecosystem.md`](ecosystem.md#week-3--retrieval-access-scope).
 
 ## Lessons learned
 
@@ -127,5 +127,5 @@ Every agentic technique's three misses are the same three routing questions. A l
 - [x] Demo with the Technology Support Associate; five questions (q11–q15) labelled and scored; decisions line
 - [x] Stakeholder row in my own words
 - [x] Lessons learned reviewed and edited
-- [ ] **[YOU]** Confirm the Bring-it-to-work lines
+- [x] Bring-it-to-work lines confirmed (access scope from the JSM configuration)
 - [ ] **[YOU]** Loom, Maven post, two peer comments
