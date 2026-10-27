@@ -18,7 +18,7 @@ put real hostnames, IPs, or architecture diagrams in this file.
 
 **Who did you ask?** (role, not name)
 
-Senior Systems Administrator about hosting (~2026-10-07); CTO about LLM access (2026-10-07). The hosting date is approximate. The deployment approver is known from my role as Senior Director / Head of IT. AWS and OpenRouter approval are known from my role. Azure Container Apps is the project owner’s selected service. Entra ID and Key Vault are confirmed from my Head of IT role; there is no internal registry, and the publishing path remains TBD. These are owner clarifications, not additional stakeholder conversations.
+Senior Systems Administrator about hosting (~2026-10-07); CTO about LLM access (2026-10-07). The hosting date is approximate. The deployment approver is known from my role as Senior Director, Technology (Head of IT. AWS and OpenRouter approval are known from my role. Azure Container Apps is the project owner’s selected service. Entra ID and Key Vault are confirmed from my Head of IT role; there is no internal registry, and the publishing path remains TBD. These are owner clarifications, not additional stakeholder conversations.
 
 | # | Question | Answer |
 | :---: | --- | --- |
@@ -139,7 +139,7 @@ Supporting dependencies; internal evidence stays separate. The input contract is
 | Identity and role standard | Identity source, job-title mapping, permissions, venue add-ons, and login-email rules | Produce versioned drafts; confirm job levels, venue variation, and ratification owners | Product / role decision owners |
 | Hosting | Container runtime, image publishing, authentication, and secrets | Azure Container Apps selected; hosting pattern validated by the Senior Systems Administrator (2026-10-16). App egress uses the existing NAT gateways; confirm registry and cost; see [egress evidence](#azure-egress-verification). Use the tested amd64 image and initially one replica; enable Entra sign-in and use Key Vault | Senior Systems Administrator / Senior Director of IT |
 | Model access | Approved external LLM API | Anthropic available (CTO approval); the local Docker container called it successfully during Step 9, and the local app called it from the office network on 2026-10-19 (see [office egress](#egress--2026-10-19-work-laptop-mac-1--office-network)). All tests worked as designed; not blocked. Azure app-container connectivity is unverified. OpenRouter approved (known from my role). No internal endpoint | CTO / project owner |
-| Embeddings (Week 3) | An embedding route for retrieval over ticket text | **Synthetic corpus only:** `openai/text-embedding-3-small` through OpenRouter (approved), measured 30,353 tokens for 116 pages on 2026-10-24. `nomic-embed-text` on local Ollama also answered the same probe. Not yet asked: whether masked **real** ticket text may go to an external embedding route; until then the local model is the fallback, and agentic BM25 needs no embedding model at all (see [decisions](decisions.md), Week 3) | CTO / security owner |
+| Embeddings (Week 3) | An embedding route for retrieval over ticket text | **Synthetic corpus only:** `openai/text-embedding-3-small` through OpenRouter (approved), measured 30,353 tokens for 116 pages on 2026-10-24. `nomic-embed-text` on local Ollama also answered the same probe. **Real ticket text (2026-10-27):** OpenRouter chosen for embeddings, since Anthropic's API has none; sending masked real ticket text to it needs the CTO and ISO sign-off for indexing real tickets, with the Senior Engineering Director's independent review (see [Week 3 — retrieval access scope](#week-3--retrieval-access-scope)). Until then the fallback is agentic BM25, which needs no embedding model and was measured (see [decisions](decisions.md), Week 3); the local model answered a probe but was never measured on the questions | CTO / security owner |
 | Credential delivery | Unique credentials through an approved channel outside ticket comments | Confirm delivery and first-login behavior before production | Account-system owner / security owner |
 | Production promotion | Ratified standard, write access, and 95% on synthetic tickets or 90% over at least 20 live tickets per role | CTO approves on reported results; set synthetic set size, coverage, and scoring rules (see [decisions](decisions.md)) | CTO / project owner / role decision owners |
 | Course review | Demonstrate the onboarding workflow and evaluation within the course window | Confirm deliverable fit | Course team |
@@ -162,6 +162,32 @@ Masking can miss unknown secret formats; review detection coverage before produc
 ## Week 1 — local container verification
 
 Docker Desktop built and ran the application on October 13, 2026. The Mac is arm64; the image targets linux/amd64 for Azure and ran locally under emulation. No alternate container runtime was needed. `/health` and a synthetic golden through the browser form passed; see [Step 9 verification](README.md#step-9--container-deployment). This does not verify Azure deployment or account-system API access.
+
+---
+
+## Week 3 — retrieval access scope
+
+What the question endpoint would need to index real tickets. Drawn from two queries to the JSM configuration on 2026-10-27; the specifics (project key, request-type names, roles, tenant links) are kept in an internal note, not here. **The Jira admin still has to confirm the permission scheme.**
+
+- **Source:** onboarding runs in a shared IT service desk project, not a dedicated one: about 520 onboarding tickets in the last 12 months. Promotions, transfers and title changes (about 100 a year) have no request type of their own: they arrive through the general service request, under a summary convention ("Promotion - …", "Status Change - …") and a structured description template. Software requests are not indexed: about 2% of them (around 20 a year) concern a new employee, and those are follow-ups to an onboarding ticket that is indexed.
+- **Access is the whole project.** Jira grants Browse Projects per project, and nothing finer is configured for this one, so an account that can browse it can read every ticket in it, not only onboarding.
+- **The service account:** read-only, in a dedicated project role rather than an existing one, so it can be audited and revoked on its own.
+- **The indexing filter is the control.** It decides what is fetched, masked and stored. The project key and request-type values are local configuration, not committed. **Verified:** the field is `"Request Type"` with plain request-type names in double quotes (the `"Customer Request Type"` alias does not work in this tenant), and the onboarding clause returns the expected count. No label, component or custom field marks role changes today, so the interim filter reads the summary convention:
+
+  ```
+  project = $JSM_PROJECT AND (
+    "Request Type" in ($ONBOARDING_REQUEST_TYPES)
+    OR ("Request Type" in ($GENERAL_REQUEST_TYPES)
+        AND (summary ~ "Promotion" OR summary ~ "\"Status Change\""))
+  )
+  ```
+
+  **Measured:** the desk's two summary prefixes cover 98 of about 99 role changes in a year. The filter as written is a word match anywhere in the summary, not a prefix match (Jira text search stems words), so its own precision and recall must be measured before the first index. Matching the words "promotion" or "transfer" anywhere was precise (56 of 56 were role changes; no membership promotions or file transfers in this request type) but missed 43 status changes. A summary convention is a habit, not a control: **the design** is a dedicated role-change request type, since the desk already fills a structured template, which makes the filter exact. The indexer, when built, must stop on an empty clause, so a renamed request type cannot silently empty the index.
+- **Attachments are not indexed** (see [decisions](decisions.md), Week 3 — non-text content): they are mostly signature icons, and ID or badge photos must never reach an external model.
+- **Cost:** about 620 tickets a year at the synthetic pages' ~260 tokens each is roughly 160k embedding tokens a year. Add a one-off backfill of past years, and a full re-index that grows with the corpus (three years is about 500k). Estimates, since real tickets may run longer, but small at this volume.
+- **Masking:** credentials are masked in the JSM adapter before indexing, per "Credential masking response" above. Planned, not built. That plan covers credentials only: whether names and personal emails are masked before ticket text reaches an external embedding route is open, and part of the sign-off. Masking names costs retrieval, since associates search by name. **Questions too:** hybrid retrieval embeds every associate's question through the same route at query time, unmasked, and questions name people. The sign-off covers both paths, or questions are embedded only after masking, or retrieval falls back to BM25.
+- **Out of scope for now, with a recall risk:** a separate People Ops project also has an onboarding issue type. The Service Desk Manager's account of intake says promotions come from People Ops (stakeholders, 2026-10-20; open question 9). The role changes measured above were filed on the IT desk, but if some stay in the People Ops project the filter misses them, and the 98-of-99 figure would not show it. Ask People Ops.
+- **Sign-off:** the CTO and the Information Security Officer approve indexing real tickets and the embedding route for ticket text and associates' questions. The acting ISO is also the project owner (Senior Director, Technology) who built this tool, so the Senior Engineering Director performs the independent review.
 
 ---
 

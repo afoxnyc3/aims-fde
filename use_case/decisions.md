@@ -67,12 +67,12 @@ A dash (—) in the Date column means the direction is established but no separa
 
 ## Week 3 — non-text content
 
-The corpus today is text only: JSM ticket fields, notes and comments, plus the draft standard. What would arrive first is attachments on real tickets.
+**Measured** (a query to the JSM configuration, 2026-10-27, last 12 months): about 12% of onboarding tickets and about 9% of role-change tickets carry any attachment. Almost all are images: email-signature icons pulled in from replies, ID or badge photos, device-setup photos and a few screenshots. About three onboarding tickets a year attach a PDF (an offer letter or checklist). The access facts are in the ticket fields and the role-change template's structured text, never only in an attachment.
 
-1. **Visual, or text as pixels?** Text as pixels: the likely first arrivals are a scanned or photographed offer letter or HR form, and screenshots of a login error or a permission screen. None of it is a chart or a diagram whose meaning is the picture.
-2. **Does the number live only in the pixels?** For screenshots, yes: an error code or a role name shown on screen. Find the ticket by its text (the ticket is already the retrieval unit), read the image with OCR or a vision model in a batch job, and check every extracted code or role name against the standard's role list and a known error-code list before using it.
-3. **Descriptions, or one parse per image?** None exist. One parse per image, run as a batch on intake. It would run inside the network, in the Azure Container Apps environment, because the attachments are internal and may show personal data.
-4. **Video or audio?** None in the onboarding queue. If walkthrough recordings arrived, a transcript would answer "which screen, which error"; a frame would be needed only for the error code itself.
+1. **Visual, or text as pixels?** Neither, mostly. Signature icons are noise; ID and badge photos are personal data, not access evidence; the rare PDF is text an associate could read but does not need.
+2. **Does the number live only in the pixels?** No. Job title, club, start date and the new title on a role change are all text fields.
+3. **Descriptions, or one parse per image?** Neither: **attachments are not indexed.** That is a privacy rule as well as a relevance one, because ID and badge photos must never reach an external model. Revisit if the rare offer-letter PDF ever turns out to hold a fact the ticket fields lack; then it is a text extraction inside the network, not a vision model.
+4. **Video or audio?** None in the onboarding or role-change tickets.
 
 ## Week 3 — what the Step 6 demo changed
 
