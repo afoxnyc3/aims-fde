@@ -66,6 +66,44 @@ top *k* is the wrong answer.
 | 4 | The retrieval half of the eval harness — recall and completeness, tracked per change. |
 | 6 | Injection regressions arrive through retrieved content; these are the questions they must not break. |
 
+### This project's labels
+
+Page names are the corpus ids built by
+`01_Product_Engineering/challenge/corpus.py`: `STD-*` for the draft standard,
+`SYN-*` for synthetic tickets (a hash of the TC2 `row_id`).
+
+```json
+{"id": "q08", "question": "...", "gold": ["SYN-8fff8b", "STD-status-rule"], "kind": "lookup | multi-hop | decline", "expected_terms": ["..."], "why": "...", "origin": "...", "strength": "verbatim | clarification | decision_point", "evidence_tickets": 48}
+```
+
+`expected_terms` are what a passing answer must contain; an entry that is a
+list means any one of those phrasings. A decline question also sets
+`"must_decline": true`, and the scorer reads that field, not `kind`. With it, the
+terms are the forbidden phrases: a pass is a refusal that contains none of them.
+Without it, a decline line is scored as answerable, so a refusal fails. Substring
+terms cannot tell a confident answer from a hedged one; the Week 4 judge can.
+
+**Where the questions come from.** Each question was taken from a JSM ticket
+export of about 1,000 tickets (Oct 2025 to Sep 2026), read on a separate machine. Only the
+question shape travels: real names became synthetic ones from the matching
+`SYN-*` record, and `origin` names the kind of source and the month, never a
+ticket. `strength` says how real the wording is:
+
+- `verbatim`: someone wrote it (q01, q03, q10).
+- `clarification`: a visible exchange asked it, paraphrased (q05, q06, q07).
+- `decision_point`: the ticket fields forced the decision, but no one wrote the
+  question; the wording is ours (q02, q04, q08, q09). These are the four to
+  replace with a colleague's own words, starting with Step 6.
+
+`evidence_tickets` counts the tickets showing the pattern, not traffic.
+
+**Top-k floor: 3 of the 10 need two records (q04, q08, q09), so top-1 is
+ruled out; k is at least 2.** 8 of the 10 carry a name, a title or a club.
+In the real export, 51 of 84 substantive question-bearing comments on
+onboarding tickets (61%) carry a name, email, title, date or club, which is
+the case for keeping a lexical index next to dense search (Session 6,
+question 8).
+
 ## The Week 4 harness
 
 Technical Challenge 4 adds the files that turn this folder into a harness
@@ -89,23 +127,3 @@ every later week runs. `python use_case/evals/run.py` is the whole interface.
 | 8 | **The bar.** `harness.compare(harness.load("baseline.json"), finetuned)` is the pass/fail — and it refuses if the case set changed. |
 | 9 | The harness gates the deploy. |
 | 10 | A sampled version runs on live traffic. |
-
-## `retrieval.jsonl`
-
-Ten questions, written in TC3 Step 1, each labelled with the page(s) that
-should answer it. Page names are the corpus ids built by
-`01_Product_Engineering/challenge/corpus.py`: `STD-*` for the draft standard,
-`SYN-*` for synthetic tickets (a hash of the TC2 `row_id`).
-
-```json
-{"id": "q03", "question": "...", "gold": ["SYN-95265d", "STD-venue-access"], "kind": "lookup | multi-hop | decline", "expected_terms": ["..."], "why": "...", "origin": "..."}
-```
-
-`expected_terms` are what a passing answer must contain; an entry that is a
-list means any one of those phrasings. On a `decline` question they are the
-forbidden phrases: a pass is a refusal that contains none of them. Substring
-terms cannot tell a confident answer from a hedged one; the Week 4 judge can.
-
-**Top-k floor: 4 of the 10 need two records (q03, q04, q08, q09), so top-1 is
-ruled out; k is at least 2.** 7 of the 10 carry a name, a title or a club, which
-is the case for keeping a lexical index (Session 6, question 8).
