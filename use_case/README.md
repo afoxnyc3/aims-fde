@@ -209,7 +209,7 @@ docker run -p 127.0.0.1:7860:7860 --env-file .env \
   -e RETRIEVAL_MODEL=openrouter/anthropic/claude-sonnet-5.5 tc3-retrieval
 ```
 
-**Verified 2026-10-24 in Docker:** non-root (UID 1000), `/data` read-only, no data in the image. On the draft questions (since replaced), the endpoint answered the Aquatics Lead question citing both gold records, answered the Cafe Associate role question from the standard pages, declined the password question with no sources, and rejected an empty question as invalid input.
+**Verified 2026-10-27 in Docker, on the real questions:** non-root (UID 1000), `/data` read-only (a write fails), no data in the image. q10 (passwords) and q03 (keep Level 1 bookings) declined with empty `sources`. q01 and q05, where the ticket lacks the fact, answered with the ticket cited. q09 answered citing the ticket and the status rule. An empty question was rejected as invalid input.
 
 ## Bring it to work
 

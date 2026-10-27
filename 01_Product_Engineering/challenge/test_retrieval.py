@@ -67,6 +67,19 @@ class DeclineTests(unittest.TestCase):
         self.assertIsNone(retrieval.decline_reason("Cannot answer the club part, but the role is X [STD-role-list]."))
 
 
+class AnswerRuleTests(unittest.TestCase):
+    # The wording was measured: a broader "any missing fact is an answer" broke q03's
+    # decline for every agentic technique. Changing it means re-running measure_retrieval.py.
+    def test_policy_gaps_decline_before_the_missing_fact_rule(self):
+        policy = retrieval.SYSTEM.index("the standard does not address it")
+        missing_fact = retrieval.SYSTEM.index("a specific ticket you found")
+        self.assertLess(policy, missing_fact)
+        self.assertIn("even if the question names\na ticket", retrieval.SYSTEM)
+
+    def test_next_steps_must_come_from_a_record(self):
+        self.assertIn("only if a record states it", retrieval.SYSTEM)
+
+
 class LoopTests(unittest.TestCase):
     def test_model_cannot_call_methods_outside_its_technique(self):
         retriever = retrieval.Retriever(PAGES)

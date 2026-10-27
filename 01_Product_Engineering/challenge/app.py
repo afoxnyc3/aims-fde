@@ -81,7 +81,10 @@ def answer_onboarding_question(question_json: str) -> str:
     Returns QuestionAnswer JSON. When answered, `answer` names its records in
     square brackets and `sources` lists them: SYN-* pages are synthetic
     onboarding tickets, STD-* pages are the draft v0.1 standard (unratified).
-    When the records do not support an answer, `declined` is true, `answer` is
+    If a named ticket lacks the fact asked for, the answer says so and cites the
+    ticket; `declined` is false, so read the answer, not the flag, to learn
+    whether the fact was found. When no record covers the question, including
+    a policy the standard does not address, `declined` is true, `answer` is
     null and `decline_reason` says why; do not answer from elsewhere. `trace`
     lists every retrieval call. Read-only: no tickets or accounts are changed,
     and it never returns credentials. Invalid JSON is a validation error.
