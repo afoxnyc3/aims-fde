@@ -25,11 +25,13 @@ Full table, per-question results and settings: [`evals/retrieval_results.md`](ev
 
 | Technique | Pass | Cited every gold | Avg calls | Avg evidence (chars) | Avg tokens | Median latency (s) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Agentic RAG (BM25 `search_chunks`) | 8/10 | 8/8 | 2.6 | 18,803 | 12,949 | 5.3 |
-| Direct corpus interaction (list / grep / read) | 8/10 | 8/8 | 4.9 | 14,719 | 19,460 | 7.8 |
-| Agentic dense | 8/10 | 8/8 | 2.7 | 19,936 | 15,719 | 5.8 |
-| **Agentic hybrid (BM25 + dense, RRF) — shipped** | 8/10 | 8/8 | 2.5 | 17,911 | 13,638 | 6.6 |
-| Fixed pipeline (one hybrid retrieval, one answer) | 6/10 | 4/8 | 1 | 4,865 | 2,706 | 5.7 |
+| Agentic RAG (BM25 `search_chunks`) | 10/10 | 7/8 | 2.6 | 18,178 | 13,451 | 6.3 |
+| Direct corpus interaction (list / grep / read) | 10/10 | 8/8 | 5.0 | 14,763 | 21,865 | 8.2 |
+| Agentic dense | 10/10 | 7/8 | 2.3 | 16,441 | 11,209 | 6.5 |
+| **Agentic hybrid (BM25 + dense, RRF) — shipped** | 9/10 | 8/8 | 2.6 | 17,923 | 14,418 | 7.0 |
+| Fixed pipeline (one hybrid retrieval, one answer) | 10/10 | 4/8 | 1 | 4,865 | 3,015 | 6.0 |
+
+This is the run with the missing-fact answer rule (below). Before that rule, the four agentic techniques tied at 8/10 pass and 8/8 cited, and every technique failed q01 and q05.
 
 The earlier draft-question runs (2026-10-24) are superseded. Every agentic technique passed 10 of 10 on the drafts, so the drafts didn't separate the techniques.
 
@@ -47,6 +49,8 @@ The earlier draft-question runs (2026-10-24) are superseded. Every agentic techn
 
 **What the real questions found:** the four agentic techniques tie, and they share the same two failures. q01 and q05 ask about a fact the record doesn't hold. q01 asks for the new hire's email, which is blank. q05 asks whether the account was set up, but the ticket holds only a recommendation. Every technique found and cited the right ticket and said, correctly, that the fact was missing. But it put that behind `CANNOT ANSWER:`, and the endpoint turns that into a decline with no answer and no sources. The associate loses the useful part: "it isn't on the ticket, the ticket is needs_information, ask the requester." This is answer behaviour, not retrieval. The draft questions never asked about a missing fact, so they couldn't show it.
 
+**What fixing the answer rule changed:** the prompt now treats "the ticket you found doesn't hold that fact" as an answer: say what is missing, what the ticket shows and what to do next. q01 and q05 went from failing for every technique to passing. A first wording made *any* missing fact an answer, and q03 (a promotion policy the standard doesn't cover) stopped declining for every agentic technique. Narrowing the rule to "a specific ticket you found" restored the decline. Citation now separates the techniques: BM25 and dense answered q04 without citing the status rule it depends on. Hybrid's one fail, q05, is a scorer false negative ("recommendation", not "recommended"), kept for the Week 4 judge rather than fixed by loosening the label.
+
 **What the label review found:** a code review of the labels caught three that scored the wrong thing. q03's forbidden phrases ("he keeps") could appear inside a correct refusal. q05 passed any answer containing "recommended", including "yes, it was set up". q08's reason term matched the ticket's own request-type field. After tightening them, direct corpus interaction's earlier q05 pass (3 of 3) disappeared. Its answers had named the recommendation without declining, and the loose label passed that. The real gap was never retrieval.
 
 **What the pipeline's misses show:**
@@ -62,7 +66,7 @@ The earlier draft-question runs (2026-10-24) are superseded. Every agentic techn
 
 > Answer a question about onboarding tickets or the draft access standard, citing records. Send JSON {"question": "..."}: one plain-language question, up to 2000 characters. For example: which clubs give a Lifeguard a staff login; what standard role a ticket's job title maps to; what happened on a named new hire's ticket; how a kind of ticket is routed. Returns QuestionAnswer JSON. When answered, `answer` names its records in square brackets and `sources` lists them: SYN-* pages are synthetic onboarding tickets, STD-* pages are the draft v0.1 standard (unratified). When the records do not support an answer, `declined` is true, `answer` is null and `decline_reason` says why; do not answer from elsewhere. `trace` lists every retrieval call. Read-only: no tickets or accounts are changed, and it never returns credentials. Invalid JSON is a validation error.
 
-**On the decline question:** `declined: true`, no answer, empty `sources`, and the model's one-line reason; no password is produced. Verified in Docker on 2026-10-24, on the draft password question ([README](README.md#tc3--the-question-endpoint)).
+**On the decline question:** `declined: true`, no answer, empty `sources`, and the model's one-line reason; no password is produced. Re-verified in Docker on 2026-10-27 on the real questions: q10 and q03 decline with no sources, while q01 and q05 answer with the ticket cited ([README](README.md#tc3--the-question-endpoint)).
 
 ## Step 5: the decision
 
