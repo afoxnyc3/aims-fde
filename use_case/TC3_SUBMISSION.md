@@ -107,14 +107,13 @@ Every agentic technique's three misses are the same three routing questions. A l
 
 [`README.md`](README.md#tc3--retrieval), under "Bring it to work": the search it is for, and the data, model and approval swap lines, with the measured token count. **[YOU]** Confirm the lines marked there; they are claims about your company.
 
-## Lessons learned — **[YOU: a draft; keep what is true for you and rewrite it in your voice]**
+## Lessons learned
 
 1. **Drafted questions measure nothing.** On the ten drafts, every agentic technique passed 10 of 10, so the comparison could not choose. The real questions from the ticket export separated them on the first run. *Recommendation:* label from tickets and people before building anything to compare, and treat a tie across techniques as a sign the questions are too easy.
 2. **The scorer is part of the system, so review it like code.** Three labels scored the wrong thing. One gave direct corpus interaction a q05 "win" that disappeared when the label was fixed, and it had nearly become the decision's main argument. *Recommendation:* read the traces before trusting a pass rate, review labels with the same rigour as the endpoint, and move judgement calls to the Week 4 judge rather than loosening substrings.
 3. **Most failures were answer behaviour, not retrieval.** q01 and q05 found and cited the right ticket in every technique, then declined. Fixing it took three prompt wordings: one broke q03's decline, and one invited advice no record supports. *Recommendation:* score "found the record" separately from "answered usefully", re-measure after every prompt change, and pin the measured rule order with a test.
 4. **Citation separated the techniques; pass rate didn't.** Once answers were fixed, every agentic technique passed nearly everything. q04's second record told them apart: hybrid cited it in 6 of 6 runs, and BM25 in 2 of 6. *Recommendation:* score complete citations on multi-record questions, and repeat the run on the question that separates techniques before calling a one-question difference a finding.
-5. **The user moved the bottleneck from retrieval to the standard.** The associate acted on one answer of five, and not because retrieval failed. The standard says whether a role gets a login; his job is the category of access and its scope. *Recommendation:* demo to a real user before tuning retrieval further. The next gain is category and scope in the standard, plus "goes to human review" as an answer.
-6. **The queue already has a standard: an unwritten one.** Mirroring a manager-confirmed, long-tenured colleague is how the associate settles access today, and he reports it works. *Recommendation:* treat those reference accounts as the first draft of category and scope per role, instead of arguing against mirroring.
+5. **The bottleneck is the standard, and the queue already has an unwritten one.** The associate acted on one answer of five, and not because retrieval failed: the standard says whether a role gets a login, and his job runs on the category of access and its scope. What fills the gap today is mirroring a manager-confirmed, long-tenured colleague, which he reports works. *Recommendation:* demo to a real user before tuning retrieval further, and treat those reference accounts as the first draft of category and scope per role, instead of arguing against mirroring. On the app side, the next gain is "goes to human review" as an answer.
 
 ## Checklist
 
@@ -127,6 +126,6 @@ Every agentic technique's three misses are the same three routing questions. A l
 - [x] Real questions and re-run (2026-10-27)
 - [x] Demo with the Technology Support Associate; five questions (q11–q15) labelled and scored; decisions line
 - [x] Stakeholder row in my own words
-- [ ] **[YOU]** Edit the lessons learned into your own words
+- [x] Lessons learned reviewed and edited
 - [ ] **[YOU]** Confirm the Bring-it-to-work lines
 - [ ] **[YOU]** Loom, Maven post, two peer comments
