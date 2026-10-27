@@ -127,5 +127,5 @@ Every agentic technique's three misses are the same three routing questions. A l
 - [x] Demo with the Technology Support Associate; five questions (q11–q15) labelled and scored; decisions line
 - [x] Stakeholder row in my own words
 - [x] Lessons learned reviewed and edited
-- [ ] **[YOU]** Confirm the Bring-it-to-work lines
+- [x] Confirm the Bring-it-to-work lines
 - [ ] **[YOU]** Loom, Maven post, two peer comments

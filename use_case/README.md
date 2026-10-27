@@ -237,9 +237,9 @@ from a seat.
 
 ### TC3 — retrieval
 
-**[YOU: confirm or rewrite.]** Technology Support Associates decide new-hire access by searching Confluence and comparing peer accounts in the club-management system, then answer from memory; nobody has measured whether that search finds the right page, and the answer never cites one.
+Technology Support Associates decide new-hire access by searching Confluence and copying a manager-confirmed colleague's account in the club-management system; nobody has measured whether that search finds the right page, and the answer never cites one.
 
-- **Data:** **[YOU]** resolved onboarding tickets from JSM plus the versioned role standard once ratified. Text only today; screenshots and scanned forms attached to tickets would be next (see decisions.md, non-text). Real tickets are masked before indexing.
-- **Model or endpoint:** **[YOU: confirm the route is approved for real ticket text.]** Answer model `claude-sonnet-5.5` through OpenRouter (approved); embeddings `text-embedding-3-small` through OpenRouter, or `nomic-embed-text` on Ollama inside the network if ticket text may not leave it (both were tested on 2026-10-24). Re-indexing cost: **30,353 embedding tokens for 116 pages, measured**; about 260 tokens per page.
-- **Access or approval:** **[YOU]** read access to the JSM onboarding project for the indexer, approval for an embedding route for masked ticket text (or the local model), and the role-standard owners' sign-off before standard pages are indexed as authoritative.
+- **Data:** resolved onboarding tickets from JSM plus the versioned role standard once ratified. Text only today; screenshots and scanned forms attached to tickets would be next (see decisions.md, non-text). Real tickets are masked before indexing.
+- **Model or endpoint:** Answer model `claude-sonnet-5-5` through the Anthropic API, approved for masked real ticket text (TC3 was measured on the same model through OpenRouter); embeddings `text-embedding-3-small` through OpenRouter, or `nomic-embed-text` on Ollama inside the network if ticket text may not leave it (both were tested on 2026-10-24). Re-indexing cost: **30,353 embedding tokens for 116 pages, measured**; about 260 tokens per page.
+- **Access or approval:** read access to the JSM onboarding project for the indexer is in place (a read-only API token, created as IT, the JSM admin), and OpenRouter is approved for embedding masked ticket text; still needed: the role-standard owners' sign-off before standard pages are indexed as authoritative.
 
