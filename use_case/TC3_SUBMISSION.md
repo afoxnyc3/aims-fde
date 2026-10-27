@@ -21,7 +21,7 @@ A question endpoint over the synthetic onboarding tickets and the draft access s
 
 ## Step 3: the measurement
 
-Full table, per-question results and settings: [`evals/retrieval_results.md`](evals/retrieval_results.md). Run on the real questions, 2026-10-27, one run per question per technique.
+Full table, per-question results and settings for the ten-question run below: [`retrieval_results.md` at the 14:51 run](https://github.com/afoxnyc3/aims-fde/blob/295b60d/use_case/evals/retrieval_results.md). The current [`evals/retrieval_results.md`](evals/retrieval_results.md) holds the later 15-question run (Step 6). Run on the real questions, 2026-10-27, one run per question per technique.
 
 | Technique | Pass | Cited every gold | Avg calls | Avg evidence (chars) | Avg tokens | Median latency (s) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -31,7 +31,7 @@ Full table, per-question results and settings: [`evals/retrieval_results.md`](ev
 | **Agentic hybrid (BM25 + dense, RRF) — shipped** | 10/10 | 8/8 | 2.4 | 17,297 | 12,713 | 6.8 |
 | Fixed pipeline (one hybrid retrieval, one answer) | 9/10 | 4/8 | 1 | 4,865 | 2,839 | 5.2 |
 
-This is the run with the missing-fact answer rule (below). Before that rule, the four agentic techniques tied at 8/10 pass and 8/8 cited, and every technique failed q01 and q05.
+This is the 10-question run with the missing-fact answer rule (below), 2026-10-27 14:51. [`evals/retrieval_results.md`](evals/retrieval_results.md) now holds the later 15-question run, which adds the Step 6 associate's questions; see Step 6. Before that rule, the four agentic techniques tied at 8/10 pass and 8/8 cited, and every technique failed q01 and q05.
 
 The earlier draft-question runs (2026-10-24) are superseded. Every agentic technique passed 10 of 10 on the drafts, so the drafts didn't separate the techniques.
 
@@ -49,7 +49,7 @@ The earlier draft-question runs (2026-10-24) are superseded. Every agentic techn
 
 **What the real questions found, before the answer-rule fix:** the four agentic techniques tied at 8/10, and they shared the same two failures. q01 and q05 ask about a fact the record doesn't hold. q01 asks for the new hire's email, which is blank. q05 asks whether the account was set up, but the ticket holds only a recommendation. Every technique found and cited the right ticket and said, correctly, that the fact was missing. But it put that behind `CANNOT ANSWER:`, and the endpoint turns that into a decline with no answer and no sources. The associate loses the useful part: "it isn't on the ticket, the ticket is needs_information, ask the requester." This is answer behaviour, not retrieval. The draft questions never asked about a missing fact, so they couldn't show it.
 
-**What fixing the answer rule changed:** the prompt now checks, in order: a question about what is allowed that the standard doesn't address declines, even if it names a ticket; a fact the named ticket lacks is answered (what is missing, what the ticket shows, cited); a next step only if a record states it. q01 and q05 went from failing for every technique to passing. It took three wordings. The first made *any* missing fact an answer, and q03 (a promotion policy) stopped declining for every agentic technique. The second added "what to do next", and the model began advising who to ask for a missing email, which no record states. **Citation now separates the techniques.** q04 needs the role list and the status rule. Across four runs today, hybrid and direct corpus interaction cited both every time; BM25 cited the status rule in 1 of 4 runs and dense in 2 of 4. Substring scoring has false negatives (dense's q05: "recommendation", not "recommended") and false positives; both are kept for the Week 4 judge rather than fixed by loosening labels.
+**What fixing the answer rule changed:** the prompt now checks, in order: a question about what is allowed that the standard doesn't address declines, even if it names a ticket; a fact the named ticket lacks is answered (what is missing, what the ticket shows, cited); a next step only if a record states it. q01 and q05 went from failing for every technique to passing. It took three wordings. The first made *any* missing fact an answer, and q03 (a promotion policy) stopped declining for every agentic technique. The second added "what to do next", and the model began advising who to ask for a missing email, which no record states. **Citation now separates the techniques.** q04 needs the role list and the status rule. Across all six runs on the real questions today, hybrid and direct corpus interaction cited both every time; dense cited the status rule in 4 of 6 runs and BM25 in 2 of 6. Substring scoring has false negatives (dense's q05: "recommendation", not "recommended") and false positives; both are kept for the Week 4 judge rather than fixed by loosening labels.
 
 **What the label review found:** a code review of the labels caught three that scored the wrong thing. q03's forbidden phrases ("he keeps") could appear inside a correct refusal. q05 passed any answer containing "recommended", including "yes, it was set up". q08's reason term matched the ticket's own request-type field. After tightening them, direct corpus interaction's earlier q05 pass (3 of 3) disappeared. Its answers had named the recommendation without declining, and the loose label passed that. The real gap was never retrieval.
 
@@ -79,22 +79,42 @@ The earlier draft-question runs (2026-10-24) are superseded. Every agentic techn
 
 The four non-text answers are under "Week 3 — non-text content". **[YOU]** Check that the attachment types named there are the ones your queue actually sees.
 
-## Step 6: the demo — **[YOU]**
+## Step 6: the demo — **[YOU: edit the stakeholder row into your own words]**
 
-Not done yet. It needs a real session with the Technology Support Associate:
-1. Ask them to type five questions of their own.
-2. After each answer, ask "Would you act on that answer?"
-3. Then ask "Does the source it named convince you?"
-4. Finally ask "What did you want to ask that you didn't?"
+A live session on 2026-10-27 with the Technology Support Associate who works the onboarding queue. He typed five questions of his own. After each one he said whether he would act on the answer and whether the source convinced him, then what he wanted to ask but didn't. Follow-up questions clarified his answers. Recorded in three places:
+- **The conversation:** a row in [`stakeholders.md`](stakeholders.md).
+- **What it changed:** the line under "Week 3 — what the Step 6 demo changed" in [`decisions.md`](decisions.md), plus a new row on mirroring.
+- **His questions:** q11–q15 in [`evals/retrieval.jsonl`](evals/retrieval.jsonl), in his words, with the system and club names made generic.
 
-Then record it in three places:
-- A row in [`stakeholders.md`](stakeholders.md), in your own words.
-- The line under "Week 3 — what the Step 6 demo changed" in `decisions.md`.
-- Their five questions, labelled, in `evals/retrieval.jsonl`.
+**What he said:** he would act on one answer of five, and only with a "but". No source convinced him, for one reason. The standard says *whether* a role gets a login, but his job is the **category** of access and its **scope** (venue or fitness-level), by job title. When the tool can't help, he mirrors a colleague who provides the same service, and he settles any discrepancy by asking the manager for a long-tenured person whose access is right.
+
+**What the measurement says about his questions** (15-question run, [`evals/retrieval_results.md`](evals/retrieval_results.md)):
+- **q11, q13, q14** (client access, Housekeeping Manager, a transfer) are labelled as routing answers, because the status rule routes them: human review, or for q11 read as a change to an existing employee, ignored as a permission change. **All 15 runs declined them** (three questions × five techniques), often after naming the reason ("the standard doesn't define a Housekeeping Manager role"). That is the next answer-rule change: "outside the standard, goes to human review" is an answer.
+- **q12** (a trainer showing at another club's website) declines correctly everywhere. The corpus has no scope yet.
+- **q15** (Level 3 trainer) passes for every agentic technique, and he still wouldn't act on it: the right answer from today's standard isn't the one his job needs.
+
+| Technique | Pass (15) | Cited every gold (12) |
+| --- | --- | --- |
+| Agentic BM25 | 12/15 | 10/12 |
+| Direct corpus interaction | 12/15 | 12/12 |
+| Agentic dense | 12/15 | 10/12 |
+| **Agentic hybrid — shipped** | 12/15 | 10/12 |
+| Fixed pipeline | 10/15 | 4/12 |
+
+Every agentic technique's three misses are the same three routing questions. A label review after this run tightened q11, q12, q14 and q15; re-scoring the saved answers against the new labels changed no result. Hybrid's two citation misses are q11 and q13, which it declined. The ten original questions all passed for hybrid again.
 
 ## Step 7: bring it to work
 
 [`README.md`](README.md#tc3--retrieval), under "Bring it to work": the search it is for, and the data, model and approval swap lines, with the measured token count. **[YOU]** Confirm the lines marked there; they are claims about your company.
+
+## Lessons learned — **[YOU: a draft; keep what is true for you and rewrite it in your voice]**
+
+1. **Drafted questions measure nothing.** On the ten drafts, every agentic technique passed 10 of 10, so the comparison could not choose. The real questions from the ticket export separated them on the first run. *Recommendation:* label from tickets and people before building anything to compare, and treat a tie across techniques as a sign the questions are too easy.
+2. **The scorer is part of the system, so review it like code.** Three labels scored the wrong thing. One gave direct corpus interaction a q05 "win" that disappeared when the label was fixed, and it had nearly become the decision's main argument. *Recommendation:* read the traces before trusting a pass rate, review labels with the same rigour as the endpoint, and move judgement calls to the Week 4 judge rather than loosening substrings.
+3. **Most failures were answer behaviour, not retrieval.** q01 and q05 found and cited the right ticket in every technique, then declined. Fixing it took three prompt wordings: one broke q03's decline, and one invited advice no record supports. *Recommendation:* score "found the record" separately from "answered usefully", re-measure after every prompt change, and pin the measured rule order with a test.
+4. **Citation separated the techniques; pass rate didn't.** Once answers were fixed, every agentic technique passed nearly everything. q04's second record told them apart: hybrid cited it in 6 of 6 runs, and BM25 in 2 of 6. *Recommendation:* score complete citations on multi-record questions, and repeat the run on the question that separates techniques before calling a one-question difference a finding.
+5. **The user moved the bottleneck from retrieval to the standard.** The associate acted on one answer of five, and not because retrieval failed. The standard says whether a role gets a login; his job is the category of access and its scope. *Recommendation:* demo to a real user before tuning retrieval further. The next gain is category and scope in the standard, plus "goes to human review" as an answer.
+6. **The queue already has a standard: an unwritten one.** Mirroring a manager-confirmed, long-tenured colleague is how the associate settles access today, and he reports it works. *Recommendation:* treat those reference accounts as the first draft of category and scope per role, instead of arguing against mirroring.
 
 ## Checklist
 
@@ -105,6 +125,7 @@ Then record it in three places:
 - [x] Retrieval decision row and four non-text answers
 - [x] Runs in Docker, data mounted read-only
 - [x] Real questions and re-run (2026-10-27)
-- [ ] **[YOU]** Demo, stakeholder row, five questions, decisions line
+- [x] Demo with the Technology Support Associate; five questions (q11–q15) labelled and scored; decisions line
+- [ ] **[YOU]** Edit the stakeholder row and the lessons learned into your own words
 - [ ] **[YOU]** Confirm the Bring-it-to-work lines
 - [ ] **[YOU]** Loom, Maven post, two peer comments
