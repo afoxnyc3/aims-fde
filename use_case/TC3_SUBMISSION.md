@@ -79,7 +79,7 @@ The earlier draft-question runs (2026-10-24) are superseded. Every agentic techn
 
 The four non-text answers are under "Week 3 — non-text content". **[YOU]** Check that the attachment types named there are the ones your queue actually sees.
 
-## Step 6: the demo — **[YOU: edit the stakeholder row into your own words]**
+## Step 6: the demo
 
 A live session on 2026-10-27 with the Technology Support Associate who works the onboarding queue. He typed five questions of his own. After each one he said whether he would act on the answer and whether the source convinced him, then what he wanted to ask but didn't. Follow-up questions clarified his answers. Recorded in three places:
 - **The conversation:** a row in [`stakeholders.md`](stakeholders.md).
@@ -126,6 +126,7 @@ Every agentic technique's three misses are the same three routing questions. A l
 - [x] Runs in Docker, data mounted read-only
 - [x] Real questions and re-run (2026-10-27)
 - [x] Demo with the Technology Support Associate; five questions (q11–q15) labelled and scored; decisions line
-- [ ] **[YOU]** Edit the stakeholder row and the lessons learned into your own words
+- [x] Stakeholder row in my own words
+- [ ] **[YOU]** Edit the lessons learned into your own words
 - [ ] **[YOU]** Confirm the Bring-it-to-work lines
 - [ ] **[YOU]** Loom, Maven post, two peer comments
