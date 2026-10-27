@@ -77,7 +77,7 @@ The earlier draft-question runs (2026-10-24) are superseded. Every agentic techn
 - **Whole-record chunks.**
 - **Outcomes in the corpus.**
 
-The four non-text answers are under "Week 3 — non-text content". **[YOU]** Check that the attachment types named there are the ones your queue actually sees.
+The four non-text answers are under "Week 3 — non-text content", from measured attachment counts on the real queue: attachments are rare and are not indexed.
 
 ## Step 6: the demo
 

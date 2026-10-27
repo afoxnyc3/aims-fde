@@ -53,8 +53,8 @@ gap is more useful than a silent one.
 - Talk with the VP Finance about prior consulting on the second region.
 - HR system owner: whether new-hire names can be validated against the HR system.
 - Service Desk Manager (manages the Technology Support Associates): ownership of post-automation audits, verification sampling, and revert decisions.
-- Security owner (the Information Security Officer, who also built this): confirm credential masking and delivery before real tickets are indexed.
-- Senior Engineering Director: the independent review of the deployment, since its security approver also built it.
+- Security owner: the project owner is also the acting Information Security Officer, so the security sign-off on credential masking, name and email masking, and delivery cannot be independent on its own; it goes with the Senior Engineering Director's review below.
+- Senior Engineering Director: the independent review of the deployment, because the acting ISO who approves it also built it.
 - Jira admin: confirm the IT service desk project's permission scheme, and create a dedicated read-only project role for the indexer's service account.
 - People Ops: whether their onboarding project holds anything the onboarding queue needs.
 - Product Manager: confirm the client-access rule (managers on duty and the assistant GM; Product Manager approves) so it can be written into the standard.
