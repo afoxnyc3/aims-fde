@@ -50,6 +50,8 @@ What these results do not show:
 - **Line 4 is not covered.** "No ticket shows this" needs the whole corpus, and the judge sees only the standard and the cited pages.
 - **The judge rejects some correct answers.** The oracle's written answers score 0.87, not 1.0. Over three repeats q01, q11 and q14 flipped, so this is the judge's false-reject rate, not a fault in those answers. It is the main reason `grounded` is not the headline.
 
+**Where the text goes.** The judge sends the standard and every cited ticket to its provider, through OpenRouter. That is fine for the synthetic corpus and not yet approved for real tickets, so `harness.py` refuses any other `CORPUS_PATH` unless `JUDGE_CORPUS_APPROVED=1` is set. It keeps the app's `LLM_API_BASE`, so behind a gateway that will not serve this model it fails calibration and stops.
+
 **Cost, measured:** an echo-and-oracle run made 46 judge calls (16 to calibrate, 15 per system) and used about 56k tokens. A full run adds 15 more. At the looked-up price of $0.20 / $1.20 per million tokens, those 46 calls cost about $0.02.
 
 ## What is safe to compare between runs

@@ -8,7 +8,6 @@ helpers.harness keeps the run as an artifact. This file holds what is specific
 to this project: the cases, the definition of correct, and the report.
 """
 
-import dataclasses
 import hashlib
 import json
 import os
@@ -200,10 +199,14 @@ def _pages() -> dict:
         sys.path.insert(0, str(HERE.parents[1] / "01_Product_Engineering" / "challenge"))
         import corpus
 
+        path = Path(os.getenv("CORPUS_PATH") or corpus.DEFAULT_CORPUS_PATH)
+        # Cited pages go to the judge's provider. Anything but the synthetic corpus needs someone to say that is allowed.
+        if path.resolve() != Path(corpus.DEFAULT_CORPUS_PATH).resolve() and not os.getenv("JUDGE_CORPUS_APPROVED"):
+            raise RuntimeError(f"CORPUS_PATH is {path}, not the synthetic corpus. Set JUDGE_CORPUS_APPROVED=1 only if its text may reach {JUDGE_MODEL}.")
         pages = corpus.load_standard_pages()
         # The tickets are gitignored. The standard is enough to calibrate on a clean checkout.
         try:
-            pages += corpus.load_ticket_pages(Path(os.getenv("CORPUS_PATH") or corpus.DEFAULT_CORPUS_PATH))
+            pages += corpus.load_ticket_pages(path)
         except corpus.CorpusMissing:
             pass
         _PAGES.update({page.name: page.text for page in pages})
@@ -216,6 +219,9 @@ _PAGES: dict = {}
 def judge_case(question: str, sources: list[str], good: str = "") -> dict:
     """The case the judge sees: the question and the records, which are the standard plus whatever the answer cited."""
     pages = _pages()
+    # Judging a cited ticket without its text would read as an unsupported claim. Fail, so the run counts it.
+    if any(name.startswith("SYN-") for name in sources) and not any(name.startswith("SYN-") for name in pages):
+        raise RuntimeError("The answer cites tickets, but the corpus is not available to the judge.")
     names = [name for name in pages if name.startswith("STD-")] + [name for name in sources if not name.startswith("STD-")]
     records = "\n\n".join(f"[{name}]\n{pages[name]}" for name in names if name in pages)
     return {"input": f"Question:\n{question}\n\nRecords:\n{records}", "output": good}
@@ -259,9 +265,9 @@ def make_judge(stats=None):
     from helpers.config import from_env
     from helpers.judge import Judge
 
-    # The app's gateway settings are for the model under test, and must not carry over to the judge.
-    cfg = dataclasses.replace(from_env(HERE.parents[1]), api_base=None, headers={})
-    return Judge(cfg, rubric=GROUNDED_RUBRIC, model=JUDGE_MODEL, stats=stats)
+    # Keeps LLM_API_BASE and its headers on purpose. If a gateway will not serve this model, calibration
+    # fails and the run stops, which is safer than sending ticket text around an approved route.
+    return Judge(from_env(HERE.parents[1]), rubric=GROUNDED_RUBRIC, model=JUDGE_MODEL, stats=stats)
 
 
 def calibrate(judge) -> "Calibration":

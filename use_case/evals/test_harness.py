@@ -94,8 +94,22 @@ class Grounded(unittest.TestCase):
 
 class CleanCheckout(unittest.TestCase):
     def test_the_standard_loads_without_the_gitignored_tickets(self):
-        with mock.patch.object(evals, "_PAGES", {}), mock.patch.dict(os.environ, {"CORPUS_PATH": "/no/such/file.jsonl"}):
+        env = {"CORPUS_PATH": "/no/such/file.jsonl", "JUDGE_CORPUS_APPROVED": "1"}
+        with mock.patch.object(evals, "_PAGES", {}), mock.patch.dict(os.environ, env):
             self.assertTrue(any(name.startswith("STD-") for name in evals._pages()))
+
+    def test_another_corpus_needs_approval_before_the_judge_reads_it(self):
+        env = {"CORPUS_PATH": "/internal/real_tickets.jsonl"}
+        with mock.patch.object(evals, "_PAGES", {}), mock.patch.dict(os.environ, env):
+            os.environ.pop("JUDGE_CORPUS_APPROVED", None)
+            with self.assertRaisesRegex(RuntimeError, "JUDGE_CORPUS_APPROVED"):
+                evals._pages()
+
+    def test_a_cited_ticket_with_no_corpus_fails_rather_than_judging_blind(self):
+        with mock.patch.object(evals, "_PAGES", {"STD-x": "standard"}):
+            with self.assertRaisesRegex(RuntimeError, "corpus is not available"):
+                evals.judge_case("q?", ["SYN-1a"])
+            self.assertIn("standard", evals.judge_case("q?", [])["input"])
 
 
 class SavedRun(unittest.TestCase):
