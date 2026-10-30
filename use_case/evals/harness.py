@@ -84,6 +84,9 @@ def ticket_correct(out: dict, gold: dict) -> bool:
         for key in PROPOSAL_KEYS:
             if gold.get(part) and (out.get(part) or {}).get(key) != gold[part].get(key):
                 return False
+        # Goldens omit staff_groups when there are none, and the schema defaults it to empty.
+        if gold.get(part) and ((out.get(part) or {}).get("staff_groups") or []) != (gold[part].get("staff_groups") or []):
+            return False
     return True
 
 

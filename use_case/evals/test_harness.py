@@ -46,6 +46,16 @@ class CorrectBehaviour(unittest.TestCase):
         out["answer"]["permissions"] = ["admin.all"]
         self.assertEqual(evals.correct_behaviour(json.dumps(out), CASES["DEMO-001"]), 0.0)
 
+    def test_an_added_staff_group_fails(self):
+        out = copy.deepcopy(CASES["DEMO-001"]["output"])
+        out["answer"]["staff_groups"] = [{"id": "group-demo-trainer-4", "name": "Trainer Level 4"}]
+        self.assertEqual(evals.correct_behaviour(json.dumps(out), CASES["DEMO-001"]), 0.0)
+
+    def test_an_empty_staff_group_list_matches_a_golden_that_omits_it(self):
+        out = copy.deepcopy(CASES["DEMO-001"]["output"])
+        out["answer"]["staff_groups"] = []
+        self.assertEqual(evals.correct_behaviour(json.dumps(out), CASES["DEMO-001"]), 1.0)
+
     def test_hyphen_and_curly_spellings_still_match(self):
         answer = "Mirror Jordan Sample; this needs human-review."
         self.assertEqual(evals.correct_behaviour(question(answer), CASES["q09"]), 1.0)
