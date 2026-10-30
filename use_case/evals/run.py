@@ -78,7 +78,10 @@ def main() -> None:
     if not args.no_endpoint:
         endpoint = evals.run_eval(cases, make_endpoint(args.url), "endpoint")
         with urllib.request.urlopen(args.url.rstrip("/") + "/health", timeout=5) as resp:
-            endpoint.meta["model"] = json.load(resp).get("model", "unknown")
+            endpoint.meta["ticket_model"] = json.load(resp).get("model", "unknown")
+        # /health reports LLM_MODEL only. Questions can use RETRIEVAL_MODEL, and each response records which.
+        traces = [evals.parse(r.actual).get("trace") or {} for r in endpoint.results]
+        endpoint.meta["question_models"] = sorted({t["model"] for t in traces if t.get("model")})
         reports.append(endpoint)
         # Gitignored. A number with no saved run behind it cannot be checked later.
         saved = evals.harness.save(endpoint, RUNS_DIR / f"run_{datetime.now():%Y%m%d_%H%M%S}.json")
