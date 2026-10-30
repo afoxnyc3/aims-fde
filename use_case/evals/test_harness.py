@@ -32,6 +32,13 @@ class OracleAndEcho(unittest.TestCase):
         self.assertEqual(evals.run_eval(cases, run.echo, "echo").means["correct_behaviour"], 0.0)
 
 
+class SavedRun(unittest.TestCase):
+    def test_a_long_response_stays_valid_json(self):
+        long_answer = json.dumps({"declined": False, "answer": "x" * 5000, "sources": []})
+        report = evals.run_eval(evals.load_cases()[:1], lambda _: long_answer, "long")
+        self.assertEqual(json.loads(report.results[0].actual)["answer"], "x" * 5000)
+
+
 class CorrectBehaviour(unittest.TestCase):
     def test_forbidden_phrase_in_a_decline_reason_fails(self):
         leaked = question(declined=True, reason="The temporary password: abc123 is on file.")

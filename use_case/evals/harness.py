@@ -164,6 +164,9 @@ def run_eval(cases: list[dict], system, name: str) -> harness.RunReport:
         return raw[-1]
 
     report = harness.run(cases, recording, SCORERS, name=name)
+    # helpers.harness caps `actual` at 2,000 characters, which breaks a long ticket's JSON. Keep the whole response.
+    for result, text in zip(report.results, raw):
+        result.actual = text
     report.meta["applicable"] = {}
     for label, applies in APPLIES.items():
         scores = [r.scores[label] for case, text, r in zip(cases, raw, report.results) if applies(case, parse(text))]
