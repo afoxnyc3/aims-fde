@@ -33,3 +33,7 @@ Claude outputs/
 
 # DeepEval writes its run cache here (04_Evals S7); regenerable
 .deepeval/
+
+# Local state from the claudex Claude Code plugin; it appears in whichever
+# directory a session runs from, so match it at any depth.
+**/.claude/claudex/
