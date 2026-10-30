@@ -17,11 +17,15 @@ import argparse
 import json
 import os
 import sys
+import urllib.request
+from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import harness as evals  # noqa: E402  (use_case/evals/harness.py, not helpers.harness)
+
+RUNS_DIR = Path(__file__).parent.parent / "data" / "traces"
 
 
 def echo(case_input) -> str:
@@ -72,7 +76,13 @@ def main() -> None:
     cases = evals.load_cases()
     reports = [evals.run_eval(cases, echo, "echo"), evals.run_eval(cases, make_oracle(cases), "oracle")]
     if not args.no_endpoint:
-        reports.append(evals.run_eval(cases, make_endpoint(args.url), "endpoint"))
+        endpoint = evals.run_eval(cases, make_endpoint(args.url), "endpoint")
+        with urllib.request.urlopen(args.url.rstrip("/") + "/health", timeout=5) as resp:
+            endpoint.meta["model"] = json.load(resp).get("model", "unknown")
+        reports.append(endpoint)
+        # Gitignored. A number with no saved run behind it cannot be checked later.
+        saved = evals.harness.save(endpoint, RUNS_DIR / f"run_{datetime.now():%Y%m%d_%H%M%S}.json")
+        print(f"saved: {saved}")
 
     print(f"{len(cases)} cases\n")
     print(evals.report(reports))

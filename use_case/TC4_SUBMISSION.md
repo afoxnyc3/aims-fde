@@ -16,7 +16,7 @@ Each cell is the mean over the cases that scorer actually tests, with that count
 | --- | --- | --- | --- | --- | --- |
 | echo | 0.00 (20) | 0.00 (12) | n/a (0) | 0.00 (15) | 0.00 (1) |
 | oracle | 1.00 (20) | 1.00 (12) | 1.00 (3) | 1.00 (15) | 1.00 (1) |
-| endpoint | 0.85 (20) | 0.75 (12) | 0.00 (6) | 1.00 (15) | 0.00 (1) |
+| endpoint | 0.85 (20) | 0.75 (12) | 0.33 (6) | 1.00 (15) | 0.00 (1) |
 
 **`correct_behaviour` on the endpoint: 0.85, 95% CI [0.70, 1.00], n=20**, one run on 2026-10-30 with `openrouter/anthropic/claude-sonnet-5.5`. It missed q11, q13 and q14.
 
@@ -24,7 +24,8 @@ What these numbers do not show:
 
 - **The interval is wide.** Twenty cases cannot show a small improvement.
 - **The scorers are substring and field checks.** q15 passes `correct_behaviour` while overclaiming (`failures.md` line 3). Lines 3, 4 and 6 need the judge in Step 3.
-- **One run is a sample of one.** q10 refused correctly here but returned `declined: false` on one of three runs in the traces, which is why `flag_honest` reads 1.00 here and 44 of 45 on the traces.
+- **One run is a sample of one.** `flag_honest` reads 1.00 here and 44 of 45 on the traces, because q10 returned `declined: false` on one of its three traced runs. `reason_intact` scored 0.00 on an earlier run of the same code path and 0.33 on this one, because how many reasons reach the 300-character cut varies. Its denominator is also only the questions the endpoint happened to decline.
+- **Only `correct_behaviour` is safe to compare across runs.** `helpers.harness` has no way to skip a case, so the raw means in a saved run count vacuous passes on the cases a scorer does not test. The table above uses each scorer's real denominator. Step 6 has to settle this before the baseline is saved.
 - **The question oracle is built from the labels.** It proves the scorers accept a right answer containing those terms, not one in other words.
 
 ## How to run it

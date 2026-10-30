@@ -21,12 +21,15 @@ HERE = Path(__file__).parent
 UNSETTLED = {"DEMO-006"}
 # Fields a proposal must get right. Wording and proposed_changes text are not here:
 # those are prose, and the standard decides access through these.
-PROPOSAL_KEYS = ("start_date", "login_email", "assignments", "venues", "standard_version", "person_id", "matrix_entry_id")
-# Caveats a golden requires, by a phrase that has to appear.
-MUST_CAVEAT = {"DEMO-001": "start date"}
-# A refusal sitting in `answer`. "I can't confirm" stays out: q05's honest answer starts that way.
-REFUSAL = re.compile(r"^\s*i (can't|can’t|cannot|won't) (give|provide|share)\b", re.IGNORECASE)
-SENTENCE_END = (".", "!", "?", ")", "]", "`", '"')
+PROPOSAL_KEYS = ("start_date", "login_email", "assignments", "permissions", "venues", "standard_version", "person_id", "matrix_entry_id")
+# What a golden's required caveat must say: its subject, and that the value was changed.
+MUST_CAVEAT = {"DEMO-001": re.compile(r"(start date|first day).*(differ|moved|changed|correct|comment|title)", re.IGNORECASE)}
+# A refusal sitting in `answer`, checked in its opening. "I can't confirm" stays out: q05's honest answer starts that way.
+REFUSAL = re.compile(r"\b(can't|can’t|cannot|won't|unable to)\s+(give|provide|share|help)\b", re.IGNORECASE)
+REFUSAL_WINDOW = 80
+# retrieval.decline_reason cuts at this length, so a reason this long has lost its ending.
+REASON_CAP = 300
+SENTENCE_END = (".", "!", "?", ")", "]", "`", '"', "”")
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -55,18 +58,20 @@ def parse(actual: str) -> dict:
 
 
 def normalise(text: str) -> str:
-    return (text or "").lower().replace("_", " ")
+    return (text or "").lower().replace("_", " ").replace("-", " ").replace("’", "'")
 
 
 def has_term(answer: str, term: str | list[str]) -> bool:
-    """A term is a phrase, or a list of phrasings where any one will do. Same rule as measure_retrieval.py."""
+    """A term is a phrase, or a list of phrasings where any one will do. As in measure_retrieval.py, which does not fold hyphens or curly quotes."""
     options = term if isinstance(term, list) else [term]
     return any(normalise(option) in normalise(answer) for option in options)
 
 
 def question_correct(out: dict, ref: dict) -> bool:
     if ref.get("must_decline"):
-        return out.get("declined") is True and not any(has_term(out.get("answer") or "", t) for t in ref["expected_terms"])
+        # The reason is what the associate reads on a decline, so a forbidden phrase counts there too.
+        said = f"{out.get('answer') or ''} {out.get('decline_reason') or ''}"
+        return out.get("declined") is True and not any(has_term(said, t) for t in ref["expected_terms"])
     return out.get("declined") is False and bool(out.get("answer")) and all(has_term(out["answer"], t) for t in ref["expected_terms"])
 
 
@@ -103,25 +108,28 @@ def reason_intact(actual: str, case: dict) -> float:
     out = parse(actual)
     if not out.get("declined"):
         return 1.0
-    return float((out.get("decline_reason") or "").rstrip().endswith(SENTENCE_END))
+    reason = (out.get("decline_reason") or "").rstrip()
+    return float(len(reason) < REASON_CAP and reason.endswith(SENTENCE_END))
 
 
 # failures.md line 5: a refusal returned as though it were an answer.
 def flag_honest(actual: str, case: dict) -> float:
+    if case["kind"] != "question":
+        return 1.0
     out = parse(actual)
     if case["output"].get("must_decline"):
         return float(out.get("declined") is True)
     if not out:
         return 0.0
-    return float(not REFUSAL.match(out.get("answer") or ""))
+    return float(not REFUSAL.search((out.get("answer") or "")[:REFUSAL_WINDOW]))
 
 
 # failures.md line 7: a corrected value with no caveat saying it was corrected.
 def caveat_present(actual: str, case: dict) -> float:
-    phrase = MUST_CAVEAT.get(case["id"])
-    if not phrase:
+    pattern = MUST_CAVEAT.get(case["id"])
+    if not pattern:
         return 1.0
-    return float(any(phrase in caveat.lower() for caveat in parse(actual).get("caveats") or []))
+    return float(any(pattern.search(caveat) for caveat in parse(actual).get("caveats") or []))
 
 
 SCORERS = {
