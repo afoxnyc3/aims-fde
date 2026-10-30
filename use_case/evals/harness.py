@@ -78,7 +78,7 @@ def question_correct(out: dict, ref: dict) -> bool:
 def ticket_correct(out: dict, gold: dict) -> bool:
     if out.get("status") != gold["status"]:
         return False
-    if any(key in gold and out.get(key) != gold[key] for key in ("review_reason", "missing_fields")):
+    if any(key in gold and out.get(key) != gold[key] for key in ("review_reason", "missing_fields", "approval_owner_role")):
         return False
     for part in ("answer", "standard_proposal"):
         expected, actual = gold.get(part), out.get(part)
