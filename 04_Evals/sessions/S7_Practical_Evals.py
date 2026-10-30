@@ -182,7 +182,7 @@ def _(mo):
 
 
 @app.cell
-def _(GOLDEN, mo, read_jsonl):
+def _(GOLDEN, json, mo, read_jsonl):
     golden_rows = read_jsonl(GOLDEN) if GOLDEN.exists() else []
 
     mo.stop(
@@ -200,7 +200,13 @@ def _(GOLDEN, mo, read_jsonl):
     # Assigned only once the gate has passed, so that in a plain Jupyter kernel
     # (where mo.stop is an ordinary exception) nothing downstream can run on the
     # template by accident -- it fails with NameError instead, which is honest.
-    SEEDS = golden_rows
+    # A structured golden (JSON input/output) becomes stable JSON text, so it can
+    # key a dict and go through the text scorers like any other answer.
+    SEEDS = [
+        {**seed, **{k: v if isinstance(v, str) else json.dumps(v, sort_keys=True)
+                    for k, v in seed.items() if k in ("input", "output")}}
+        for seed in golden_rows
+    ]
     mo.md(f"✅ {len(SEEDS)} golden examples — your ground truth.")
     return (SEEDS,)
 
