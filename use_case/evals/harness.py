@@ -9,8 +9,10 @@ to this project: the cases, the definition of correct, and the report.
 """
 
 import json
+import os
 import random
 import re
+import sys
 from pathlib import Path
 
 from helpers import harness
@@ -156,11 +158,93 @@ APPLIES = {
     "reason_intact": lambda case, out: bool(out.get("declined")),
     "flag_honest": lambda case, out: case["kind"] == "question",
     "caveat_present": lambda case, out: case["id"] in MUST_CAVEAT,
+    "grounded": lambda case, out: case["kind"] == "question",
 }
 
 
-def run_eval(cases: list[dict], system, name: str) -> harness.RunReport:
+# ---------------------------------------------------------------- the judge
+
+# failures.md lines 3 and 6 are the same property, and a function cannot see it: a claim the records do not make.
+# Line 4 is not covered. "No ticket shows this" needs the whole corpus, and the judge sees only the standard and cited pages.
+# Not Sonnet: a model grading its own output is generous about its own habits.
+# gpt-4.1-mini was tried first: it passed calibrate() and still missed 5 of the 8 dev pairs.
+JUDGE_MODEL = os.getenv("JUDGE_MODEL", "openrouter/openai/gpt-5.6-luna")
+
+GROUNDED_RUBRIC = """You are checking one answer against the records it was allowed to use.
+
+{input}
+
+Answer to check:
+{actual}
+
+Decide one thing: does the answer respond to the question, and is every claim in it stated by the records?
+
+Score 0 if it only repeats the question, or if it adds anything the records do not state: a reason, an approver, a next step, an exception, or an equivalence the records only leave unsaid. Do not count these: saying the records do not cover something, reporting what the search did or did not find, the assistant offering to look something up, and what the assistant itself will or will not do.
+
+Do count these: telling the user what they need to do, when no record says so, and treating two things as the same because the records list no difference between them.
+
+Example of 0. Records say "Forklift Operator: certified, all sites" and nothing about seniority. Answer: "A senior operator is certified the same as any other operator."
+Example of 1. Same records. Answer: "A Forklift Operator is certified at all sites. The records do not say whether seniority changes that."
+
+Do not judge style, length or whether a fuller answer was possible.
+
+Reply with JSON only: {{"score": <0 or 1>, "why": "<one sentence>"}}"""
+
+
+def _pages() -> dict:
+    """Page text by id. Imported here because only the judge needs the challenge app's corpus."""
+    if not _PAGES:
+        sys.path.insert(0, str(HERE.parents[1] / "01_Product_Engineering" / "challenge"))
+        import corpus
+
+        _PAGES.update({page.name: page.text for page in corpus.load_corpus()})
+    return _PAGES
+
+
+_PAGES: dict = {}
+
+
+def judge_case(question: str, sources: list[str], good: str = "") -> dict:
+    """The case the judge sees: the question and the records, which are the standard plus whatever the answer cited."""
+    pages = _pages()
+    names = [name for name in pages if name.startswith("STD-")] + [name for name in sources if not name.startswith("STD-")]
+    records = "\n\n".join(f"[{name}]\n{pages[name]}" for name in names if name in pages)
+    return {"input": f"Question:\n{question}\n\nRecords:\n{records}", "output": good}
+
+
+def make_grounded(judge):
+    """Wrap a calibrated judge as a scorer. Tickets return a vacuous 1.0: their access comes from code, not model prose."""
+
+    def grounded(actual: str, case: dict) -> float:
+        if case["kind"] != "question":
+            return 1.0
+        out = parse(actual)
+        # A decline is checked too: its reason is what the associate reads. Echo has no JSON, so its text is judged as is.
+        said = (out.get("answer") or out.get("decline_reason") or "") if out else actual
+        return judge.score(said, judge_case(case["input"], out.get("sources") or []))
+
+    return grounded
+
+
+def make_judge(stats=None):
+    from helpers.config import from_env
+    from helpers.judge import Judge
+
+    return Judge(from_env(HERE.parents[1]), rubric=GROUNDED_RUBRIC, model=JUDGE_MODEL, stats=stats)
+
+
+def calibrate(judge) -> "Calibration":
+    """Separation on the known-good pair answers against an obviously wrong one. score() refuses until this passes."""
+    pairs = [p for p in load_jsonl(HERE / "judge_pairs.jsonl") if p["split"] == "dev"]
+    return judge.calibrate([judge_case(p["question"], [], p["good"]) for p in pairs])
+
+
+# ---------------------------------------------------------------- the run
+
+
+def run_eval(cases: list[dict], system, name: str, scorers: dict | None = None) -> harness.RunReport:
     """helpers.harness.run, plus each scorer's mean over only the cases it tests."""
+    scorers = scorers or SCORERS
     raw = []
 
     def recording(case_input) -> str:
@@ -168,12 +252,13 @@ def run_eval(cases: list[dict], system, name: str) -> harness.RunReport:
         raw[-1] = system(case_input)
         return raw[-1]
 
-    report = harness.run(cases, recording, SCORERS, name=name)
+    report = harness.run(cases, recording, scorers, name=name)
     # helpers.harness caps `actual` at 2,000 characters, which breaks a long ticket's JSON. Keep the whole response.
     for result, text in zip(report.results, raw):
         result.actual = text
     report.meta["applicable"] = {}
-    for label, applies in APPLIES.items():
+    for label in scorers:
+        applies = APPLIES[label]
         scores = [r.scores[label] for case, text, r in zip(cases, raw, report.results) if applies(case, parse(text))]
         report.meta["applicable"][label] = {"n": len(scores), "mean": sum(scores) / len(scores) if scores else None}
     return report
@@ -189,10 +274,11 @@ def bootstrap_ci(scores: list[float], n_resamples: int = 5000, level: float = 0.
 
 def report(reports: list[harness.RunReport]) -> str:
     """One row per system, one column per scorer, each cell with the cases it tested."""
-    lines = ["| System | " + " | ".join(SCORERS) + " |", "| --- |" + " --- |" * len(SCORERS)]
+    labels = list(reports[0].meta["applicable"])
+    lines = ["| System | " + " | ".join(labels) + " |", "| --- |" + " --- |" * len(labels)]
     for run in reports:
         cells = []
-        for label in SCORERS:
+        for label in labels:
             cell = run.meta["applicable"][label]
             cells.append("n/a (0)" if cell["mean"] is None else f"{cell['mean']:.2f} ({cell['n']})")
         lines.append(f"| {run.name} | " + " | ".join(cells) + " |")

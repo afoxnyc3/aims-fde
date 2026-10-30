@@ -32,6 +32,44 @@ class OracleAndEcho(unittest.TestCase):
         self.assertEqual(evals.run_eval(cases, run.echo, "echo").means["correct_behaviour"], 0.0)
 
 
+class FakeJudge:
+    """Records what the judge was asked, with no model call."""
+
+    def __init__(self):
+        self.seen = []
+
+    def score(self, said, case):
+        self.seen.append((said, case))
+        return 1.0
+
+
+class Grounded(unittest.TestCase):
+    def setUp(self):
+        self.judge = FakeJudge()
+        self.grounded = evals.make_grounded(self.judge)
+
+    def test_a_ticket_is_not_judged(self):
+        self.assertEqual(self.grounded("{}", CASES["DEMO-001"]), 1.0)
+        self.assertEqual(self.judge.seen, [])
+
+    def test_a_decline_reason_is_judged(self):
+        self.grounded(question(declined=True, reason="No record says so."), CASES["q13"])
+        self.assertEqual(self.judge.seen[0][0], "No record says so.")
+
+    def test_echo_text_is_judged_as_is(self):
+        self.grounded(CASES["q13"]["input"], CASES["q13"])
+        self.assertEqual(self.judge.seen[0][0], CASES["q13"]["input"])
+
+    def test_the_judge_sees_the_standard_and_the_cited_ticket(self):
+        evals._PAGES.update({"STD-x": "the standard", "SYN-1": "cited", "SYN-2": "not cited"})
+        records = evals.judge_case("q?", ["SYN-1"])["input"]
+        for key in ("SYN-1", "SYN-2", "STD-x"):
+            self.addCleanup(evals._PAGES.pop, key, None)
+        self.assertIn("the standard", records)
+        self.assertIn("cited", records)
+        self.assertNotIn("not cited", records)
+
+
 class SavedRun(unittest.TestCase):
     def test_a_long_response_stays_valid_json(self):
         long_answer = json.dumps({"declined": False, "answer": "x" * 5000, "sources": []})

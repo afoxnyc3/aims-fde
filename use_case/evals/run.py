@@ -8,9 +8,10 @@ models set if your key is OpenRouter only:
 Then, from the repo root (the challenge env has gradio_client):
 
     uv run --project 01_Product_Engineering/challenge python use_case/evals/run.py
-    uv run --project 01_Product_Engineering/challenge python use_case/evals/run.py --no-endpoint   # echo and oracle, no model calls
+    uv run --project 01_Product_Engineering/challenge python use_case/evals/run.py --no-endpoint --no-judge   # no model calls
 
-Each endpoint run costs real model calls, one per case.
+Each endpoint run costs real model calls, one per case. The judge adds 16 calls to
+calibrate, plus one per question for each of echo, oracle and the endpoint.
 """
 
 import argparse
@@ -70,13 +71,25 @@ def make_endpoint(url: str):
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--url", default=os.getenv("TC4_ENDPOINT", "http://127.0.0.1:7860/"))
-    parser.add_argument("--no-endpoint", action="store_true", help="echo and oracle only, no model calls")
+    parser.add_argument("--no-endpoint", action="store_true", help="echo and oracle only")
+    parser.add_argument("--no-judge", action="store_true", help="model-free scorers only; changes the fingerprint, so such a run cannot be compared to the baseline")
     args = parser.parse_args()
 
     cases = evals.load_cases()
-    reports = [evals.run_eval(cases, echo, "echo"), evals.run_eval(cases, make_oracle(cases), "oracle")]
+    scorers = dict(evals.SCORERS)
+    if not args.no_judge:
+        from helpers.llm import CallStats
+
+        stats = CallStats()
+        judge = evals.make_judge(stats)
+        calibration = evals.calibrate(judge)
+        print(f"judge {evals.JUDGE_MODEL}: {calibration}")
+        # A failed judge is reported and left out. score() would raise, and helpers.harness would turn that into zeros.
+        if calibration.passed:
+            scorers["grounded"] = evals.make_grounded(judge)
+    reports = [evals.run_eval(cases, echo, "echo", scorers), evals.run_eval(cases, make_oracle(cases), "oracle", scorers)]
     if not args.no_endpoint:
-        endpoint = evals.run_eval(cases, make_endpoint(args.url), "endpoint")
+        endpoint = evals.run_eval(cases, make_endpoint(args.url), "endpoint", scorers)
         with urllib.request.urlopen(args.url.rstrip("/") + "/health", timeout=5) as resp:
             endpoint.meta["ticket_model"] = json.load(resp).get("model", "unknown")
         # /health reports LLM_MODEL only. Questions can use RETRIEVAL_MODEL, and each response records which.
@@ -87,6 +100,8 @@ def main() -> None:
         saved = evals.harness.save(endpoint, RUNS_DIR / f"run_{datetime.now():%Y%m%d_%H%M%S}.json")
         print(f"saved: {saved}")
 
+    if not args.no_judge:
+        print(f"judge calls, measured: {stats}")
     print(f"{len(cases)} cases\n")
     print(evals.report(reports))
     for run in reports:

@@ -114,8 +114,10 @@ every later week runs. `python use_case/evals/run.py` is the whole interface.
 | File | What it is | Written in |
 | --- | --- | --- |
 | `failures.md` | What goes wrong, ranked, with counts — from fifty real traces. Every scorer traces back to a line here | TC4 Step 1 |
-| `human_scores.jsonl` | Twenty outputs you scored by hand: `{"input", "actual", "pass", "why"}`. The judge's agreement is measured against these | TC4 Step 1 |
+| `human_scores.jsonl` | Twenty outputs you scored by hand: `{"input", "actual", "pass", "grounded", "why"}`. `grounded` is whether every claim is stated by the records, separate from `pass` because a correct decline can be grounded and still an overall fail. The judge's agreement is measured against these | TC4 Step 1 |
 | `harness.py` | Your scorers, `run_eval`, `report`, `bootstrap_ci`, the judge rubric | TC4 Steps 2–3 |
+| `judge_pairs.jsonl` | A good answer and the same answer with one unsupported claim, `dev` and `holdout`. Harder than echo, which is why `calibrate()` passing is not enough. Written by Claude from the draft standard; a person should read them | TC4 Step 3 |
+| `calibrate_judge.py` | Runs separation on those pairs, and agreement with `human_scores.jsonl` on its `grounded` field | TC4 Step 3 |
 | `synthetic.jsonl` | Generated failures, each with the original, the corruption and its failure mode | TC4 Step 4 |
 | `scenarios.py` | Three multi-turn scenarios — goal, `knows`, `success`, `must_not` — one a refusal | TC4 Step 5 |
 | `run.py` | Points the harness at your endpoint and prints the report | TC4 Step 6 |
