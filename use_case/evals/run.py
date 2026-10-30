@@ -37,10 +37,11 @@ def echo(case_input) -> str:
 def make_oracle(cases: list[dict]):
     """Returns the reference. If this does not score 1.0 on every scorer, the scorer is wrong.
 
-    The questions have no written reference answer, so their oracle is built from the
-    labels. It proves the scorers accept a right answer containing those terms. It
-    cannot prove they accept one in other words: that is a job for the judge.
+    The questions' answers are in oracle_answers.json, written from the labels and the
+    records. Because they carry the label's terms, they prove the scorers accept a right
+    answer containing those terms, not one in other words: that is a job for the judge.
     """
+    written = json.loads((Path(__file__).parent / "oracle_answers.json").read_text(encoding="utf-8"))
     answers = {}
     for case in cases:
         ref = case["output"]
@@ -49,8 +50,7 @@ def make_oracle(cases: list[dict]):
         elif ref.get("must_decline"):
             out = {"declined": True, "answer": None, "decline_reason": "No record covers this.", "sources": []}
         else:
-            terms = [t[0] if isinstance(t, list) else t for t in ref["expected_terms"]]
-            out = {"declined": False, "answer": "Reference: " + "; ".join(terms), "decline_reason": None, "sources": ref["gold"]}
+            out = {"declined": False, "answer": written[case["id"]], "decline_reason": None, "sources": ref["gold"]}
         answers[json.dumps(case["input"], sort_keys=True)] = json.dumps(out)
     return lambda case_input: answers[json.dumps(case_input, sort_keys=True)]
 
@@ -84,9 +84,11 @@ def main() -> None:
         judge = evals.make_judge(stats)
         calibration = evals.calibrate(judge)
         print(f"judge {evals.JUDGE_MODEL}: {calibration}")
-        # A failed judge is reported and left out. score() would raise, and helpers.harness would turn that into zeros.
-        if calibration.passed:
-            scorers["grounded"] = evals.make_grounded(judge)
+        # Stop rather than save a run without the column: its fingerprint could never be compared to the baseline.
+        if not calibration.passed:
+            raise SystemExit("The judge failed calibration, so nothing was run. Fix it, or pass --no-judge and say so.")
+        grounded = evals.make_grounded(judge)
+        scorers[evals.grounded_label()] = grounded
     reports = [evals.run_eval(cases, echo, "echo", scorers), evals.run_eval(cases, make_oracle(cases), "oracle", scorers)]
     if not args.no_endpoint:
         endpoint = evals.run_eval(cases, make_endpoint(args.url), "endpoint", scorers)
@@ -95,6 +97,8 @@ def main() -> None:
         # /health reports LLM_MODEL only. Questions can use RETRIEVAL_MODEL, and each response records which.
         traces = [evals.parse(r.actual).get("trace") or {} for r in endpoint.results]
         endpoint.meta["question_models"] = sorted({t["model"] for t in traces if t.get("model")})
+        if not args.no_judge:
+            endpoint.meta["judge"] = {"model": evals.JUDGE_MODEL, "calibration": str(calibration), "failures_all_systems": grounded.failures}
         reports.append(endpoint)
         # Gitignored. A number with no saved run behind it cannot be checked later.
         saved = evals.harness.save(endpoint, RUNS_DIR / f"run_{datetime.now():%Y%m%d_%H%M%S}.json")
@@ -102,6 +106,8 @@ def main() -> None:
 
     if not args.no_judge:
         print(f"judge calls, measured: {stats}")
+        if grounded.failures:
+            print(f"WARNING: {grounded.failures} judge calls failed and scored 0. Do not read the grounded column as a result.")
     print(f"{len(cases)} cases\n")
     print(evals.report(reports))
     for run in reports:

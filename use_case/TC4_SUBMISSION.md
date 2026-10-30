@@ -26,7 +26,7 @@ What these numbers do not show:
 - **The scorers are substring and field checks.** q15 passes `correct_behaviour` while overclaiming (`failures.md` line 3). Lines 3 and 6 need the judge in Step 3, and line 4 has no scorer.
 - **One run is a sample of one.** `flag_honest` reads 1.00 here and 44 of 45 on the traces, because q10 returned `declined: false` on one of its three traced runs. `reason_intact` scored 0.00 on an earlier run of the same code path and 0.33 on this one, because how many reasons reach the 300-character cut varies. Its denominator is also only the questions the endpoint happened to decline.
 - **Only `correct_behaviour` is safe to compare across runs.** The table above uses each scorer's real denominator, and the saved run's raw means do not. See "What is safe to compare between runs" below.
-- **The question oracle is built from the labels.** It proves the scorers accept a right answer containing those terms, not one in other words.
+- **The question oracle carries the labels' terms.** Its answers in `evals/oracle_answers.json` were written by Claude from the labels and the records. They prove the scorers accept a right answer containing those terms, not one in other words.
 
 ## Step 3: the judge
 
@@ -37,7 +37,7 @@ The rubric is `GROUNDED_RUBRIC` in [`evals/harness.py`](evals/harness.py), for `
 | Test | Result |
 | --- | --- |
 | `Judge.calibrate()` against "The answer is 42." | Good 1.00, wrong 0.00, n=8 |
-| Echo and oracle | Echo 0.00, oracle 0.80, n=15 |
+| Echo and oracle | Echo 0.00, oracle 0.87, n=15 |
 | Dev pairs, one unsupported claim added (3 repeats) | Good 1.00, bad 0.08, n=8 pairs. p1 got through on 2 of 3 repeats |
 | Holdout pairs, written after the model and rubric were first chosen (3 repeats) | Good 1.00, bad 0.00, n=10 pairs. The rubric's wording was changed twice after that, using these results among others |
 | Agreement with hand scores | **Not checked.** Needs `human_scores.jsonl` |
@@ -48,13 +48,13 @@ What these results do not show:
 - **The pairs are easier than real traces.** The holdout stayed perfect through every rubric version, including one that missed real failures, so it cannot be the evidence on its own.
 - **Verdicts on real traces are not stable.** Over five repeats, q05 run 3 failed every time and q02 and q06 passed every time, but q15 run 3 and q04 runs 1 and 2 split. One pass over the 45 traces flagged 12, against the 4 that lines 3 and 6 count, and how many of the other flags are real is unmeasured. The rubric was tuned against Claude's own reading of those traces, not a human's.
 - **Line 4 is not covered.** "No ticket shows this" needs the whole corpus, and the judge sees only the standard and the cited pages.
-- **The oracle's 0.80 is the oracle's limit.** Its question answers are bare label terms, not sentences, so some do not read as a response.
+- **The judge rejects some correct answers.** The oracle's written answers score 0.87, not 1.0. Over three repeats q01, q11 and q14 flipped, so this is the judge's false-reject rate, not a fault in those answers. It is the main reason `grounded` is not the headline.
 
 **Cost, measured:** an echo-and-oracle run made 46 judge calls (16 to calibrate, 15 per system) and used about 56k tokens. A full run adds 15 more. At the looked-up price of $0.20 / $1.20 per million tokens, those 46 calls cost about $0.02.
 
 ## What is safe to compare between runs
 
-**Compare `correct_behaviour` only.** `helpers.harness` has no way to skip a case, so the raw means in a saved run count vacuous passes, and `compare()` reads the raw means. A single case flipping still clears the 0.02 tolerance while there are fewer than 50 cases, so a regression on a whole case shows, but the other columns are diagnostics, not gates. A single judge wobble is also 0.05, so a `compare()` REGRESSION on `grounded` alone needs reading before anyone believes it.
+**Compare `correct_behaviour` only.** `helpers.harness` has no way to skip a case, so the raw means in a saved run count vacuous passes, and `compare()` reads the raw means. A single case flipping still clears the 0.02 tolerance while there are fewer than 50 cases, so a regression on a whole case shows, but the other columns are diagnostics, not gates. A single judge wobble is also 0.05, so a `compare()` REGRESSION on `grounded` alone needs reading before anyone believes it. The `grounded` column's name carries a hash of the judge's model and rubric, so `compare()` refuses a run that changed the judge.
 
 ## How to run it
 

@@ -8,6 +8,8 @@ helpers.harness keeps the run as an artifact. This file holds what is specific
 to this project: the cases, the definition of correct, and the report.
 """
 
+import dataclasses
+import hashlib
 import json
 import os
 import random
@@ -32,6 +34,7 @@ REFUSAL_WINDOW = 80
 # retrieval.decline_reason cuts at this length, so a reason this long has lost its ending.
 REASON_CAP = 300
 SENTENCE_END = (".", "!", "?", ")", "]", "`", '"', "”")
+CITED_TICKET = re.compile(r"\bSYN-[0-9a-f]+\b")
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -197,7 +200,13 @@ def _pages() -> dict:
         sys.path.insert(0, str(HERE.parents[1] / "01_Product_Engineering" / "challenge"))
         import corpus
 
-        _PAGES.update({page.name: page.text for page in corpus.load_corpus()})
+        pages = corpus.load_standard_pages()
+        # The tickets are gitignored. The standard is enough to calibrate on a clean checkout.
+        try:
+            pages += corpus.load_ticket_pages(Path(os.getenv("CORPUS_PATH") or corpus.DEFAULT_CORPUS_PATH))
+        except corpus.CorpusMissing:
+            pass
+        _PAGES.update({page.name: page.text for page in pages})
     return _PAGES
 
 
@@ -212,25 +221,47 @@ def judge_case(question: str, sources: list[str], good: str = "") -> dict:
     return {"input": f"Question:\n{question}\n\nRecords:\n{records}", "output": good}
 
 
+def what_was_said(actual: str) -> tuple[str, list[str]]:
+    """The text to judge and the records it may rely on.
+
+    A decline is checked too, because its reason is what the associate reads. Declines return no
+    `sources`, so tickets named in the text count as cited. Echo has no JSON, so its text is judged as is.
+    """
+    out = parse(actual)
+    said = (out.get("answer") or out.get("decline_reason") or "") if out else actual
+    return said, [*(out.get("sources") or []), *CITED_TICKET.findall(said)]
+
+
 def make_grounded(judge):
     """Wrap a calibrated judge as a scorer. Tickets return a vacuous 1.0: their access comes from code, not model prose."""
 
     def grounded(actual: str, case: dict) -> float:
         if case["kind"] != "question":
             return 1.0
-        out = parse(actual)
-        # A decline is checked too: its reason is what the associate reads. Echo has no JSON, so its text is judged as is.
-        said = (out.get("answer") or out.get("decline_reason") or "") if out else actual
-        return judge.score(said, judge_case(case["input"], out.get("sources") or []))
+        said, sources = what_was_said(actual)
+        try:
+            return judge.score(said, judge_case(case["input"], sources))
+        except Exception:
+            # helpers.harness turns this into a 0.0, which reads as an ungrounded answer. Count it so the run can say so.
+            grounded.failures += 1
+            raise
 
+    grounded.failures = 0
     return grounded
+
+
+def grounded_label() -> str:
+    """The scorer's name carries the model and rubric, so compare() refuses a run that changed the judge."""
+    return "grounded@" + hashlib.sha256(f"{JUDGE_MODEL}\0{GROUNDED_RUBRIC}".encode()).hexdigest()[:8]
 
 
 def make_judge(stats=None):
     from helpers.config import from_env
     from helpers.judge import Judge
 
-    return Judge(from_env(HERE.parents[1]), rubric=GROUNDED_RUBRIC, model=JUDGE_MODEL, stats=stats)
+    # The app's gateway settings are for the model under test, and must not carry over to the judge.
+    cfg = dataclasses.replace(from_env(HERE.parents[1]), api_base=None, headers={})
+    return Judge(cfg, rubric=GROUNDED_RUBRIC, model=JUDGE_MODEL, stats=stats)
 
 
 def calibrate(judge) -> "Calibration":
@@ -258,7 +289,7 @@ def run_eval(cases: list[dict], system, name: str, scorers: dict | None = None) 
         result.actual = text
     report.meta["applicable"] = {}
     for label in scorers:
-        applies = APPLIES[label]
+        applies = APPLIES[label.split("@")[0]]
         scores = [r.scores[label] for case, text, r in zip(cases, raw, report.results) if applies(case, parse(text))]
         report.meta["applicable"][label] = {"n": len(scores), "mean": sum(scores) / len(scores) if scores else None}
     return report
