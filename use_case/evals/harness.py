@@ -21,7 +21,7 @@ HERE = Path(__file__).parent
 UNSETTLED = {"DEMO-006"}
 # Fields a proposal must get right. Wording and proposed_changes text are not here:
 # those are prose, and the standard decides access through these.
-PROPOSAL_KEYS = ("start_date", "login_email", "assignments", "permissions", "venues", "standard_version", "person_id", "matrix_entry_id")
+PROPOSAL_KEYS = ("person_name", "job_title", "start_date", "login_email", "assignments", "permissions", "venues", "standard_version", "person_id", "matrix_entry_id")
 # What a golden's required caveat must say: its subject, and that the value was changed.
 MUST_CAVEAT = {"DEMO-001": re.compile(r"(start date|first day).*(differ|moved|changed|correct|comment|title)", re.IGNORECASE)}
 # A refusal sitting in `answer`, checked in its opening. "I can't confirm" stays out: q05's honest answer starts that way.
@@ -81,11 +81,16 @@ def ticket_correct(out: dict, gold: dict) -> bool:
     if any(key in gold and out.get(key) != gold[key] for key in ("review_reason", "missing_fields")):
         return False
     for part in ("answer", "standard_proposal"):
-        for key in PROPOSAL_KEYS:
-            if gold.get(part) and (out.get(part) or {}).get(key) != gold[part].get(key):
-                return False
+        expected, actual = gold.get(part), out.get(part)
+        # A proposal where the golden has none is an access recommendation that should have been withheld.
+        if bool(expected) != bool(actual):
+            return False
+        if not expected:
+            continue
+        if any(actual.get(key) != expected.get(key) for key in PROPOSAL_KEYS):
+            return False
         # Goldens omit staff_groups when there are none, and the schema defaults it to empty.
-        if gold.get(part) and ((out.get(part) or {}).get("staff_groups") or []) != (gold[part].get("staff_groups") or []):
+        if (actual.get("staff_groups") or []) != (expected.get("staff_groups") or []):
             return False
     return True
 

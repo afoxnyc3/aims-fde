@@ -63,6 +63,21 @@ class CorrectBehaviour(unittest.TestCase):
         out["answer"]["staff_groups"] = []
         self.assertEqual(evals.correct_behaviour(json.dumps(out), CASES["DEMO-001"]), 1.0)
 
+    def test_a_proposal_where_the_golden_has_none_fails(self):
+        out = copy.deepcopy(CASES["DEMO-003"]["output"])
+        out["answer"] = CASES["DEMO-001"]["output"]["answer"]
+        self.assertEqual(evals.correct_behaviour(json.dumps(out), CASES["DEMO-003"]), 0.0)
+
+    def test_a_missing_proposal_fails(self):
+        out = copy.deepcopy(CASES["DEMO-001"]["output"])
+        out["answer"] = None
+        self.assertEqual(evals.correct_behaviour(json.dumps(out), CASES["DEMO-001"]), 0.0)
+
+    def test_the_wrong_employee_fails(self):
+        out = copy.deepcopy(CASES["DEMO-001"]["output"])
+        out["answer"]["person_name"] = "Example Hire D"
+        self.assertEqual(evals.correct_behaviour(json.dumps(out), CASES["DEMO-001"]), 0.0)
+
     def test_hyphen_and_curly_spellings_still_match(self):
         answer = "Mirror Jordan Sample; this needs human-review."
         self.assertEqual(evals.correct_behaviour(question(answer), CASES["q09"]), 1.0)
