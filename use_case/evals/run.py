@@ -8,9 +8,10 @@ models set if your key is OpenRouter only:
 Then, from the repo root (the challenge env has gradio_client):
 
     uv run --project 01_Product_Engineering/challenge python use_case/evals/run.py
-    uv run --project 01_Product_Engineering/challenge python use_case/evals/run.py --no-endpoint   # echo and oracle, no model calls
+    uv run --project 01_Product_Engineering/challenge python use_case/evals/run.py --no-endpoint --no-judge   # no model calls
 
-Each endpoint run costs real model calls, one per case.
+Each endpoint run costs real model calls, one per case. The judge adds 16 calls to
+calibrate, plus one per question for each of echo, oracle and the endpoint.
 """
 
 import argparse
@@ -36,10 +37,11 @@ def echo(case_input) -> str:
 def make_oracle(cases: list[dict]):
     """Returns the reference. If this does not score 1.0 on every scorer, the scorer is wrong.
 
-    The questions have no written reference answer, so their oracle is built from the
-    labels. It proves the scorers accept a right answer containing those terms. It
-    cannot prove they accept one in other words: that is a job for the judge.
+    The questions' answers are in oracle_answers.json, written from the labels and the
+    records. Because they carry the label's terms, they prove the scorers accept a right
+    answer containing those terms, not one in other words: that is a job for the judge.
     """
+    written = json.loads((Path(__file__).parent / "oracle_answers.json").read_text(encoding="utf-8"))
     answers = {}
     for case in cases:
         ref = case["output"]
@@ -48,8 +50,7 @@ def make_oracle(cases: list[dict]):
         elif ref.get("must_decline"):
             out = {"declined": True, "answer": None, "decline_reason": "No record covers this.", "sources": []}
         else:
-            terms = [t[0] if isinstance(t, list) else t for t in ref["expected_terms"]]
-            out = {"declined": False, "answer": "Reference: " + "; ".join(terms), "decline_reason": None, "sources": ref["gold"]}
+            out = {"declined": False, "answer": written[case["id"]], "decline_reason": None, "sources": ref["gold"]}
         answers[json.dumps(case["input"], sort_keys=True)] = json.dumps(out)
     return lambda case_input: answers[json.dumps(case_input, sort_keys=True)]
 
@@ -70,23 +71,43 @@ def make_endpoint(url: str):
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--url", default=os.getenv("TC4_ENDPOINT", "http://127.0.0.1:7860/"))
-    parser.add_argument("--no-endpoint", action="store_true", help="echo and oracle only, no model calls")
+    parser.add_argument("--no-endpoint", action="store_true", help="echo and oracle only")
+    parser.add_argument("--no-judge", action="store_true", help="model-free scorers only; changes the fingerprint, so such a run cannot be compared to the baseline")
     args = parser.parse_args()
 
     cases = evals.load_cases()
-    reports = [evals.run_eval(cases, echo, "echo"), evals.run_eval(cases, make_oracle(cases), "oracle")]
+    scorers = dict(evals.SCORERS)
+    if not args.no_judge:
+        from helpers.llm import CallStats
+
+        stats = CallStats()
+        judge = evals.make_judge(stats)
+        calibration = evals.calibrate(judge)
+        print(f"judge {evals.JUDGE_MODEL}: {calibration}")
+        # Stop rather than save a run without the column: its fingerprint could never be compared to the baseline.
+        if not calibration.passed:
+            raise SystemExit("The judge failed calibration, so nothing was run. Fix it, or pass --no-judge and say so.")
+        grounded = evals.make_grounded(judge)
+        scorers[evals.grounded_label()] = grounded
+    reports = [evals.run_eval(cases, echo, "echo", scorers), evals.run_eval(cases, make_oracle(cases), "oracle", scorers)]
     if not args.no_endpoint:
-        endpoint = evals.run_eval(cases, make_endpoint(args.url), "endpoint")
+        endpoint = evals.run_eval(cases, make_endpoint(args.url), "endpoint", scorers)
         with urllib.request.urlopen(args.url.rstrip("/") + "/health", timeout=5) as resp:
             endpoint.meta["ticket_model"] = json.load(resp).get("model", "unknown")
         # /health reports LLM_MODEL only. Questions can use RETRIEVAL_MODEL, and each response records which.
         traces = [evals.parse(r.actual).get("trace") or {} for r in endpoint.results]
         endpoint.meta["question_models"] = sorted({t["model"] for t in traces if t.get("model")})
+        if not args.no_judge:
+            endpoint.meta["judge"] = {"model": evals.JUDGE_MODEL, "calibration": str(calibration), "failures_all_systems": grounded.failures}
         reports.append(endpoint)
         # Gitignored. A number with no saved run behind it cannot be checked later.
         saved = evals.harness.save(endpoint, RUNS_DIR / f"run_{datetime.now():%Y%m%d_%H%M%S}.json")
         print(f"saved: {saved}")
 
+    if not args.no_judge:
+        print(f"judge calls, measured: {stats}")
+        if grounded.failures:
+            print(f"WARNING: {grounded.failures} judge calls failed and scored 0. Do not read the grounded column as a result.")
     print(f"{len(cases)} cases\n")
     print(evals.report(reports))
     for run in reports:

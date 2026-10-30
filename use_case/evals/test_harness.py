@@ -5,9 +5,11 @@
 
 import copy
 import json
+import os
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -30,6 +32,84 @@ class OracleAndEcho(unittest.TestCase):
     def test_echo_never_passes_the_headline(self):
         cases = evals.load_cases()
         self.assertEqual(evals.run_eval(cases, run.echo, "echo").means["correct_behaviour"], 0.0)
+
+
+class FakeJudge:
+    """Records what the judge was asked, with no model call."""
+
+    def __init__(self):
+        self.seen = []
+
+    def score(self, said, case):
+        self.seen.append((said, case))
+        return 1.0
+
+
+class Grounded(unittest.TestCase):
+    def setUp(self):
+        pages = {"STD-x": "sentinel-standard", "SYN-1a": "sentinel-cited", "SYN-2b": "sentinel-uncited"}
+        patcher = mock.patch.object(evals, "_PAGES", pages)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.judge = FakeJudge()
+        self.grounded = evals.make_grounded(self.judge)
+
+    def test_a_ticket_is_not_judged(self):
+        self.assertEqual(self.grounded("{}", CASES["DEMO-001"]), 1.0)
+        self.assertEqual(self.judge.seen, [])
+
+    def test_a_decline_reason_is_judged(self):
+        self.grounded(question(declined=True, reason="No record says so."), CASES["q13"])
+        self.assertEqual(self.judge.seen[0][0], "No record says so.")
+
+    def test_echo_text_is_judged_as_is(self):
+        self.grounded(CASES["q13"]["input"], CASES["q13"])
+        self.assertEqual(self.judge.seen[0][0], CASES["q13"]["input"])
+
+    def test_the_judge_sees_the_standard_and_the_cited_ticket(self):
+        records = evals.judge_case("q?", ["SYN-1a"])["input"]
+        self.assertIn("sentinel-standard", records)
+        self.assertIn("sentinel-cited", records)
+        self.assertNotIn("sentinel-uncited", records)
+
+    def test_a_ticket_named_in_a_decline_reason_counts_as_cited(self):
+        self.grounded(question(declined=True, reason="[SYN-1a] leaves this blank."), CASES["q13"])
+        self.assertIn("sentinel-cited", self.judge.seen[0][1]["input"])
+
+    def test_a_judge_failure_is_counted_not_hidden(self):
+        class Broken:
+            def score(self, said, case):
+                raise TimeoutError
+
+        grounded = evals.make_grounded(Broken())
+        report = evals.run_eval([CASES["q13"]], lambda _: question("x"), "broken", {evals.grounded_label(): grounded})
+        self.assertEqual(grounded.failures, 1)
+        self.assertEqual(report.means[evals.grounded_label()], 0.0)
+
+    def test_changing_the_judge_changes_the_fingerprint(self):
+        before = evals.grounded_label()
+        with mock.patch.object(evals, "JUDGE_MODEL", "some/other-model"):
+            self.assertNotEqual(evals.grounded_label(), before)
+
+
+class CleanCheckout(unittest.TestCase):
+    def test_the_standard_loads_without_the_gitignored_tickets(self):
+        env = {"CORPUS_PATH": "/no/such/file.jsonl", "JUDGE_CORPUS_APPROVED": "1"}
+        with mock.patch.object(evals, "_PAGES", {}), mock.patch.dict(os.environ, env):
+            self.assertTrue(any(name.startswith("STD-") for name in evals._pages()))
+
+    def test_another_corpus_needs_approval_before_the_judge_reads_it(self):
+        env = {"CORPUS_PATH": "/internal/real_tickets.jsonl"}
+        with mock.patch.object(evals, "_PAGES", {}), mock.patch.dict(os.environ, env):
+            os.environ.pop("JUDGE_CORPUS_APPROVED", None)
+            with self.assertRaisesRegex(RuntimeError, "JUDGE_CORPUS_APPROVED"):
+                evals._pages()
+
+    def test_a_cited_ticket_with_no_corpus_fails_rather_than_judging_blind(self):
+        with mock.patch.object(evals, "_PAGES", {"STD-x": "standard"}):
+            with self.assertRaisesRegex(RuntimeError, "corpus is not available"):
+                evals.judge_case("q?", ["SYN-1a"])
+            self.assertIn("standard", evals.judge_case("q?", [])["input"])
 
 
 class SavedRun(unittest.TestCase):

@@ -1,0 +1,14 @@
+{
+  "q01": "The ticket has no personal email. The employee email is missing and the notes say \"No work email yet\", so the draft outcome is needs_information.",
+  "q02": "Use Front Desk Associate. Hospitality Associate Level 1 is a known title variant of that role.",
+  "q04": "Do not create a staff login. The role list gives a Cafe Associate no system login at all clubs, and the standard wins over the ticket's login field, so the ticket stays recommended with the caveat request_differs_from_standard.",
+  "q05": "The ticket does not confirm it. Its draft outcome is recommended, which is a proposal, and it has no comment saying the account was created.",
+  "q06": "The start date is now 2026-10-15. The form still says 2026-10-20, and a later requester comment moves it.",
+  "q07": "The status rule calls an employee email equal to the manager email a contradiction, so the ticket gets needs_information.",
+  "q08": "The ticket's draft outcome is ignored, with the reason wrong_channel. The status rule ignores a promotion filed as a general request, so the onboarding workflow should not handle it.",
+  "q09": "The ticket asks for the same access as Jordan Sample. That needs human review, because the status rule sends a request for \"same access as\" a colleague to human_review.",
+  "q11": "Hospitality Associate is a title variant of Front Desk Associate. The standard does not name the client option, and a request beyond the standard template goes to human review under the status rule.",
+  "q13": "The role list has a Housekeeping Associate but a housekeeping manager is not listed, and the status rule sends a title outside the standard to human review.",
+  "q14": "The status rule sends a transferring employee to human review. The records do not say what would change in the system.",
+  "q15": "A level prefix is a title variant of Personal Trainer, which gets a staff login at all clubs. The records do not say whether access changes by level."
+}
