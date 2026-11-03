@@ -107,6 +107,13 @@ class Request(BaseModel):
             "Empty when every section was read."
         ),
     )
+    issue_type: str | None = Field(
+        default=None,
+        description=(
+            "The JSM issue type, from trusted JSM metadata set by the adapter, never parsed from "
+            "ticket text. Null when the adapter does not supply it."
+        ),
+    )
 
     @model_validator(mode="after")
     def _comments_are_ordered(self) -> Request:
@@ -196,17 +203,38 @@ class Recommendation(BaseModel):
             "before it was matched to a standard role."
         ),
     )
-    start_date: date = Field(description="The new hire's first day.")
-    login_email: str = Field(
-        min_length=1,
+    start_date: date | None = Field(
+        description="The new hire's first day. Null only when the intake gives none; never guessed."
+    )
+    company_mailbox: bool = Field(
+        default=False,
+        description=(
+            "True when the role gets a company mailbox the service desk creates; the login then "
+            "uses that mailbox, so login_email stays null until it exists."
+        ),
+    )
+    staff_login: bool = Field(
+        default=True,
+        description=(
+            "Whether the role gets a staff login in the account system. False for roles the standard "
+            "gives no login (for example cafe or housekeeping): then no login and no role are proposed, "
+            "only the member record."
+        ),
+    )
+    login_email: str | None = Field(
+        default=None, min_length=1,
         description=(
             "The proposed login, built from the employee's email with the standard's login rule. "
+            "Required when staff_login is true; null when it is false. "
             "Not checked for availability or an existing account; the associate verifies both, "
             "and the proposal must not claim otherwise."
         ),
     )
     assignments: list[RoleAssignment] = Field(
-        min_length=1, description="The roles to assign, each with where it applies. Always at least one."
+        description=(
+            "The roles to assign, each with where it applies. At least one when staff_login is true; "
+            "empty when it is false."
+        )
     )
     permissions: list[NamedReference] = Field(
         description=(
@@ -246,6 +274,15 @@ class Recommendation(BaseModel):
             "Empty when the role needs none."
         ),
     )
+
+    @model_validator(mode="after")
+    def _login_matches_staff_login(self) -> Recommendation:
+        """A role with no staff login gets no login and no roles; one with a login gets both."""
+        if self.staff_login and (not self.assignments or not (self.login_email or self.company_mailbox)):
+            raise ValueError("staff_login requires at least one assignment and a login_email or a pending company mailbox")
+        if not self.staff_login and (self.login_email or self.assignments or self.staff_groups):
+            raise ValueError("a role without a staff login must propose no login, roles, or staff groups")
+        return self
 
     @model_validator(mode="after")
     def _venues_are_consistent(self) -> Recommendation:
@@ -320,12 +357,18 @@ class Response(BaseModel):
             "employee_email. Required when status is needs_information; empty otherwise."
         ),
     )
-    review_reason: Literal["ambiguous_identity", "ambiguous_mapping", "exception"] | None = Field(
+    review_reason: Literal[
+        "ambiguous_identity", "ambiguous_mapping", "exception",
+        "role_unmapped", "standard_gap", "out_of_scope_business_unit", "duplicate",
+    ] | None = Field(
         default=None,
         description=(
             "Why a person needs to review the ticket: conflicting identities, a mixed job title "
             "or a unit or venue that can't be mapped to the standard, or a request for access "
-            "beyond the standard. Required when status is human_review; null otherwise."
+            "beyond the standard. Standards that define them add: a role with a login but no "
+            "mapped account-system role (role_unmapped), a role the standard leaves blank "
+            "(standard_gap), a business unit outside scope, or a self-declared duplicate. "
+            "Required when status is human_review; null otherwise."
         ),
     )
     standard_proposal: Recommendation | None = Field(
@@ -390,10 +433,11 @@ class Response(BaseModel):
 
     @model_validator(mode="after")
     def _exception_details_match_reason(self) -> Response:
-        """Exception reviews carry the standard baseline and the differences; nothing else does."""
+        """Exception reviews carry the differences, plus the standard baseline whenever the
+        standard has one for the title (an unmapped title has none); nothing else carries them."""
         if self.review_reason == "exception":
-            if self.standard_proposal is None or not self.exception_difference:
-                raise ValueError("exception review requires a standard proposal and differences")
+            if not self.exception_difference:
+                raise ValueError("exception review requires the differences from the standard")
         elif (
             self.standard_proposal is not None
             or self.exception_difference

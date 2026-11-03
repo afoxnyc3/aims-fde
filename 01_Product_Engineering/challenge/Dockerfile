@@ -19,7 +19,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv export --frozen --no-dev --no-emit-project -o requirements.txt \
  && uv pip install --system --no-cache -r requirements.txt
 
-COPY llm.py app.py schema.py onboarding.py demo_standard.json ./
+COPY llm.py app.py schema.py onboarding.py standard_v02.py demo_standard.json ./
 COPY corpus.py retrieval.py qa.py qa_schema.py standard_v0_1.md ./
 
 # The ticket corpus is NOT copied in: use_case/data/ is gitignored, and an image
@@ -28,6 +28,10 @@ COPY corpus.py retrieval.py qa.py qa_schema.py standard_v0_1.md ./
 #   docker run -v "$PWD/../../use_case/data:/data:ro" \
 #     -e CORPUS_PATH=/data/synthetic_v1.jsonl --env-file .env ...
 # Without the mount the question endpoint says so; onboarding still works.
+# The private role-matrix standard is NOT copied in either. To use it, mount it the
+# same way and point at it:
+#   -v /path/to/standard_dir:/standard:ro -e ONBOARDING_STANDARD=/standard/<file>.yaml
+# Without the variable, onboarding uses demo_standard.json.
 COPY frontend/ ./frontend/
 
 # Don't run as root. Your security review will ask about this.

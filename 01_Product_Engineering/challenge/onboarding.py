@@ -32,6 +32,10 @@ class ExtractedTicket(BaseModel):
     personal_trainer_level: int | None = Field(ge=1, le=4)
     ambiguous_identity: bool
     additional_access_request: str | None
+    # Used by role-matrix standards (standard_v02); defaults keep the demo path unchanged.
+    rehire_transfer_or_promotion: bool = False
+    marked_duplicate: bool = False
+    intake_contradiction: Literal["venue", "employee_email"] | None = None
 
 
 class ExtractionError(Exception):
@@ -58,6 +62,12 @@ not an identity conflict. Extract an explicit request for additional access
 (e.g. ability to sell memberships) verbatim as additional_access_request; normal
 account setup and date/scheduling updates are not additional access requests.
 A later 'looks good' does not erase an earlier request for additional access.
+Requests to mirror or copy another user's access, hardware, or systems beyond a
+standard account are additional access requests. Set rehire_transfer_or_promotion
+when the intake says Re-hire: YES or describes a transfer, promotion or title
+change. Set marked_duplicate when the ticket calls itself a duplicate. Set
+intake_contradiction to "venue" when the location field and the notes name
+different clubs, or "employee_email" when the employee email equals the manager's.
 Use ISO dates; use the ticket's dated fields/title to resolve a comment's year.
 """
 
@@ -132,6 +142,9 @@ class Targets(NamedTuple):
 
 
 def recommend_access(request: Request) -> Response:
+    import standard_v02
+    if standard_v02.configured():
+        return standard_v02.recommend_access(request)
     try:
         standard = load_standard()
     except (OSError, json.JSONDecodeError):

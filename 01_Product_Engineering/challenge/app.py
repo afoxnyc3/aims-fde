@@ -58,7 +58,7 @@ def recommend_onboarding_access(onboarding_ticket_json: str) -> str:
 
     Send Request JSON with ticket_ref, ticket_text, and comments. Comments carry
     trusted JSM author IDs/types and timestamps; optional redacted_sections and
-    unavailable_sections mark gaps. Return Response JSON: a recommendation,
+    unavailable_sections mark gaps, and optional issue_type is the trusted JSM type. Return Response JSON: a recommendation,
     clarification/review, ignored ticket, or processing failure. No account or
     ticket writes. Invalid input is a validation error, not a failed Response.
     """
