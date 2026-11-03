@@ -1,0 +1,2278 @@
+{
+  "name": "oracle_grid",
+  "fingerprint": "0f6fccaeec81ef33",
+  "n": 180,
+  "means": {
+    "status_accuracy": 1.0,
+    "no_over_privilege": 1.0
+  },
+  "errors": 0,
+  "seconds": 0.00520483311265707,
+  "meta": {
+    "scorers": [
+      "no_over_privilege",
+      "status_accuracy"
+    ],
+    "labels": "use_case/evals/real_v03",
+    "standard": "v0.3 (private path)",
+    "repo_commit": "83f2e5d",
+    "run_at": "2026-11-03T17:40:56",
+    "intake_only": true,
+    "system": "oracle",
+    "split": "grid",
+    "metrics": {
+      "status_accuracy": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 180
+      },
+      "over_privilege": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n": 180
+      },
+      "review_reason": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 67
+      },
+      "missing_fields_recall": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 30
+      },
+      "role": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 61
+      },
+      "system_role": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 35
+      },
+      "system_login": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 61
+      },
+      "venue": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 61
+      },
+      "trainer_level": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 8
+      },
+      "recommended_precision": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 61
+      }
+    },
+    "ci95": {
+      "status_accuracy": [
+        1.0,
+        1.0
+      ],
+      "no_over_privilege": [
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "results": [
+    {
+      "index": 0,
+      "input": "GRID-001",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Lifeguard\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Lifeguard\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Lifeguard\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Lifeguard\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 6.08246773481369e-06
+    },
+    {
+      "index": 1,
+      "input": "GRID-002",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 2.541579306125641e-06
+    },
+    {
+      "index": 2,
+      "input": "GRID-003",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4994293451309204e-06
+    },
+    {
+      "index": 3,
+      "input": "GRID-004",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Lifeguard\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Lifeguard\", \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Lifeguard\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Lifeguard\", \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.5003606677055359e-06
+    },
+    {
+      "index": 4,
+      "input": "GRID-005",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.541338860988617e-06
+    },
+    {
+      "index": 5,
+      "input": "GRID-006",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Aquatics Lead\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Aquatics Lead\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Aquatics Lead\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Aquatics Lead\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3336539268493652e-06
+    },
+    {
+      "index": 6,
+      "input": "GRID-007",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4584511518478394e-06
+    },
+    {
+      "index": 7,
+      "input": "GRID-008",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4165416359901428e-06
+    },
+    {
+      "index": 8,
+      "input": "GRID-009",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Aquatics Lead\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Aquatics Lead\", \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Aquatics Lead\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Aquatics Lead\", \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1669471859931946e-06
+    },
+    {
+      "index": 9,
+      "input": "GRID-010",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.166015863418579e-06
+    },
+    {
+      "index": 10,
+      "input": "GRID-011",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Group Fitness Instructor\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Group Fitness Instructor\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Group Fitness Instructor\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Group Fitness Instructor\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.7927959561347961e-06
+    },
+    {
+      "index": 11,
+      "input": "GRID-012",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Group Fitness Instructor\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Group Fitness Instructor\", \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Group Fitness Instructor\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Group Fitness Instructor\", \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.166015863418579e-06
+    },
+    {
+      "index": 12,
+      "input": "GRID-013",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Group Fitness Instructor\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Group Fitness Instructor\", \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Group Fitness Instructor\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Group Fitness Instructor\", \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.16787850856781e-06
+    },
+    {
+      "index": 13,
+      "input": "GRID-014",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Group Fitness Instructor\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Group Fitness Instructor\", \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Group Fitness Instructor\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Group Fitness Instructor\", \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2507662177085876e-06
+    },
+    {
+      "index": 14,
+      "input": "GRID-015",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Group Fitness Instructor\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Group Fitness Instructor\", \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Group Fitness Instructor\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Group Fitness Instructor\", \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2498348951339722e-06
+    },
+    {
+      "index": 15,
+      "input": "GRID-016",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Front Desk Associate\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Front Desk Associate\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2507662177085876e-06
+    },
+    {
+      "index": 16,
+      "input": "GRID-017",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Front Desk Associate\", \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Front Desk Associate\", \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.041218638420105e-06
+    },
+    {
+      "index": 17,
+      "input": "GRID-018",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Front Desk Associate\", \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Front Desk Associate\", \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.166015863418579e-06
+    },
+    {
+      "index": 18,
+      "input": "GRID-019",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Front Desk Associate\", \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Front Desk Associate\", \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.041218638420105e-06
+    },
+    {
+      "index": 19,
+      "input": "GRID-020",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Front Desk Associate\", \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Front Desk Associate\", \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 20,
+      "input": "GRID-021",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Massage Therapist\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Massage Therapist\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Massage Therapist\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Massage Therapist\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1669471859931946e-06
+    },
+    {
+      "index": 21,
+      "input": "GRID-022",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Massage Therapist\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Massage Therapist\", \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Massage Therapist\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Massage Therapist\", \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.084059476852417e-06
+    },
+    {
+      "index": 22,
+      "input": "GRID-023",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Massage Therapist\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Massage Therapist\", \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Massage Therapist\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Massage Therapist\", \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.5422701835632324e-06
+    },
+    {
+      "index": 23,
+      "input": "GRID-024",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Massage Therapist\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Massage Therapist\", \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Massage Therapist\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Massage Therapist\", \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 24,
+      "input": "GRID-025",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Massage Therapist\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Massage Therapist\", \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Massage Therapist\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Massage Therapist\", \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 25,
+      "input": "GRID-026",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Membership Consultant\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Membership Consultant\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Membership Consultant\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Membership Consultant\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1669471859931946e-06
+    },
+    {
+      "index": 26,
+      "input": "GRID-027",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Membership Consultant\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Membership Consultant\", \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Membership Consultant\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Membership Consultant\", \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 27,
+      "input": "GRID-028",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Membership Consultant\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Membership Consultant\", \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Membership Consultant\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Membership Consultant\", \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3327226042747498e-06
+    },
+    {
+      "index": 28,
+      "input": "GRID-029",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Membership Consultant\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Membership Consultant\", \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Membership Consultant\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Membership Consultant\", \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 29,
+      "input": "GRID-030",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Membership Consultant\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Membership Consultant\", \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Membership Consultant\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Membership Consultant\", \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2088567018508911e-06
+    },
+    {
+      "index": 30,
+      "input": "GRID-031",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 2, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 2, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3755634427070618e-06
+    },
+    {
+      "index": 31,
+      "input": "GRID-032",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 1, \"venue\": \"Club B\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 1, \"venue\": \"Club B\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 32,
+      "input": "GRID-033",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 4, \"venue\": \"Club C\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 4, \"venue\": \"Club C\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1669471859931946e-06
+    },
+    {
+      "index": 33,
+      "input": "GRID-034",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 2, \"venue\": \"Club D\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 2, \"venue\": \"Club D\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3327226042747498e-06
+    },
+    {
+      "index": 34,
+      "input": "GRID-035",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 3, \"venue\": \"Club E\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 3, \"venue\": \"Club E\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.166015863418579e-06
+    },
+    {
+      "index": 35,
+      "input": "GRID-036",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3336539268493652e-06
+    },
+    {
+      "index": 36,
+      "input": "GRID-037",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Front Desk Associate\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Front Desk Associate\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 37,
+      "input": "GRID-038",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 3, \"venue\": \"Club B\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 3, \"venue\": \"Club B\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 38,
+      "input": "GRID-039",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 1, \"venue\": \"Club D\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 1, \"venue\": \"Club D\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1669471859931946e-06
+    },
+    {
+      "index": 39,
+      "input": "GRID-040",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Associate\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Associate\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2498348951339722e-06
+    },
+    {
+      "index": 40,
+      "input": "GRID-041",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Associate\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Associate\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2498348951339722e-06
+    },
+    {
+      "index": 41,
+      "input": "GRID-042",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Shift Lead\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Shift Lead\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3755634427070618e-06
+    },
+    {
+      "index": 42,
+      "input": "GRID-043",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Shift Lead\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Shift Lead\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3336539268493652e-06
+    },
+    {
+      "index": 43,
+      "input": "GRID-044",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Supervisor\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Supervisor\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2088567018508911e-06
+    },
+    {
+      "index": 44,
+      "input": "GRID-045",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Supervisor\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Supervisor\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 45,
+      "input": "GRID-046",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Associate\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Associate\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2088567018508911e-06
+    },
+    {
+      "index": 46,
+      "input": "GRID-047",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Associate\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Associate\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4575198292732239e-06
+    },
+    {
+      "index": 47,
+      "input": "GRID-048",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Lead\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Lead\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 48,
+      "input": "GRID-049",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Lead\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Lead\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 49,
+      "input": "GRID-050",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Supervisor\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Supervisor\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2507662177085876e-06
+    },
+    {
+      "index": 50,
+      "input": "GRID-051",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Supervisor\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Supervisor\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2908130884170532e-06
+    },
+    {
+      "index": 51,
+      "input": "GRID-052",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Maintenance Technician\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Maintenance Technician\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.0831281542778015e-06
+    },
+    {
+      "index": 52,
+      "input": "GRID-053",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Maintenance Technician\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Maintenance Technician\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.5832483768463135e-06
+    },
+    {
+      "index": 53,
+      "input": "GRID-054",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Equipment Technician\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Equipment Technician\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.62515789270401e-06
+    },
+    {
+      "index": 54,
+      "input": "GRID-055",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Equipment Technician\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Equipment Technician\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 55,
+      "input": "GRID-056",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Associate\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Associate\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2088567018508911e-06
+    },
+    {
+      "index": 56,
+      "input": "GRID-057",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Shift Lead\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Shift Lead\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4575198292732239e-06
+    },
+    {
+      "index": 57,
+      "input": "GRID-058",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Supervisor\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Cafe Supervisor\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3336539268493652e-06
+    },
+    {
+      "index": 58,
+      "input": "GRID-059",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Associate\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Associate\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3746321201324463e-06
+    },
+    {
+      "index": 59,
+      "input": "GRID-060",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Lead\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Lead\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3755634427070618e-06
+    },
+    {
+      "index": 60,
+      "input": "GRID-061",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Supervisor\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Supervisor\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 61,
+      "input": "GRID-062",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Maintenance Technician\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Maintenance Technician\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 62,
+      "input": "GRID-063",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Equipment Technician\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Equipment Technician\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.8328428268432617e-06
+    },
+    {
+      "index": 63,
+      "input": "GRID-064",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"job_title\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"job_title\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4174729585647583e-06
+    },
+    {
+      "index": 64,
+      "input": "GRID-065",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"job_title\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"job_title\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3327226042747498e-06
+    },
+    {
+      "index": 65,
+      "input": "GRID-066",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"job_title\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"job_title\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3746321201324463e-06
+    },
+    {
+      "index": 66,
+      "input": "GRID-067",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"job_title\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"job_title\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4156103134155273e-06
+    },
+    {
+      "index": 67,
+      "input": "GRID-068",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"job_title\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"job_title\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.582317054271698e-06
+    },
+    {
+      "index": 68,
+      "input": "GRID-069",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.6242265701293945e-06
+    },
+    {
+      "index": 69,
+      "input": "GRID-070",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3327226042747498e-06
+    },
+    {
+      "index": 70,
+      "input": "GRID-071",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 71,
+      "input": "GRID-072",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 72,
+      "input": "GRID-073",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 73,
+      "input": "GRID-074",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 74,
+      "input": "GRID-075",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3327226042747498e-06
+    },
+    {
+      "index": 75,
+      "input": "GRID-076",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 76,
+      "input": "GRID-077",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3746321201324463e-06
+    },
+    {
+      "index": 77,
+      "input": "GRID-078",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 78,
+      "input": "GRID-079",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.5832483768463135e-06
+    },
+    {
+      "index": 79,
+      "input": "GRID-080",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2498348951339722e-06
+    },
+    {
+      "index": 80,
+      "input": "GRID-081",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1669471859931946e-06
+    },
+    {
+      "index": 81,
+      "input": "GRID-082",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3327226042747498e-06
+    },
+    {
+      "index": 82,
+      "input": "GRID-083",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 83,
+      "input": "GRID-084",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 84,
+      "input": "GRID-085",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"personal_email\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3327226042747498e-06
+    },
+    {
+      "index": 85,
+      "input": "GRID-086",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 2, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer\", \"trainer_level\": 2, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4994293451309204e-06
+    },
+    {
+      "index": 86,
+      "input": "GRID-087",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Membership Consultant\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Membership Consultant\", \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Membership Consultant\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Membership Consultant\", \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 87,
+      "input": "GRID-088",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Massage Therapist\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Massage Therapist\", \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Massage Therapist\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Massage Therapist\", \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2498348951339722e-06
+    },
+    {
+      "index": 88,
+      "input": "GRID-089",
+      "expected": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.5422701835632324e-06
+    },
+    {
+      "index": 89,
+      "input": "GRID-090",
+      "expected": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2088567018508911e-06
+    },
+    {
+      "index": 90,
+      "input": "GRID-091",
+      "expected": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2908130884170532e-06
+    },
+    {
+      "index": 91,
+      "input": "GRID-092",
+      "expected": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2498348951339722e-06
+    },
+    {
+      "index": 92,
+      "input": "GRID-093",
+      "expected": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2908130884170532e-06
+    },
+    {
+      "index": 93,
+      "input": "GRID-094",
+      "expected": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 94,
+      "input": "GRID-095",
+      "expected": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.62515789270401e-06
+    },
+    {
+      "index": 95,
+      "input": "GRID-096",
+      "expected": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 96,
+      "input": "GRID-097",
+      "expected": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.166015863418579e-06
+    },
+    {
+      "index": 97,
+      "input": "GRID-098",
+      "expected": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": true, \"missing_fields\": [], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4584511518478394e-06
+    },
+    {
+      "index": 98,
+      "input": "GRID-099",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3336539268493652e-06
+    },
+    {
+      "index": 99,
+      "input": "GRID-100",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3327226042747498e-06
+    },
+    {
+      "index": 100,
+      "input": "GRID-101",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2097880244255066e-06
+    },
+    {
+      "index": 101,
+      "input": "GRID-102",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1669471859931946e-06
+    },
+    {
+      "index": 102,
+      "input": "GRID-103",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4174729585647583e-06
+    },
+    {
+      "index": 103,
+      "input": "GRID-104",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2498348951339722e-06
+    },
+    {
+      "index": 104,
+      "input": "GRID-105",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 105,
+      "input": "GRID-106",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1669471859931946e-06
+    },
+    {
+      "index": 106,
+      "input": "GRID-107",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.166015863418579e-06
+    },
+    {
+      "index": 107,
+      "input": "GRID-108",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 108,
+      "input": "GRID-109",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2507662177085876e-06
+    },
+    {
+      "index": 109,
+      "input": "GRID-110",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1669471859931946e-06
+    },
+    {
+      "index": 110,
+      "input": "GRID-111",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2926757335662842e-06
+    },
+    {
+      "index": 111,
+      "input": "GRID-112",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4165416359901428e-06
+    },
+    {
+      "index": 112,
+      "input": "GRID-113",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2498348951339722e-06
+    },
+    {
+      "index": 113,
+      "input": "GRID-114",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.5832483768463135e-06
+    },
+    {
+      "index": 114,
+      "input": "GRID-115",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 115,
+      "input": "GRID-116",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 116,
+      "input": "GRID-117",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2498348951339722e-06
+    },
+    {
+      "index": 117,
+      "input": "GRID-118",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1669471859931946e-06
+    },
+    {
+      "index": 118,
+      "input": "GRID-119",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4165416359901428e-06
+    },
+    {
+      "index": 119,
+      "input": "GRID-120",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 120,
+      "input": "GRID-121",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2088567018508911e-06
+    },
+    {
+      "index": 121,
+      "input": "GRID-122",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"exception\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 122,
+      "input": "GRID-123",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3327226042747498e-06
+    },
+    {
+      "index": 123,
+      "input": "GRID-124",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4174729585647583e-06
+    },
+    {
+      "index": 124,
+      "input": "GRID-125",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4584511518478394e-06
+    },
+    {
+      "index": 125,
+      "input": "GRID-126",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.0831281542778015e-06
+    },
+    {
+      "index": 126,
+      "input": "GRID-127",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 127,
+      "input": "GRID-128",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1669471859931946e-06
+    },
+    {
+      "index": 128,
+      "input": "GRID-129",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3755634427070618e-06
+    },
+    {
+      "index": 129,
+      "input": "GRID-130",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 130,
+      "input": "GRID-131",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.16787850856781e-06
+    },
+    {
+      "index": 131,
+      "input": "GRID-132",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4174729585647583e-06
+    },
+    {
+      "index": 132,
+      "input": "GRID-133",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1669471859931946e-06
+    },
+    {
+      "index": 133,
+      "input": "GRID-134",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.0831281542778015e-06
+    },
+    {
+      "index": 134,
+      "input": "GRID-135",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 135,
+      "input": "GRID-136",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 136,
+      "input": "GRID-137",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 137,
+      "input": "GRID-138",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2498348951339722e-06
+    },
+    {
+      "index": 138,
+      "input": "GRID-139",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Manager\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Housekeeping Manager\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2908130884170532e-06
+    },
+    {
+      "index": 139,
+      "input": "GRID-140",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 140,
+      "input": "GRID-141",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Senior Housekeeping Manager\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"role\": \"Senior Housekeeping Manager\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.5003606677055359e-06
+    },
+    {
+      "index": 141,
+      "input": "GRID-142",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2498348951339722e-06
+    },
+    {
+      "index": 142,
+      "input": "GRID-143",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4994293451309204e-06
+    },
+    {
+      "index": 143,
+      "input": "GRID-144",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 144,
+      "input": "GRID-145",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 145,
+      "input": "GRID-146",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1669471859931946e-06
+    },
+    {
+      "index": 146,
+      "input": "GRID-147",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"standard_gap\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2498348951339722e-06
+    },
+    {
+      "index": 147,
+      "input": "GRID-148",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2507662177085876e-06
+    },
+    {
+      "index": 148,
+      "input": "GRID-149",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 149,
+      "input": "GRID-150",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 6.9998204708099365e-06
+    },
+    {
+      "index": 150,
+      "input": "GRID-151",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3755634427070618e-06
+    },
+    {
+      "index": 151,
+      "input": "GRID-152",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 152,
+      "input": "GRID-153",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4174729585647583e-06
+    },
+    {
+      "index": 153,
+      "input": "GRID-154",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3746321201324463e-06
+    },
+    {
+      "index": 154,
+      "input": "GRID-155",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4174729585647583e-06
+    },
+    {
+      "index": 155,
+      "input": "GRID-156",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.084059476852417e-06
+    },
+    {
+      "index": 156,
+      "input": "GRID-157",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.1650845408439636e-06
+    },
+    {
+      "index": 157,
+      "input": "GRID-158",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 158,
+      "input": "GRID-159",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.0831281542778015e-06
+    },
+    {
+      "index": 159,
+      "input": "GRID-160",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 160,
+      "input": "GRID-161",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"out_of_scope_business_unit\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3746321201324463e-06
+    },
+    {
+      "index": 161,
+      "input": "GRID-162",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"duplicate\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"duplicate\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3746321201324463e-06
+    },
+    {
+      "index": 162,
+      "input": "GRID-163",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"duplicate\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"duplicate\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2079253792762756e-06
+    },
+    {
+      "index": 163,
+      "input": "GRID-164",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"duplicate\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"duplicate\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2908130884170532e-06
+    },
+    {
+      "index": 164,
+      "input": "GRID-165",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"duplicate\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"duplicate\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 165,
+      "input": "GRID-166",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.5832483768463135e-06
+    },
+    {
+      "index": 166,
+      "input": "GRID-167",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3755634427070618e-06
+    },
+    {
+      "index": 167,
+      "input": "GRID-168",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.58303838968277e-06
+    },
+    {
+      "index": 168,
+      "input": "GRID-169",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.5832483768463135e-06
+    },
+    {
+      "index": 169,
+      "input": "GRID-170",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 5.9157609939575195e-06
+    },
+    {
+      "index": 170,
+      "input": "GRID-171",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 2.250075340270996e-06
+    },
+    {
+      "index": 171,
+      "input": "GRID-172",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3746321201324463e-06
+    },
+    {
+      "index": 172,
+      "input": "GRID-173",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.125037670135498e-06
+    },
+    {
+      "index": 173,
+      "input": "GRID-174",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2507662177085876e-06
+    },
+    {
+      "index": 174,
+      "input": "GRID-175",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2498348951339722e-06
+    },
+    {
+      "index": 175,
+      "input": "GRID-176",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2917444109916687e-06
+    },
+    {
+      "index": 176,
+      "input": "GRID-177",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": null, \"status\": \"ignored\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.2097880244255066e-06
+    },
+    {
+      "index": 177,
+      "input": "GRID-179",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"status\": \"human_review\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.9157305359840393e-06
+    },
+    {
+      "index": 178,
+      "input": "GRID-180",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"trainer_level\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"trainer_level\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3746321201324463e-06
+    },
+    {
+      "index": 179,
+      "input": "GRID-181",
+      "expected": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "actual": "{\"contradiction\": false, \"missing_fields\": [\"venue_confirmation\"], \"review_reason\": null, \"status\": \"needs_information\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.3746321201324463e-06
+    }
+  ]
+}
