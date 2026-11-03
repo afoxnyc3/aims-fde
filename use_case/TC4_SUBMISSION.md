@@ -71,7 +71,7 @@ What these results do not show:
 **Reproducing it.** The real ticket text, the runner and the v0.3 standard stay private, so the run cannot be repeated from this repo. It can be reported and compared, offline:
 
 ```
-$ python use_case/evals/run.py --committed
+$ python3 use_case/evals/run.py --committed
 ...
 PASS  endpoint_test → endpoint_test  [no_over_privilege +0.000  status_accuracy +0.000]
 ```

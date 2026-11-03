@@ -221,7 +221,7 @@ docker run -p 127.0.0.1:7860:7860 --env-file .env \
 The headline, the scorers, and what the number does not cover are in [`TC4_SUBMISSION.md`](TC4_SUBMISSION.md) and the [decision row](decisions.md#technical-checkpoints) (4 / Step 6). The saved run is [`evals/baseline.json`](evals/baseline.json): the endpoint on the real_v03 test split, run once, 14 of 29 (0.48, 95% CI 0.28 to 0.66), 2 over-access. Real ticket text and the runner stay private, so from a clean checkout the report comes from the committed runs, with no model calls:
 
 ```
-$ python use_case/evals/run.py --committed
+$ python3 use_case/evals/run.py --committed
 ...
 baseline.json is the committed endpoint test run (endpoint_test, a6c8d0e7a2b35787, n=29)
 model openrouter/anthropic/claude-sonnet-5.5, standard v0.3 (private path), public repo commit 83f2e5d (runner private), run 2026-11-03T17:42:26

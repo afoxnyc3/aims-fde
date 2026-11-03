@@ -17,7 +17,7 @@ The TC4 baseline itself is on real tickets, whose text and runner stay private, 
 it cannot be re-run from this repo. `--committed` reports it from the saved runs
 instead, offline, with no model calls and no endpoint:
 
-    python use_case/evals/run.py --committed
+    python3 use_case/evals/run.py --committed
 
 It prints echo, oracle and the endpoint on the real_v03 dev, test and grid splits,
 checks that baseline.json is the committed test run, and compares the two, which
