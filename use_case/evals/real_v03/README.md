@@ -4,7 +4,7 @@ The eval behind the 2026-11-02 CTO demo ([deck](../../demo/tc4_demo.html)). The 
 
 **Real ticket text is held privately per org policy; labels and results are public.** `tickets.jsonl`, which has the ticket text behind `golden.jsonl`, is gitignored and never committed.
 
-This set sits alongside the Week 1 goldens. `../run.py` and `../harness.py` do not read it, and the v0.3 standard and the agent that scores it are not in this repo yet.
+This set sits alongside the Week 1 goldens. `../harness.py` does not score it, and the v0.3 standard and the runner that scored it stay private. `results/` holds the saved runs (echo, oracle and the endpoint on dev, test and grid), and the endpoint's test run is the TC4 baseline, [`../baseline.json`](../baseline.json). `python use_case/evals/run.py --committed` reports them offline and checks the baseline.
 
 ## Files
 

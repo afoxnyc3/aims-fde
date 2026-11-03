@@ -112,6 +112,18 @@ class CleanCheckout(unittest.TestCase):
             self.assertIn("standard", evals.judge_case("q?", [])["input"])
 
 
+class CommittedBaseline(unittest.TestCase):
+    """`run.py --committed` is the clean-checkout report, so it must pass offline and catch a swapped baseline."""
+
+    def test_the_committed_baseline_reports_pass(self):
+        with mock.patch("builtins.print"):
+            self.assertTrue(run.committed_report())
+
+    def test_a_baseline_that_is_not_the_test_run_fails(self):
+        with mock.patch("builtins.print"):
+            self.assertFalse(run.committed_report(baseline_path=run.COMMITTED / "endpoint_dev.json"))
+
+
 class SavedRun(unittest.TestCase):
     def test_a_long_response_stays_valid_json(self):
         long_answer = json.dumps({"declined": False, "answer": "x" * 5000, "sources": []})

@@ -12,6 +12,16 @@ Then, from the repo root (the challenge env has gradio_client):
 
 Each endpoint run costs real model calls, one per case. The judge adds 16 calls to
 calibrate, plus one per question for each of echo, oracle and the endpoint.
+
+The TC4 baseline itself is on real tickets, whose text and runner stay private, so
+it cannot be re-run from this repo. `--committed` reports it from the saved runs
+instead, offline, with no model calls and no endpoint:
+
+    python use_case/evals/run.py --committed
+
+It prints echo, oracle and the endpoint on the real_v03 dev, test and grid splits,
+checks that baseline.json is the committed test run, and compares baseline.json
+against itself, which must print PASS.
 """
 
 import argparse
@@ -27,6 +37,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import harness as evals  # noqa: E402  (use_case/evals/harness.py, not helpers.harness)
 
 RUNS_DIR = Path(__file__).parent.parent / "data" / "traces"
+BASELINE = Path(__file__).parent / "baseline.json"
+COMMITTED = Path(__file__).parent / "real_v03" / "results"
+SYSTEMS = ("echo", "oracle", "endpoint")
+SPLITS = ("dev", "test", "grid")
 
 
 def echo(case_input) -> str:
@@ -68,12 +82,40 @@ def make_endpoint(url: str):
     return call
 
 
+def committed_report(results_dir: Path = COMMITTED, baseline_path: Path = BASELINE) -> bool:
+    """Report the saved real_v03 runs and check the baseline. Returns True if every check passed."""
+    lines = ["| System | Split | n | status_accuracy (95% CI) | over-access |", "| --- | --- | --- | --- | --- |"]
+    for split in SPLITS:
+        for system in SYSTEMS:
+            run = evals.harness.load(results_dir / f"{system}_{split}.json")
+            mean = run.means["status_accuracy"]
+            # The interval the run recorded when it was scored, so this report and the write-up quote one number.
+            low, high = run.meta["ci95"]["status_accuracy"]
+            over = sum(r.scores["no_over_privilege"] < 1.0 for r in run.results)
+            lines.append(f"| {system} | {split} | {run.n} | {mean:.2f} [{low:.2f}, {high:.2f}] | {over} of {run.n} |")
+    print("\n".join(lines))
+
+    baseline = evals.harness.load(baseline_path)
+    test_run = evals.harness.load(results_dir / "endpoint_test.json")
+    same = baseline.fingerprint == test_run.fingerprint and baseline.means == test_run.means
+    print(f"\nbaseline.json is {'the' if same else 'NOT the'} committed endpoint test run ({baseline.name}, {baseline.fingerprint}, n={baseline.n})")
+    meta = baseline.meta
+    print(f"model {meta.get('model')}, standard {meta.get('standard')}, endpoint commit {meta.get('repo_commit')}, run {meta.get('run_at')}")
+    comparison = evals.harness.compare(evals.harness.load(baseline_path), baseline)
+    print(comparison)
+    return same and comparison.passed
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--url", default=os.getenv("TC4_ENDPOINT", "http://127.0.0.1:7860/"))
     parser.add_argument("--no-endpoint", action="store_true", help="echo and oracle only")
     parser.add_argument("--no-judge", action="store_true", help="model-free scorers only; changes the fingerprint, so such a run cannot be compared to the baseline")
+    parser.add_argument("--committed", action="store_true", help="report the saved real_v03 runs and check baseline.json, offline")
     args = parser.parse_args()
+
+    if args.committed:
+        raise SystemExit(0 if committed_report() else 1)
 
     cases = evals.load_cases()
     scorers = dict(evals.SCORERS)

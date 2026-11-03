@@ -211,6 +211,18 @@ docker run -p 127.0.0.1:7860:7860 --env-file .env \
 
 **Verified 2026-10-27 in Docker, on the real questions:** non-root (UID 1000), `/data` read-only (a write fails), no data in the image. q10 (passwords) and q03 (keep Level 1 bookings) declined with empty `sources`. q01 and q05, where the ticket lacks the fact, answered with the ticket cited. q09 answered citing the ticket and the status rule. An empty question was rejected as invalid input.
 
+## TC4 — the eval baseline
+
+The headline, the scorers, and what the number does not cover are in [`TC4_SUBMISSION.md`](TC4_SUBMISSION.md) and the [decision row](decisions.md#technical-checkpoints) (4 / Step 6). The saved run is [`evals/baseline.json`](evals/baseline.json): the endpoint on the real_v03 test split, run once, 14 of 29 (0.48, 95% CI 0.28 to 0.66), 2 over-access. Real ticket text and the runner stay private, so from a clean checkout the report comes from the committed runs, with no model calls:
+
+```
+$ python use_case/evals/run.py --committed
+...
+baseline.json is the committed endpoint test run (endpoint_test, a6c8d0e7a2b35787, n=29)
+model openrouter/anthropic/claude-sonnet-5.5, standard v0.3 (private path), endpoint commit 83f2e5d, run 2026-11-03T17:42:26
+PASS  endpoint_test → endpoint_test  [no_over_privilege +0.000  status_accuracy +0.000]
+```
+
 ## Bring it to work
 
 **Project:** We can't decide which roles keep seats under a fixed AI-tool
@@ -243,3 +255,8 @@ Technology Support Associates decide new-hire access by mirroring a colleague in
 - **Model or endpoint:** answer model `claude-sonnet-5.5` through Anthropic's API, which the CTO approved (2026-10-07), preferred for real ticket text because it removes an intermediary from the answer calls. The results were measured through OpenRouter, so re-run the measurement on Anthropic's API before relying on them there; the CTO's earlier OpenRouter suggestion (provider agnosticism, decisions row 8) still holds for synthetic work. Anthropic has no embedding endpoint, so embeddings would go through OpenRouter (`text-embedding-3-small`; approved for general use). That keeps OpenRouter on the retrieval path: every indexed ticket and every associate's question is embedded there, and questions carry names. Both are part of the sign-off below. If the route is not approved, the fallback is agentic BM25, which needs no embeddings and was measured (decisions, Week 3); local `nomic-embed-text` answered a probe but was never measured on the questions. Re-indexing cost: **30,353 embedding tokens for 116 pages, measured**; about 260 tokens per page, so roughly 160k tokens a year for the ~620 real onboarding and role-change tickets, plus a one-off backfill of past years and a full re-index that grows with the corpus (estimates: real tickets may run longer).
 - **Access or approval:** a read-only service account in a dedicated project role on the service desk project. Jira grants access per project, so the account could read every ticket in it (to be confirmed with the Jira admin); a JQL filter in the indexer limits what is fetched and stored to onboarding, promotion and transfer requests ([`ecosystem.md`](ecosystem.md#week-3--retrieval-access-scope)). The role-standard owners sign off before standard pages are indexed as authoritative, and the CTO and the acting Information Security Officer (also the project owner who built this tool) sign off on indexing real tickets and on the embedding route for ticket text and associates' questions, with the Senior Engineering Director performing the independent review.
 
+### TC4 — evals
+
+- **Data:** swap the 58 pseudonymised, intake-only tickets for a live replay of the JSM onboarding queue (onboarding, promotion and transfer requests, with comments), labelled by the Technology Support Associates against the ratified standard, and refreshed monthly so the test split is never one the agent has been tuned on.
+- **Model or endpoint:** run the same harness against `claude-sonnet-5.5` on Anthropic's API (CTO-approved 2026-10-07) instead of OpenRouter, and keep the judge on a different model family. Re-baseline on the switch rather than carrying this number over.
+- **Approval:** the CTO and the acting Information Security Officer sign off on sending real ticket text to the answer model and the judge (today `JUDGE_CORPUS_APPROVED` is off for real tickets), with the Senior Engineering Director as independent reviewer. The CTO, as the named approver, signs off each promotion against the threshold: 95% on synthetic tickets per role, or 90% over at least 20 live tickets, with zero over-access.
