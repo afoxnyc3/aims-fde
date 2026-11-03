@@ -124,7 +124,7 @@ def reason_intact(actual: str, case: dict) -> float:
     return float(len(reason) < REASON_CAP and reason.endswith(SENTENCE_END))
 
 
-# failures.md line 5: a refusal returned as though it were an answer.
+# failures.md line 6: a refusal returned as though it were an answer.
 def flag_honest(actual: str, case: dict) -> float:
     if case["kind"] != "question":
         return 1.0
@@ -166,7 +166,7 @@ APPLIES = {
 
 # ---------------------------------------------------------------- the judge
 
-# failures.md lines 3 and 6 are the same property, and a function cannot see it: a claim the records do not make.
+# failures.md lines 3 and 5 are the same property, and a function cannot see it: a claim the records do not make.
 # Line 4 is not covered. "No ticket shows this" needs the whole corpus, and the judge sees only the standard and cited pages.
 # Not Sonnet: a model grading its own output is generous about its own habits.
 # gpt-4.1-mini was tried first: it passed calibrate() and still missed 5 of the 8 dev pairs.
