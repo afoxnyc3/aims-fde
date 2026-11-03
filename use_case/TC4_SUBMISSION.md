@@ -64,7 +64,7 @@ What these results do not show:
 | oracle | 1.00 | 1.00 | 1.00 |
 | endpoint | 0.86 [0.72, 0.97], 0 over-access | **0.48 [0.28, 0.66], 2 over-access** | 0.93 [0.89, 0.97], 11 over-access |
 
-`openrouter/anthropic/claude-sonnet-5.5`, standard v0.3, intake only, endpoint at `83f2e5d`. The grid leaves out GRID-178, which awaits a ruling.
+`openrouter/anthropic/claude-sonnet-5.5`, standard v0.3, intake only. Public repo commit `83f2e5d`, but the runner and the v0.3 standard that produced the run are private, so checking out that commit does not reproduce it. The grid leaves out GRID-178, which awaits a ruling.
 
 **Why it is below the demo's 24 of 29:** 10 of the 15 test misses ask for `person_name`. `standard_v02` as merged in #41 asks for the name whenever extraction leaves it empty, and 9 of the 10 tickets give only a preferred first name. The demo ran on an uncommitted version that filled in a placeholder name, and on standard v0.2, so the two numbers are not like for like.
 
@@ -78,7 +78,7 @@ PASS  endpoint_test → endpoint_test  [no_over_privilege +0.000  status_accurac
 
 ## Step 7: the demo
 
-**Demo, 2026-11-02, to the CTO.** Five minutes on the triage agent over the real test split: 24 of 29 right, 4 sent to a human when they could have been recommended (the cautious kind of miss), and 1 over-granted (a lifeguard who also covers fitness; the matrix has no cross-unit rule). The CTO's questions, in my words:
+**Demo, 2026-11-02, to the CTO.** Five minutes on the triage agent over the real test split: 24 of 29 right, 4 sent to a human when they could have been recommended (the cautious kind of miss), and 1 over-granted (a lifeguard who also covers fitness; the matrix has no cross-unit rule). The CTO's questions, in my words (confirmed by Alex, 2026-11-03):
 
 1. **Over-access is the security question.** What stops the agent granting more than the role needs, and how would we know it had? *Answer then:* over-access is scored as its own column, and any case blocks. *What changed:* it is now the gating column in the decision row.
 2. **Is this on real tickets?** *Answer:* yes, pseudonymised intake tickets, labelled by IT against the role matrix. Ticket text stays private. Labels and scores are public.
@@ -92,9 +92,9 @@ PASS  endpoint_test → endpoint_test  [no_over_privilege +0.000  status_accurac
 
 The three swap lines (data, model or endpoint, approval) are under "TC4 — evals" in [`README.md`](README.md#tc4--evals).
 
-## What is safe to compare between runs
+## What is safe to compare between synthetic-suite runs
 
-**Compare `correct_behaviour` only.** `helpers.harness` has no way to skip a case, so the raw means in a saved run count vacuous passes, and `compare()` reads the raw means. A single case flipping still clears the 0.02 tolerance while there are fewer than 50 cases, so a regression on a whole case shows, but the other columns are diagnostics, not gates. A single judge wobble is also 0.05, so a `compare()` REGRESSION on `grounded` alone needs reading before anyone believes it. The `grounded` column's name carries a hash of the judge's model and rubric, so `compare()` refuses a run that changed the judge.
+This section governs runs of `run.py` on the 20-case synthetic suite. Those runs cannot be compared to `baseline.json`, which has different cases and scorers (`status_accuracy`, `no_over_privilege`), and `compare()` refuses. **Between synthetic runs, compare `correct_behaviour` only.** `helpers.harness` has no way to skip a case, so the raw means in a saved run count vacuous passes, and `compare()` reads the raw means. A single case flipping still clears the 0.02 tolerance while there are fewer than 50 cases, so a regression on a whole case shows, but the other columns are diagnostics, not gates. A single judge wobble is also 0.05, so a `compare()` REGRESSION on `grounded` alone needs reading before anyone believes it. The `grounded` column's name carries a hash of the judge's model and rubric, so `compare()` refuses a run that changed the judge.
 
 ## How to run it
 

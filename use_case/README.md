@@ -79,6 +79,11 @@ saved as a file with a fingerprint of what was measured, alongside the
 scorers, scenarios and generated failures that produced it. See
 [`evals/README.md`](./evals/README.md) for the full list.
 
+**In this project** the baseline is the real-ticket run on the real_v03 test
+split. Its scorers, runner and ticket text are private, so it is reported and
+compared with `run.py --committed` but not re-scored by `evals/harness.py`,
+which scores the synthetic Week 1 to 3 suite ([TC4 below](#tc4--the-eval-baseline)).
+
 **Why it matters:** a number typed into a document cannot be compared by
 anything and stops being true the moment you add a case. A saved run can be
 re-run, compared and gated on — and `helpers.harness.compare()` refuses when
@@ -219,7 +224,7 @@ The headline, the scorers, and what the number does not cover are in [`TC4_SUBMI
 $ python use_case/evals/run.py --committed
 ...
 baseline.json is the committed endpoint test run (endpoint_test, a6c8d0e7a2b35787, n=29)
-model openrouter/anthropic/claude-sonnet-5.5, standard v0.3 (private path), endpoint commit 83f2e5d, run 2026-11-03T17:42:26
+model openrouter/anthropic/claude-sonnet-5.5, standard v0.3 (private path), public repo commit 83f2e5d (runner private), run 2026-11-03T17:42:26
 PASS  endpoint_test → endpoint_test  [no_over_privilege +0.000  status_accuracy +0.000]
 ```
 

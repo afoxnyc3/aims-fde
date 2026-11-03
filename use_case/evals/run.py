@@ -20,8 +20,10 @@ instead, offline, with no model calls and no endpoint:
     python use_case/evals/run.py --committed
 
 It prints echo, oracle and the endpoint on the real_v03 dev, test and grid splits,
-checks that baseline.json is the committed test run, and compares baseline.json
-against itself, which must print PASS.
+checks that baseline.json is the committed test run, and compares the two, which
+must print PASS. Only a run from the private runner can be compared to
+baseline.json: the synthetic suite below has different cases and scorers, so
+compare() refuses it. Synthetic runs compare against each other (data/traces/).
 """
 
 import argparse
@@ -89,10 +91,14 @@ def committed_report(results_dir: Path = COMMITTED, baseline_path: Path = BASELI
         for system in SYSTEMS:
             run = evals.harness.load(results_dir / f"{system}_{split}.json")
             mean = run.means["status_accuracy"]
-            # The interval the run recorded when it was scored, so this report and the write-up quote one number.
-            low, high = run.meta["ci95"]["status_accuracy"]
-            over = sum(r.scores["no_over_privilege"] < 1.0 for r in run.results)
-            lines.append(f"| {system} | {split} | {run.n} | {mean:.2f} [{low:.2f}, {high:.2f}] | {over} of {run.n} |")
+            recorded = run.meta.get("ci95", {}).get("status_accuracy")
+            # Prefer the interval the run recorded when it was scored, so this report and the write-up quote one number.
+            low, high = recorded or evals.bootstrap_ci([r.scores["status_accuracy"] for r in run.results])[1:]
+            # An errored case scores 0 on everything; count it as an error, not as an over-grant.
+            over = sum(r.scores["no_over_privilege"] < 1.0 for r in run.results if not r.error)
+            errored = sum(bool(r.error) for r in run.results)
+            note = f", {errored} errored" if errored else ""
+            lines.append(f"| {system} | {split} | {run.n} | {mean:.2f} [{low:.2f}, {high:.2f}] | {over} of {run.n}{note} |")
     print("\n".join(lines))
 
     baseline = evals.harness.load(baseline_path)
@@ -100,8 +106,8 @@ def committed_report(results_dir: Path = COMMITTED, baseline_path: Path = BASELI
     same = baseline.fingerprint == test_run.fingerprint and baseline.means == test_run.means
     print(f"\nbaseline.json is {'the' if same else 'NOT the'} committed endpoint test run ({baseline.name}, {baseline.fingerprint}, n={baseline.n})")
     meta = baseline.meta
-    print(f"model {meta.get('model')}, standard {meta.get('standard')}, endpoint commit {meta.get('repo_commit')}, run {meta.get('run_at')}")
-    comparison = evals.harness.compare(evals.harness.load(baseline_path), baseline)
+    print(f"model {meta.get('model')}, standard {meta.get('standard')}, public repo commit {meta.get('repo_commit')} (runner private), run {meta.get('run_at')}")
+    comparison = evals.harness.compare(baseline, test_run)
     print(comparison)
     return same and comparison.passed
 
@@ -110,7 +116,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--url", default=os.getenv("TC4_ENDPOINT", "http://127.0.0.1:7860/"))
     parser.add_argument("--no-endpoint", action="store_true", help="echo and oracle only")
-    parser.add_argument("--no-judge", action="store_true", help="model-free scorers only; changes the fingerprint, so such a run cannot be compared to the baseline")
+    parser.add_argument("--no-judge", action="store_true", help="model-free scorers only; changes the fingerprint, so such a run cannot be compared to a judged synthetic run")
     parser.add_argument("--committed", action="store_true", help="report the saved real_v03 runs and check baseline.json, offline")
     args = parser.parse_args()
 
@@ -126,7 +132,7 @@ def main() -> None:
         judge = evals.make_judge(stats)
         calibration = evals.calibrate(judge)
         print(f"judge {evals.JUDGE_MODEL}: {calibration}")
-        # Stop rather than save a run without the column: its fingerprint could never be compared to the baseline.
+        # Stop rather than save a run without the column: its fingerprint could never be compared to a judged synthetic run.
         if not calibration.passed:
             raise SystemExit("The judge failed calibration, so nothing was run. Fix it, or pass --no-judge and say so.")
         grounded = evals.make_grounded(judge)

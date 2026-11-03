@@ -123,6 +123,11 @@ class CommittedBaseline(unittest.TestCase):
         with mock.patch("builtins.print"):
             self.assertFalse(run.committed_report(baseline_path=run.COMMITTED / "endpoint_dev.json"))
 
+    def test_another_run_on_the_test_cases_fails(self):
+        # oracle_test shares the baseline's fingerprint, so only the means tell them apart.
+        with mock.patch("builtins.print"):
+            self.assertFalse(run.committed_report(baseline_path=run.COMMITTED / "oracle_test.json"))
+
 
 class SavedRun(unittest.TestCase):
     def test_a_long_response_stays_valid_json(self):
