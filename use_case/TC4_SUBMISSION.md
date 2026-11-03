@@ -1,6 +1,6 @@
 # TC4 submission
 
-**Status (2026-11-03):** Steps 1 to 3 and 6 to 8 are written. The baseline is saved at [`evals/baseline.json`](evals/baseline.json): the endpoint on the real_v03 test split, run once, **14 of 29 (0.48, 95% CI 0.28 to 0.66), 2 over-access** ([Step 6](#step-6-the-baseline)). Steps 1 to 3 below were measured on the synthetic Week 1 to 3 suite (20 cases), not on the real tickets. Still open: `failures.md` has Alex's rulings except on line 4; `human_scores.jsonl` is not written, so the judge's agreement is unchecked; there is no detection table for `evals/real_v03/synthetic.jsonl`; and the Docker re-check is pending. Step 5 (scenarios) does not apply: both endpoints answer one ticket or one question and hold no conversation.
+**Status (2026-11-03):** Steps 1 to 3 and 6 to 8 are written. The baseline is saved at [`evals/baseline.json`](evals/baseline.json): the endpoint on the real_v03 test split, run once, **14 of 29 (0.48, 95% CI 0.28 to 0.66), 2 over-access** ([Step 6](#step-6-the-baseline)). Steps 1 to 3 below were measured on the synthetic Week 1 to 3 suite (20 cases), not on the real tickets. Still open: `failures.md` has Alex's rulings on lines 3 and 4, q04 and DEMO-006, and its other counts are still Claude's read; `human_scores.jsonl` is not written, so the judge's agreement is unchecked; there is no detection table for `evals/real_v03/synthetic.jsonl`; and the Docker re-check is pending. Step 5 (scenarios) does not apply: both endpoints answer one ticket or one question and hold no conversation.
 
 ## Step 1: the taxonomy and the hand scores
 
@@ -23,7 +23,7 @@ Each cell is the mean over the cases that scorer actually tests, with that count
 What these numbers do not show:
 
 - **The interval is wide.** Twenty cases cannot show a small improvement.
-- **The scorers are substring and field checks.** q15 passes `correct_behaviour` while overclaiming (`failures.md` line 3). Lines 3 and 5 need the judge in Step 3, and line 4 has no scorer.
+- **The scorers are substring and field checks.** q15 passes `correct_behaviour` while overclaiming (`failures.md` line 3). Lines 3 and 6 need the judge in Step 3, and line 4 has no scorer.
 - **One run is a sample of one.** `flag_honest` reads 1.00 here and 44 of 45 on the traces, because q10 returned `declined: false` on one of its three traced runs. `reason_intact` scored 0.00 on an earlier run of the same code path and 0.33 on this one, because how many reasons reach the 300-character cut varies. Its denominator is also only the questions the endpoint happened to decline.
 - **Only `correct_behaviour` is safe to compare across runs.** The table above uses each scorer's real denominator, and the saved run's raw means do not. See "What is safe to compare between runs" below.
 - **The question oracle carries the labels' terms.** Its answers in `evals/oracle_answers.json` were written by Claude from the labels and the records. They prove the scorers accept a right answer containing those terms, not one in other words.
@@ -32,7 +32,7 @@ What these numbers do not show:
 
 **Decision: separation passed, agreement not checked yet. Used for the `grounded` column only, not the headline.**
 
-The rubric is `GROUNDED_RUBRIC` in [`evals/harness.py`](evals/harness.py), for `failures.md` lines 3 and 5: is every claim in the answer stated by the records? The judge is `openai/gpt-5.6-luna`, not the Sonnet model it grades.
+The rubric is `GROUNDED_RUBRIC` in [`evals/harness.py`](evals/harness.py), for `failures.md` lines 3 and 6: is every claim in the answer stated by the records? The judge is `openai/gpt-5.6-luna`, not the Sonnet model it grades.
 
 | Test | Result |
 | --- | --- |
@@ -46,7 +46,7 @@ What these results do not show:
 
 - **`calibrate()` passing is close to meaningless here.** `gpt-4.1-mini` also scored 1.00 and 0.00 on it, then missed 5 of the 8 dev pairs. That is why the model changed.
 - **The pairs are easier than real traces.** The holdout stayed perfect through every rubric version, including one that missed real failures, so it cannot be the evidence on its own.
-- **Verdicts on real traces are not stable.** Over five repeats, q05 run 3 failed every time and q02 and q06 passed every time, but q15 run 3 and q04 runs 1 and 2 split. One pass over the 45 traces flagged 12, against the 5 that lines 3 and 5 count. Alex ruled on two of the others (q04 run 2 counts, q04 run 3 does not); how many of the rest are real is unmeasured. The rubric was tuned against Claude's own reading of those traces, not a human's.
+- **Verdicts on real traces are not stable.** Over five repeats, q05 run 3 failed every time and q02 and q06 passed every time, but q15 run 3 and q04 runs 1 and 2 split. One pass over the 45 traces flagged 12, and lines 3 and 6 now count 5 traces. Two of the judge's flags have since been ruled on by Alex: q04 run 2 counts (it is one of the 5), and q04 run 3 does not. The judge passes q15 run 1, which line 3 counts. How many of the remaining flags are real is unmeasured. The rubric was tuned against Claude's own reading of those traces, not a human's.
 - **Line 4 is not covered.** "No ticket shows this" needs the whole corpus, and the judge sees only the standard and the cited pages.
 - **The judge rejects some correct answers.** The oracle's written answers score 0.87, not 1.0. Over three repeats q01, q11 and q14 flipped, so this is the judge's false-reject rate, not a fault in those answers. It is the main reason `grounded` is not the headline.
 
