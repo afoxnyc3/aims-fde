@@ -6,6 +6,9 @@
 > out). The traces were found by one read by Claude, except q04 run 2, which a
 > judge flag surfaced and Alex ruled in. Lines 1, 2, 5 and 7, and line 6's q05
 > run 3, rest on that read alone.
+>
+> **The judge rubric is not yet aligned with these rulings** (q04 run 3, the q15
+> hedges). Revisit `GROUNDED_RUBRIC` before any agreement check.
 
 **22 of 51 traces carried at least one failure; 18 if line 1 is left out,
 because it damages the wording of an otherwise correct decline.**
@@ -24,7 +27,7 @@ Rows are ranked by count. The `#` is a stable ID, not the rank: `harness.py` and
 | 1 | 12 | The decline reason is cut at 300 characters, mid-word. 12 of the 17 declines lost their ending, and q14 run 2 stops at "routed to `human_review` rather tha", just as it reaches the useful part. | q03, q11, q12, q13, q14 | `reason_intact` |
 | 2 | 9 | The endpoint declines a question the status rule routes to human review, so the associate gets no answer and no sources. The reason text often knows the routing, but `answer` is empty. | q11, q13, q14, every run | `correct_behaviour`, `gold_cited` |
 | 3 | 3 | The answer says a Level 3 trainer gets "the same access as any other Personal Trainer". The standard only lists no separate access by level, and "same access at every level" is an unratified open question. On q03 the endpoint declines to infer this. | q15, every run | `grounded` judge |
-| 4 | 2 | The answer says none of the tickets it found has matching employee and manager emails. The corpus has 11, and run 2 of the same question found two. A search that came up short reads as a fact about the records. The right answer is "I found none", not "there are none" (Alex, 2026-11-03). | q07, runs 1 and 3 | none yet. The judge cannot see the whole corpus, and `GROUNDED_RUBRIC` exempts reporting what the search did or did not find. A phrase check for "there are none" against "I found none" could catch it |
+| 4 | 2 | The answer says none of the tickets it found has matching employee and manager emails. The corpus has 11, and run 2 of the same question found two. A search that came up short reads as a fact about the records. The right answer is "I found none", not "there are none" (Alex, 2026-11-03). | q07, runs 1 and 3 | none yet. The judge cannot see the whole corpus, and `GROUNDED_RUBRIC` exempts reporting what the search did or did not find. **Week 5 follow-up:** a phrase scorer for "there are none" against "I found none" |
 | 6 | 2 | The answer makes a claim no record makes. On q05 it gives a next step no record states ("you would need to check the club-management system itself"), though the answer rule only allows a next step a record states. On q04 it describes a record as something it is not: the status rule is called an "unratified draft" when the record says provisional. | q05 run 3, q04 run 2 | `grounded` judge, which split on q04 run 2 across repeats |
 | 5 | 1 | A refusal comes back with `declined: false`, and with unrelated records cited, including another employee's lockout ticket. | q10, run 3 | `flag_honest` |
 | 7 | 1 | The start date is corrected from the later comment, but no caveat says it differs from the ticket title. The golden expects one. | DEMO-001 | `caveat_present` |
