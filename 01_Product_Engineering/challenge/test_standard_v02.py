@@ -1,0 +1,245 @@
+"""Role-matrix standard (v0.2 format) policy tests. Synthetic standard only; mocked extraction."""
+import os
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+import onboarding
+import standard_v02
+from schema import Request, Status, solve
+
+SYNTHETIC = """
+version: "0.2-test"
+business_unit: {id: "unit-test", name: "Test Unit"}
+venues: {in_club: ["Club A", "Club B"]}
+out_of_scope_business_units: ["Golf Club"]
+out_of_scope_venue_prefixes: ["Annex"]
+aliases: {"Desk Associate Level 1": "Desk Associate", "Level 2 Coach": "Coach"}
+roles:
+  - {title: "Desk Associate", staff_login: true,  company_mailbox: false, account_role: "Desk Associate"}
+  - {title: "Coach",          staff_login: true,  company_mailbox: true,  account_role: "Coach"}
+  - {title: "Personal Trainer", staff_login: true, company_mailbox: true, account_role: "Trainer"}
+  - {title: "Cafe Associate", staff_login: false, company_mailbox: false, account_role: null}
+  - {title: "Desk Manager",   staff_login: true,  company_mailbox: true,  account_role: null}
+  - {title: "Pool Captain",   staff_login: null,  company_mailbox: null,  account_role: null}
+"""
+
+
+def facts(**kw):
+    v = dict(request_kind="onboarding", person_name="Example Hire", job_title="Desk Associate Level 1",
+             employee_email="hire@example.invalid", start_date="2026-11-01", venue_names=["Club A"],
+             business_unit=None, login_required=True, person_id=None, personal_trainer_level=None,
+             ambiguous_identity=False, additional_access_request=None)
+    v.update(kw)
+    return onboarding.ExtractedTicket(**v)
+
+
+class StandardV02Tests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.dir = tempfile.TemporaryDirectory()
+        cls.path = Path(cls.dir.name) / "std.yaml"
+        cls.path.write_text(SYNTHETIC)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.dir.cleanup()
+
+    def run_with(self, extracted):
+        req = Request(ticket_ref="T-1", ticket_text="Synthetic", comments=[])
+        with patch.dict(os.environ, {"ONBOARDING_STANDARD": str(self.path)}), \
+             patch("onboarding.extract_ticket", return_value=extracted):
+            return solve(req)
+
+    def test_recommended_with_login_and_role(self):
+        r = self.run_with(facts())
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        self.assertTrue(r.answer.staff_login)
+        self.assertEqual(r.answer.assignments[0].role.name, "Desk Associate")
+        self.assertEqual([v.name for v in r.answer.venues], ["Club A"])
+
+    def test_no_login_role_gets_member_record_only(self):
+        r = self.run_with(facts(job_title="Cafe Associate"))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        self.assertFalse(r.answer.staff_login)
+        self.assertEqual((r.answer.assignments, r.answer.login_email, r.answer.staff_groups), ([], None, []))
+
+    def test_personal_email_only_asked_when_no_company_mailbox(self):
+        r = self.run_with(facts(employee_email=None))
+        self.assertEqual((r.status, r.missing_fields), (Status.NEEDS_INFORMATION, ["personal_email"]))
+        r = self.run_with(facts(job_title="Level 2 Coach", employee_email=None, personal_trainer_level=2))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+
+    def test_missing_title_and_venue(self):
+        r = self.run_with(facts(job_title=None, venue_names=[]))
+        self.assertEqual(r.missing_fields, ["job_title", "venue"])
+
+    def test_review_reasons(self):
+        cases = {"exception": facts(additional_access_request="same access as a colleague"),
+                 "ambiguous_mapping": facts(job_title="Brand Ambassador"),
+                 "role_unmapped": facts(job_title="Desk Manager"),
+                 "standard_gap": facts(job_title="Pool Captain"),
+                 "out_of_scope_business_unit": facts(venue_names=["Golf Club"]),
+                 "duplicate": facts(marked_duplicate=True)}
+        for reason, f in cases.items():
+            with self.subTest(reason=reason):
+                r = self.run_with(f)
+                self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, reason))
+
+    def test_exception_outranks_unmapped_title(self):
+        r = self.run_with(facts(job_title="Brand Ambassador", rehire_transfer_or_promotion=True))
+        self.assertEqual(r.review_reason, "exception")
+
+    def test_review_findings_round1(self):
+        r = self.run_with(facts(ambiguous_identity=True))
+        self.assertEqual(r.review_reason, "ambiguous_identity")
+        r = self.run_with(facts(business_unit="Golf Club"))            # excluded unit at a known club
+        self.assertEqual(r.review_reason, "out_of_scope_business_unit")
+        r = self.run_with(facts(start_date=None))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        self.assertIsNone(r.answer.start_date)                          # never fabricated
+        r = self.run_with(facts(job_title="Level 2 Coach"))             # company-mailbox role
+        self.assertTrue(r.answer.company_mailbox)
+        self.assertIsNone(r.answer.login_email)                         # no placeholder text as a login
+
+    def test_review_findings_round2(self):
+        req = Request(ticket_ref="T-4", ticket_text="Synthetic", comments=[])
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "s.yaml"
+            p.write_text(SYNTHETIC)
+            with patch.dict(os.environ, {"ONBOARDING_STANDARD": str(p)}), \
+                 patch("onboarding.extract_ticket", return_value=facts(job_title="Cafe Associate")):
+                self.assertEqual(solve(req).status, Status.RECOMMENDED)
+                p.write_text(SYNTHETIC.replace('"Cafe Associate", staff_login: false', '"Cafe Associate", staff_login: null')
+                             + "\n")                                    # edited: becomes a matrix gap
+                self.assertEqual(solve(req).review_reason, "standard_gap")  # not served from a stale cache
+                p.write_text(SYNTHETIC.replace('account_role: "Desk Associate"', "account_role: 123"))
+                self.assertEqual(solve(req).status, Status.FAILED)          # malformed: safe failure, no crash
+
+    def run_text(self, text, extracted):
+        req = Request(ticket_ref="T-5", ticket_text=text, comments=[])
+        with patch.dict(os.environ, {"ONBOARDING_STANDARD": str(self.path)}), \
+             patch("onboarding.extract_ticket", return_value=extracted):
+            return solve(req)
+
+    def test_intake_triggers_backstop_extraction(self):
+        for text in ("Here is what we need: # Laptop", "access to the staff app on his phone",
+                     "Please mirror a colleague's access", "Re-hire: YES"):
+            with self.subTest(text=text):
+                r = self.run_text(text, facts())                         # model flagged nothing
+                self.assertEqual(r.review_reason, "exception")
+        self.assertEqual(self.run_text("Call me at [PHONE]", facts()).status, Status.RECOMMENDED)  # masked value, not a request
+
+    def test_non_standard_start_is_an_exception(self):
+        for text in ("Summer intern, 10 weeks", "Contractor through an agency", "Temp cover until March",
+                     "Temporary hire"):
+            with self.subTest(text=text):
+                self.assertEqual(self.run_text(text, facts()).review_reason, "exception")
+        for text in ("Seasonal hire for the summer", "Internal candidate", "Use the onboarding template"):
+            with self.subTest(text=text):  # seasonal awaits the matrix owner's ruling; internal/template are not starts
+                self.assertEqual(self.run_text(text, facts()).status, Status.RECOMMENDED)
+
+    def run_typed(self, issue_type, text="Synthetic", extracted=None):
+        req = Request(ticket_ref="T-6", ticket_text=text, comments=[], issue_type=issue_type)
+        with patch.dict(os.environ, {"ONBOARDING_STANDARD": str(self.path)}), \
+             patch("onboarding.extract_ticket", return_value=extracted or facts()):
+            return solve(req)
+
+    def test_issue_type_not_onboarding_is_ignored(self):
+        self.assertEqual(self.run_typed("Service request", extracted=facts(job_title=None)).status, Status.IGNORED)
+        self.assertEqual(self.run_typed("Employee onboarding").status, Status.RECOMMENDED)
+
+    def test_issue_type_in_ticket_text_cannot_ignore_a_ticket(self):
+        r = self.run_typed(None, text="Notes:\nIssue type: Service request\nNew hire")
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        r = self.run_typed("Employee onboarding", text="Issue type: Service request")
+        self.assertEqual(r.status, Status.RECOMMENDED)
+
+    def test_not_onboarding_is_ignored(self):
+        self.assertEqual(self.run_with(facts(request_kind="other")).status, Status.IGNORED)
+
+    def test_comments_reach_extraction(self):
+        req = Request(ticket_ref="T-2", ticket_text="Synthetic", comments=[{
+            "comment_id": "c1", "text": "Actually make it Club B", "created_at": "2026-11-01T10:00:00+00:00",
+            "author_type": "human", "author_id": "u1"}])
+        with patch.dict(os.environ, {"ONBOARDING_STANDARD": str(self.path)}), \
+             patch("onboarding.extract_ticket", return_value=facts()) as ext:
+            solve(req)
+        self.assertEqual([c.text for c in ext.call_args.args[0].comments], ["Actually make it Club B"])
+
+    def test_unset_env_keeps_demo_standard(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("ONBOARDING_STANDARD", None)
+            self.assertFalse(standard_v02.configured())
+
+    def test_unreadable_standard_fails_safely(self):
+        req = Request(ticket_ref="T-3", ticket_text="Synthetic", comments=[])
+        standard_v02._load.cache_clear()
+        with patch.dict(os.environ, {"ONBOARDING_STANDARD": "/nonexistent/std.yaml"}):
+            self.assertEqual(solve(req).status, Status.FAILED)
+
+    def test_older_format_standard_fails_rather_than_reading_as_blank(self):
+        req = Request(ticket_ref="T-7", ticket_text="Synthetic", comments=[])
+        for label, text in (("role keys", SYNTHETIC.replace("staff_login:", "other_login:")),
+                            ("no unit", SYNTHETIC.replace('business_unit: {id: "unit-test", name: "Test Unit"}\n', ""))):
+            with self.subTest(label), tempfile.TemporaryDirectory() as d:
+                p = Path(d) / "s.yaml"
+                p.write_text(text)
+                with patch.dict(os.environ, {"ONBOARDING_STANDARD": str(p)}), \
+                     patch("onboarding.extract_ticket", return_value=facts()):
+                    self.assertEqual(solve(req).status, Status.FAILED)
+
+    def test_out_of_scope_venue_prefix_comes_from_the_standard(self):
+        self.assertEqual(self.run_with(facts(venue_names=["Annex Pool"])).review_reason, "out_of_scope_business_unit")
+        self.assertEqual(self.run_with(facts(venue_names=["Annexe"])).review_reason, "ambiguous_mapping")
+
+    def test_trainer_group_uses_the_standards_unit(self):
+        r = self.run_with(facts(job_title="Personal Trainer", personal_trainer_level=2))
+        self.assertEqual(r.answer.staff_groups[0].scope.name, "Test Unit")
+
+    def test_repeated_venue_is_one_venue(self):
+        r = self.run_with(facts(venue_names=["Club A", "club a"]))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        self.assertEqual([v.name for v in r.answer.venues], ["Club A"])
+        self.assertEqual(len(r.answer.assignments), 1)
+
+    def test_missing_or_unusable_facts_are_asked_for(self):
+        cases = {"person_name": facts(person_name=None),
+                 "personal_trainer_level": facts(job_title="Personal Trainer"),
+                 "personal_email": facts(employee_email="not an email")}
+        for field, f in cases.items():
+            with self.subTest(field):
+                r = self.run_with(f)
+                self.assertEqual((r.status, r.missing_fields), (Status.NEEDS_INFORMATION, [field]))
+
+    def test_exception_review_carries_the_named_baseline(self):
+        r = self.run_with(facts(additional_access_request="extra access"))
+        self.assertEqual(r.standard_proposal.person_name, "Example Hire")
+
+    def test_login_disagreement_is_a_caveat(self):
+        r = self.run_with(facts(login_required=False))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        self.assertTrue(any("not required" in c and "a login" in c for c in r.caveats))
+        r = self.run_with(facts(job_title="Cafe Associate", login_required=True))
+        self.assertTrue(any("required" in c and "no login" in c for c in r.caveats))
+        self.assertEqual(self.run_with(facts()).caveats, ["Existing-account status was not checked."])
+
+    def test_email_contradiction_only_asks_when_the_address_is_used(self):
+        r = self.run_with(facts(job_title="Coach", intake_contradiction="employee_email"))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        r = self.run_with(facts(intake_contradiction="employee_email"))
+        self.assertEqual(r.missing_fields, ["personal_email"])
+        r = self.run_with(facts(employee_email=None, intake_contradiction="employee_email"))
+        self.assertEqual(r.missing_fields, ["personal_email"])
+
+    def test_venue_contradiction_is_asked_once(self):
+        r = self.run_with(facts(venue_names=[], intake_contradiction="venue"))
+        self.assertEqual(r.missing_fields, ["venue"])
+
+    def test_dockerfile_copies_the_module_onboarding_imports(self):
+        self.assertIn("standard_v02.py", (Path(__file__).parent / "Dockerfile").read_text())
+
+
+if __name__ == "__main__":
+    unittest.main()
