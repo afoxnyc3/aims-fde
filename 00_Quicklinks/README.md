@@ -52,8 +52,22 @@ Quicklinks are here to help you **easily navigate each week's materials** for th
 | 🎓 Session | ⏺️ Recording | 🖼️ Slides |
 |:-----------|:-------------|:-------------|
 | [Session 7 - Practical Evals](../04_Evals/sessions/S7_Practical_Evals.py) | [Recording!](https://us02web.zoom.us/rec/share/fuUYayWPbhc5be28RuDAKqpIAV5elr05tol68j3mQTIVMIEQMblEpXVfe-uHjHD3.JND5CkaU1vmZ041v) <br> passcode: `r*b2uPE0` | [Slides](https://canva.link/m7ch49pue6hyrcy) |
-| [Session 8 - Agent Evals via Simulation](../04_Evals/sessions/S8_Agent_Evals_via_Simulation.py) | Coming soon | Coming soon |
+| [Session 8 - Agent Evals via Simulation](../04_Evals/sessions/S8_Agent_Evals_via_Simulation.py) | [Recording!](https://us02web.zoom.us/rec/share/uwFG1Nf6O6qb7r3PYFQSpq3EECWbGEmocK0mItVAZLd4JO9BVE8pUFNWgq2-X5Q._Qt2D7lQTqMdUIHi) <br> passcode: `3KS!E#RU` | [Slides](https://canva.link/ldi2vpwfko0a4zl) |
 | [Session 8b - Agent Simulation from Scratch (self-study)](../04_Evals/sessions/S8b_Agent_Simulation_From_Scratch.py) | — | — |
+
+---
+
+## [Week 5 - Agent Architecture](../05_Agent_Architecture/)
+
+🧑‍💻 Your demo in front of the room, then one capability six ways — tool, skill, subagent, MCP, Code Mode, UTCP — measured, so the architecture row in your decisions has numbers behind it
+
+**👨‍💻 [Weekly Technical Challenge](../05_Agent_Architecture/challenge)**
+
+| 🎓 Session | ⏺️ Recording | 🖼️ Slides |
+|:-----------|:-------------|:-------------|
+| [Session 9 - Demo Day, with the critique rubric](../05_Agent_Architecture/sessions/S9_Demo_Critique_Rubric.md) | Coming soon | Coming soon |
+| [Session 10 - Six Ways to Call a Capability](../05_Agent_Architecture/sessions/S10_Six_Ways_to_Call_a_Capability.py) | Coming soon | Coming soon |
+| [Session 10 deep dive - the six ways by hand (self-study)](../05_Agent_Architecture/sessions/S10_Six_Ways_to_Call_a_Capability_Fundamentals.py) | — | — |
 
 ---
 
