@@ -11,7 +11,7 @@ This set sits alongside the Week 1 goldens. `../run.py` and `../harness.py` do n
 | File | Rows | What it is |
 | --- | --- | --- |
 | `golden.jsonl` | 58 | Labels for 58 real, pseudonymized onboarding-queue tickets (`origin: real`, all `label_state: confirmed`). Split 29 dev / 29 test. Test: 13 `recommended`, 10 `human_review`, 6 `ignored`. Dev: 15 `recommended`, 6 `human_review`, 6 `ignored`, 2 `needs_information`. No ticket text |
-| `grid.jsonl` | 181 | Synthetic scenario grid, 32 case types, ticket text generated, not real. Split 91 dev / 90 test. `label_state`: 162 synthetic by construction, 17 confirmed, 1 provisional, 1 needs ruling |
+| `grid.jsonl` | 181 | Synthetic scenario grid, 32 case types, ticket text generated, not real. Split 91 dev / 90 test. `label_state`: 160 synthetic by construction, 18 confirmed, 2 provisional, 1 needs ruling. The 2026-11-02 Hospitality Level 2 and Housekeeping rulings are applied (GRID-036, GRID-139, GRID-141) |
 | `synthetic.jsonl` | 6 | Generated failures, split 3 dev / 3 test: a no-mailbox role with a blank personal email (2), missing job title, missing venue, a venue field that contradicts the notes, and an employee email equal to the manager's |
 | `tickets.jsonl` | 58 | Private. Ticket text for `golden.jsonl`, joined on `ticket_ref`. Gitignored |
 
