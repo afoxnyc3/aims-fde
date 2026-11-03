@@ -1,6 +1,6 @@
-# TC4 submission (in progress)
+# TC4 submission
 
-**Status:** Steps 1 to 3 are drafted. `failures.md` was read by Claude and has not been confirmed by Alex yet. There is no `baseline.json`, so the numbers below are a first measurement, not the baseline later weeks are held to.
+**Status (2026-11-03):** Steps 1 to 3 and 6 to 8 are written. The baseline is saved at [`evals/baseline.json`](evals/baseline.json): the endpoint on the real_v03 test split, run once, **14 of 29 (0.48, 95% CI 0.28 to 0.66), 2 over-access** ([Step 6](#step-6-the-baseline)). Steps 1 to 3 below were measured on the synthetic Week 1 to 3 suite (20 cases), not on the real tickets. Still open: `failures.md` was read by Claude and has not been confirmed by Alex; `human_scores.jsonl` is not written, so the judge's agreement is unchecked; there is no detection table for `evals/real_v03/synthetic.jsonl`; and the Docker re-check is pending. Step 5 (scenarios) does not apply: both endpoints answer one ticket or one question and hold no conversation.
 
 ## Step 1: the taxonomy and the hand scores
 
@@ -54,10 +54,48 @@ What these results do not show:
 
 **Cost, measured:** an echo-and-oracle run made 46 judge calls (16 to calibrate, 15 per system) and used about 56k tokens. A full run adds 15 more. At the looked-up price of $0.20 / $1.20 per million tokens, those 46 calls cost about $0.02.
 
-## What is safe to compare between runs
+## Step 6: the baseline
 
-**Compare `correct_behaviour` only.** `helpers.harness` has no way to skip a case, so the raw means in a saved run count vacuous passes, and `compare()` reads the raw means. A single case flipping still clears the 0.02 tolerance while there are fewer than 50 cases, so a regression on a whole case shows, but the other columns are diagnostics, not gates. A single judge wobble is also 0.05, so a `compare()` REGRESSION on `grounded` alone needs reading before anyone believes it. The `grounded` column's name carries a hash of the judge's model and rubric, so `compare()` refuses a run that changed the judge.
+**Headline: `status_accuracy` on the real_v03 test split, run once: 14 of 29 (0.48, 95% CI 0.28 to 0.66). Over-access, which gates promotion: 2 of 29** (TKT-63 and TKT-408, recommended where the label is `human_review`). The decision, what it does not cover and what would change it are in [`decisions.md`](decisions.md) (row 4 / Step 6).
+
+| System | Dev (29) | Test (29) | Grid (180) |
+| --- | --- | --- | --- |
+| echo | 0.00 | 0.00 | 0.00 |
+| oracle | 1.00 | 1.00 | 1.00 |
+| endpoint | 0.86 [0.72, 0.97], 0 over-access | **0.48 [0.28, 0.66], 2 over-access** | 0.93 [0.89, 0.97], 11 over-access |
+
+`openrouter/anthropic/claude-sonnet-5.5`, standard v0.3, intake only. Public repo commit `83f2e5d`, but the runner and the v0.3 standard that produced the run are private, so checking out that commit does not reproduce it. The grid leaves out GRID-178, which awaits a ruling.
+
+**Why it is below the demo's 24 of 29:** 10 of the 15 test misses ask for `person_name`. `standard_v02` as merged in #41 asks for the name whenever extraction leaves it empty, and 9 of the 10 tickets give only a preferred first name. The demo ran on an uncommitted version that filled in a placeholder name, and on standard v0.2, so the two numbers are not like for like.
+
+**Reproducing it.** The real ticket text, the runner and the v0.3 standard stay private, so the run cannot be repeated from this repo. It can be reported and compared, offline:
+
+```
+$ python3 use_case/evals/run.py --committed
+...
+PASS  endpoint_test → endpoint_test  [no_over_privilege +0.000  status_accuracy +0.000]
+```
+
+## Step 7: the demo
+
+**Demo, 2026-11-02, to the CTO.** Five minutes on the triage agent over the real test split: 24 of 29 right, 4 sent to a human when they could have been recommended (the cautious kind of miss), and 1 over-granted (a lifeguard who also covers fitness; the matrix has no cross-unit rule). The CTO's questions, in my words (confirmed by Alex, 2026-11-03):
+
+1. **Over-access is the security question.** What stops the agent granting more than the role needs, and how would we know it had? *Answer then:* over-access is scored as its own column, and any case blocks. *What changed:* it is now the gating column in the decision row.
+2. **Is this on real tickets?** *Answer:* yes, pseudonymised intake tickets, labelled by IT against the role matrix. Ticket text stays private. Labels and scores are public.
+3. **How does it connect to the service desk?** *Answer:* not yet. It reads exported tickets. The JSM read-only service account and the comment-posting path are designed (decisions, Week 1 Step 8) but not built.
+4. **Can it remove admin rights from people outside Technology?** *Answer:* out of scope for onboarding. It is a separate clean-up and needs its own approval. Logged as a follow-up.
+5. **Can admins sign in with OAuth?** *Answer:* not today. It goes into the integration requirements for the JSM connection.
+
+**Rehearsed with:** the CTO, live, on 2026-11-02. A real person who owns the approval, asking the questions recorded here. Logged in [`stakeholders.md`](stakeholders.md); what it changed is in [`decisions.md`](decisions.md#week-4--what-the-step-7-demo-changed). The figures above are the demo's. Re-scored on the current labels and code, the test split is 14 of 29 (Step 6).
+
+## Step 8: bring it to work
+
+The three swap lines (data, model or endpoint, approval) are under "TC4 — evals" in [`README.md`](README.md#tc4--evals).
+
+## What is safe to compare between synthetic-suite runs
+
+This section governs runs of `run.py` on the 20-case synthetic suite. Those runs cannot be compared to `baseline.json`, which has different cases and scorers (`status_accuracy`, `no_over_privilege`), and `compare()` refuses. **Between synthetic runs, compare `correct_behaviour` only.** `helpers.harness` has no way to skip a case, so the raw means in a saved run count vacuous passes, and `compare()` reads the raw means. A single case flipping still clears the 0.02 tolerance while there are fewer than 50 cases, so a regression on a whole case shows, but the other columns are diagnostics, not gates. A single judge wobble is also 0.05, so a `compare()` REGRESSION on `grounded` alone needs reading before anyone believes it. The `grounded` column's name carries a hash of the judge's model and rubric, so `compare()` refuses a run that changed the judge.
 
 ## How to run it
 
-See the top of [`evals/run.py`](evals/run.py). `--no-endpoint --no-judge` runs echo and oracle with no model calls. [`evals/calibrate_judge.py`](evals/calibrate_judge.py) runs the separation and agreement tests.
+See the top of [`evals/run.py`](evals/run.py). `--committed` reports the real_v03 baseline from the saved runs, offline. `--no-endpoint --no-judge` runs echo and oracle on the synthetic suite with no model calls. [`evals/calibrate_judge.py`](evals/calibrate_judge.py) runs the separation and agreement tests.

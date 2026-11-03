@@ -4,7 +4,7 @@ The eval behind the 2026-11-02 CTO demo ([deck](../../demo/tc4_demo.html)). The 
 
 **Real ticket text is held privately per org policy; labels and results are public.** `tickets.jsonl`, which has the ticket text behind `golden.jsonl`, is gitignored and never committed.
 
-This set sits alongside the Week 1 goldens. `../run.py` and `../harness.py` do not read it, and the v0.3 standard and the agent that scores it are not in this repo yet.
+This set sits alongside the Week 1 goldens. `../harness.py` does not score it, and the v0.3 standard and the runner that scored it stay private. `results/` holds the saved runs (echo, oracle and the endpoint on dev, test and grid), and the endpoint's test run is the TC4 baseline, [`../baseline.json`](../baseline.json). `python3 use_case/evals/run.py --committed` reports them offline and checks the baseline.
 
 ## Files
 
@@ -33,4 +33,4 @@ From the [deck](../../demo/tc4_demo.html). The test split was run once:
 - **24 of 29** right outcome, 95% CI 69–97%. 12 of 13 recommendations correct. **1 over-access case**: a lifeguard also covering fitness, where the matrix has no cross-unit rule.
 - Synthetic gate: **84 / 84** on the held-back half of the grid, with 0 over-access.
 
-The labels in this folder are newer than those results. In the deck, 14 test tickets were expected `recommended`; here it's 13. The Hospitality Level 2 ruling (BDM, 2026-11-02) moved TKT-14 to Hospitality Lead, `human_review` (`role_unmapped`). The agent recommended TKT-14 in the demo run, so scored against these labels that recorded output is a **second over-access case**, and the right outcomes become 23 of 29. The 24/29 has not been re-run on these labels.
+The labels in this folder are newer than those results. In the deck, 14 test tickets were expected `recommended`; here it's 13. The Hospitality Level 2 ruling (BDM, 2026-11-02) moved TKT-14 to Hospitality Lead, `human_review` (`role_unmapped`). The agent recommended TKT-14 in the demo run, so scored against these labels that recorded output is a **second over-access case**, and the right outcomes become 23 of 29. Re-run on 2026-11-03 against these labels and the current code (`results/endpoint_test.json`, the TC4 baseline), the test split scored **14 of 29, with 2 over-access**: see [`../../TC4_SUBMISSION.md`](../../TC4_SUBMISSION.md#step-6-the-baseline) for why.
