@@ -66,7 +66,7 @@ What these results do not show:
 
 `openrouter/anthropic/claude-sonnet-5.5`, standard v0.3, intake only. Public repo commit `83f2e5d`, but the runner and the v0.3 standard that produced the run are private, so checking out that commit does not reproduce it. The grid leaves out GRID-178, which awaits a ruling.
 
-**Why it is below the demo's 24 of 29:** 10 of the 15 test misses ask for `person_name`. `standard_v02` as merged in #41 asks for the name whenever extraction leaves it empty, and 9 of the 10 tickets give only a preferred first name. The demo ran on an uncommitted version that filled in a placeholder name, and on standard v0.2, so the two numbers are not like for like.
+**Why it is below the demo's 24 of 29:** 10 of the 15 test misses ask for `person_name`. `standard_v02` as merged in #41 asks for the name whenever extraction leaves it empty, and 8 of the 10 tickets have a blank name field and identify the person only by their email address, 1 (TKT-155) gives a name and is still asked, and 1 (TKT-451) has neither a name nor an email. The demo ran on an uncommitted version that filled in a placeholder name, and on standard v0.2, so the two numbers are not like for like.
 
 **Reproducing it.** The real ticket text, the runner and the v0.3 standard stay private, so the run cannot be repeated from this repo. It can be reported and compared, offline:
 
