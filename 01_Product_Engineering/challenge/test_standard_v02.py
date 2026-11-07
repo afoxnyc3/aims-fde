@@ -91,6 +91,62 @@ class StandardV02Tests(unittest.TestCase):
         r = self.run_with(facts(job_title="Brand Ambassador", rehire_transfer_or_promotion=True))
         self.assertEqual(r.review_reason, "exception")
 
+    def test_rehire_with_missing_fields_goes_to_review_not_an_ask(self):
+        # A re-hire needs a person whatever the requester answers, so asking first is a wasted round trip.
+        # The missing fields travel in the handoff instead, for the reviewer to collect.
+        for f in (facts(person_name=None, rehire_transfer_or_promotion=True), facts(person_name=None)):
+            text = "Re-hire: YES" if not f.rehire_transfer_or_promotion else "Synthetic"
+            with self.subTest(flagged_by="extraction" if f.rehire_transfer_or_promotion else "intake text"):
+                r = self.run_text(text, f)
+                self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, "exception"))
+                self.assertEqual(r.missing_fields, [])  # the schema keeps missing_fields for needs_information
+                self.assertIn("person_name", r.jira_comment)
+                self.assertIsNone(r.standard_proposal)  # nothing is proposed while a fact is missing
+        r = self.run_with(facts(person_name=None))  # not a re-hire: still an ask
+        self.assertEqual((r.status, r.missing_fields), (Status.NEEDS_INFORMATION, ["person_name"]))
+
+    def test_rehire_handoff_names_the_gap_and_the_extra_access(self):
+        # Code review finding: a second exception branch once wrote "re-hire" alone and dropped the extra access.
+        r = self.run_text("Re-hire: YES", facts(person_name=None, additional_access_request="also let her sell memberships"))
+        self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, "exception"))
+        for comment in (r.jira_comment, " ".join(r.exception_difference)):
+            self.assertIn("person_name", comment)
+            self.assertIn("also let her sell memberships", comment)
+            self.assertIn("re-hire", comment)  # the reason the ask was skipped is named too
+
+    def test_a_stray_promotion_does_not_suppress_an_ask(self):
+        r = self.run_text("Will help run the January membership promotion", facts(venue_names=[]))
+        self.assertEqual((r.status, r.missing_fields), (Status.NEEDS_INFORMATION, ["venue"]))
+
+    def test_rehire_handoff_carries_no_proposal_while_anything_is_missing(self):
+        # A tier built on incomplete facts reads as "the standard tier": no trainer group, or a bad login.
+        for name, f in (("trainer level", facts(job_title="Personal Trainer", personal_trainer_level=None)),
+                        ("unusable email", facts(employee_email="med.2290")),
+                        ("contradictory venue", facts(intake_contradiction="venue"))):
+            with self.subTest(gap=name):
+                r = self.run_with(f.model_copy(update={"rehire_transfer_or_promotion": True}))
+                self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, "exception"))
+                self.assertIsNone(r.standard_proposal)
+        r = self.run_with(facts(rehire_transfer_or_promotion=True))  # nothing missing: the baseline is still there
+        self.assertIsNotNone(r.standard_proposal)
+
+    def test_rehire_handoff_calls_a_conflict_contradictory_not_missing(self):
+        r = self.run_with(facts(rehire_transfer_or_promotion=True, intake_contradiction="employee_email"))
+        self.assertIn("Contradictory in the intake: personal_email.", r.jira_comment)
+        self.assertNotIn("Missing from the intake", r.jira_comment)
+        r = self.run_with(facts(rehire_transfer_or_promotion=True, person_name=None, intake_contradiction="venue"))
+        self.assertIn("Missing from the intake: person_name. Contradictory in the intake: venue.", r.jira_comment)
+
+    def test_rehire_handoff_lists_every_gap_and_keeps_the_earlier_review_reasons(self):
+        r = self.run_with(facts(person_name=None, job_title=None, rehire_transfer_or_promotion=True))
+        self.assertIn("person_name, job_title", r.jira_comment)
+        for reason, extra in (("out_of_scope_business_unit", dict(venue_names=["Golf Club"])),
+                              ("ambiguous_identity", dict(ambiguous_identity=True)),
+                              ("duplicate", dict(marked_duplicate=True))):
+            with self.subTest(reason=reason):
+                r = self.run_with(facts(person_name=None, rehire_transfer_or_promotion=True, **extra))
+                self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, reason))
+
     def test_review_findings_round1(self):
         r = self.run_with(facts(ambiguous_identity=True))
         self.assertEqual(r.review_reason, "ambiguous_identity")

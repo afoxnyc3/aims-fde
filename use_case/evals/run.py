@@ -84,9 +84,27 @@ def make_endpoint(url: str):
     return call
 
 
+SCENARIOS_NEED_V02 = (
+    "--scenarios needs the v0.2 standard: set ONBOARDING_STANDARD to its path here, and start the endpoint with "
+    "the same setting. SYN-ASK-002 expects a re-hire to reach review before any ask, and only the v0.2 decision "
+    "code (standard_v02.py) has that order; the demo path asks first, so it would fail for a reason that is not "
+    "the model's. /health does not report the standard, so this checks this shell only."
+)
+
+
+def scenarios_preflight() -> None:
+    if not os.getenv("ONBOARDING_STANDARD"):
+        raise SystemExit(SCENARIOS_NEED_V02)
+
+
+def of(k: int, n: int) -> str:
+    return f"{k} of {n} ({k / n:.0%})" if n else f"{k} of 0"
+
+
 def committed_report(results_dir: Path = COMMITTED, baseline_path: Path = BASELINE) -> bool:
     """Report the saved real_v03 runs and check the baseline. Returns True if every check passed."""
-    lines = ["| System | Split | n | status_accuracy (95% CI) | over-access |", "| --- | --- | --- | --- | --- |"]
+    lines = ["| System | Split | n | status_accuracy (95% CI) | over-access | unnecessary asks | missed asks |",
+             "| --- | --- | --- | --- | --- | --- | --- |"]
     for split in SPLITS:
         for system in SYSTEMS:
             run = evals.harness.load(results_dir / f"{system}_{split}.json")
@@ -97,8 +115,11 @@ def committed_report(results_dir: Path = COMMITTED, baseline_path: Path = BASELI
             # An errored case scores 0 on everything; count it as an error, not as an over-grant.
             over = sum(r.scores["no_over_privilege"] < 1.0 for r in run.results if not r.error)
             errored = sum(bool(r.error) for r in run.results)
-            note = f", {errored} errored" if errored else ""
-            lines.append(f"| {system} | {split} | {run.n} | {mean:.2f} [{low:.2f}, {high:.2f}] | {over} of {run.n}{note} |")
+            note = f" ({errored} errored)" if errored else ""
+            # Unnecessary: an ask the label did not need. Missed: a recommendation where the label asks. See harness.
+            asks, missed, scored = evals.count_asks(run)
+            counts = " | ".join(of(k, scored) for k in (over, asks, missed))  # one denominator: the cases scored
+            lines.append(f"| {system} | {split} | {run.n}{note} | {mean:.2f} [{low:.2f}, {high:.2f}] | {counts} |")
     print("\n".join(lines))
 
     baseline = evals.harness.load(baseline_path)
@@ -117,11 +138,26 @@ def main() -> None:
     parser.add_argument("--url", default=os.getenv("TC4_ENDPOINT", "http://127.0.0.1:7860/"))
     parser.add_argument("--no-endpoint", action="store_true", help="echo and oracle only")
     parser.add_argument("--no-judge", action="store_true", help="model-free scorers only; changes the fingerprint, so such a run cannot be compared to a judged synthetic run")
+    parser.add_argument("--scenarios", action="store_true", help="the three synthetic multi-turn scenarios against the endpoint (2 model calls each)")
     parser.add_argument("--committed", action="store_true", help="report the saved real_v03 runs and check baseline.json, offline")
     args = parser.parse_args()
 
     if args.committed:
         raise SystemExit(0 if committed_report() else 1)
+    if args.scenarios:
+        scenarios_preflight()  # before the import and the endpoint client, so a wrong setup costs nothing
+        import scenarios
+
+        endpoint = make_endpoint(args.url)
+        # Saved after every turn, so an endpoint failure part-way keeps the turns before it. Gitignored, like the runs.
+        path = RUNS_DIR / f"scenarios_{datetime.now():%Y%m%d_%H%M%S}.json"
+        report = scenarios.run_all(lambda req: endpoint(json.loads(req)), path)
+        for sid, r in zip(report.meta["scenario_ids"], report.results):
+            turns = " -> ".join(evals.parse(t).get("status", "?") for t in json.loads(r.actual))
+            print(f"{sid}: {r.scores['scenario_pass']:.0f}  turns: {turns or '-'}" + ("  ERRORED" if r.error else ""))
+        print(f"{sum(r.scores['scenario_pass'] for r in report.results):.0f} of {report.n} scenarios passed, {report.errors} errored")
+        print(f"saved: {path}")
+        return
 
     cases = evals.load_cases()
     scorers = dict(evals.SCORERS)

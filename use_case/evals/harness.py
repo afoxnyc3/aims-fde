@@ -164,6 +164,26 @@ APPLIES = {
 }
 
 
+# The CTO's second number, beside over-access: a round trip the label says was not needed.
+# Unnecessary ask: the endpoint returned needs_information and the label is recommended.
+# An ask on a human_review label is a wrong status but not counted here: that ticket needed a person anyway.
+def unnecessary_ask(expected: dict, actual: dict) -> bool:
+    return actual.get("status") == "needs_information" and expected.get("status") == "recommended"
+
+
+# The other direction: the label says ask, and the endpoint recommended without the missing fact.
+# Worse than an extra round trip, because a proposal went out on an incomplete intake.
+def missed_ask(expected: dict, actual: dict) -> bool:
+    return actual.get("status") == "recommended" and expected.get("status") == "needs_information"
+
+
+def count_asks(run: harness.RunReport) -> tuple[int, int, int]:
+    """(unnecessary asks, missed asks, cases scored) over a saved run. Errored cases are left out of all three."""
+    pairs = [(parse(r.expected) if isinstance(r.expected, str) else r.expected or {}, parse(r.actual))
+             for r in run.results if not r.error]
+    return sum(unnecessary_ask(*pair) for pair in pairs), sum(missed_ask(*pair) for pair in pairs), len(pairs)
+
+
 # ---------------------------------------------------------------- the judge
 
 # failures.md lines 3 and 6 are the same property, and a function cannot see it: a claim the records do not make.

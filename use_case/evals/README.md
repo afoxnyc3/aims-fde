@@ -119,7 +119,7 @@ every later week runs. `python use_case/evals/run.py` is the whole interface.
 | `judge_pairs.jsonl` | A good answer and the same answer with one unsupported claim, `dev` and `holdout`. Harder than echo, which is why `calibrate()` passing is not enough. Written by Claude from the draft standard; a person should read them | TC4 Step 3 |
 | `calibrate_judge.py` | Runs separation on those pairs, and agreement with `human_scores.jsonl` on its `grounded` field | TC4 Step 3 |
 | `synthetic.jsonl` | Generated failures, each with the original, the corruption and its failure mode | TC4 Step 4 |
-| `scenarios.py` | Three multi-turn scenarios — goal, `knows`, `success`, `must_not` — one a refusal | TC4 Step 5 |
+| `scenarios.py`, `scenarios.jsonl` | Three synthetic multi-turn scenarios (SYN-ASK-*), each with no name on turn 1: the name in a follow-up then recommended; a re-hire that goes to human review on turn 1, missing name listed in the handoff, and stays there; and a mirror request refused, not copied. One scorer each, tests in `test_scenarios.py`. The endpoint is stateless, so a follow-up turn is the same ticket re-sent with the new comment; `run.py --scenarios` runs them live and saves after every turn to `data/traces/`. The re-hire order SYN-ASK-002 needs (review before any ask) is in the v0.2 decision code only, so `--scenarios` exits unless `ONBOARDING_STANDARD` is set; start the endpoint with it too | TC4 Step 5, added TC5 |
 | `run.py` | Points the harness at your endpoint and prints the report | TC4 Step 6 |
 | `baseline.json` | **The run itself**, saved with `helpers.harness.save`. Commit it | TC4 Step 6 |
 
