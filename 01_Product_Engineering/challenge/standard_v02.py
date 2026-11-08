@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import os
 import re
+import unicodedata
 from functools import lru_cache
 from pathlib import Path
 
@@ -160,22 +161,41 @@ def _usable_email(email: str | None) -> bool:
     return bool(at and local and domain) and not any(ch.isspace() for ch in email)
 
 
-_EDGE_PUNCTUATION = ".,;:()[]\"'’"
+_EDGE_PUNCTUATION = ".,;:()[]<>\"'’"
 _INNER_NAME_MARKS = "-'’"
+# Titles and generational suffixes are not name parts: "Mr Smith" and "Sam Jr." each have one.
+_NOT_NAME_PARTS = {"mr", "mrs", "ms", "mx", "miss", "dr", "jr", "sr", "ii", "iii", "iv"}
+
+
+def _letter(c: str) -> bool:
+    # Combining marks count: Devanagari vowel signs, and accents left decomposed after normalising.
+    return c.isalpha() or unicodedata.category(c).startswith("M")
+
+
+def _name_token(t: str) -> bool:
+    return (sum(c.isalpha() for c in t) >= 2 and t.casefold() not in _NOT_NAME_PARTS
+            and all(_letter(c) or c in _INNER_NAME_MARKS for c in t))
 
 
 def has_surname(name: str | None) -> bool:
     """True when the name has a given name and a surname: at least two name tokens. Pure, no model call.
 
     Owner's name policy, 2026-11-07: a legal surname is required; without one the intake goes back to the
-    requesting manager. A name token is letters, optionally joined by a hyphen or apostrophe ("García-López",
-    "O'Neill"), with at least two letters, so an initial ("S.") is not one. Anything with "@", a dot inside a
-    word, an underscore or a digit is a handle, not a name, and does not count ("sam.smith", "rq4471").
+    requesting manager. A name token is letters (combining marks included), optionally joined by a hyphen or
+    apostrophe ("García-López", "O'Neill"), with at least two letters, so an initial ("S.") is not one. A token
+    with "@", a dot inside a word, an underscore or a digit is a handle, not a name, and does not count
+    ("sam.smith", "rq4471"); an email beside a full name is ignored. Titles and suffixes ("Mr", "Jr.") do not count.
+    Limit: names written without spaces (e.g. Chinese) are one token, so they are asked for; a reviewer decides.
     """
-    tokens = [t.strip(_EDGE_PUNCTUATION) for t in (name or "").split()]
-    names = [t for t in tokens if t and sum(c.isalpha() for c in t) >= 2
-             and all(c.isalpha() or c in _INNER_NAME_MARKS for c in t)]
-    return len(names) >= 2 and "@" not in (name or "")
+    tokens = [t.strip(_EDGE_PUNCTUATION) for t in unicodedata.normalize("NFC", name or "").split()]
+    return sum(_name_token(t) for t in tokens if t) >= 2
+
+
+def _field_label(field: str, facts) -> str:
+    """The field name the requester and the reviewer read: a given name without a surname says so."""
+    if field == "person_name" and facts.person_name and facts.person_name.strip():
+        return "person_name (a name was given without a legal surname)"
+    return field
 
 
 def _missing_fields(facts, role) -> list[str]:
@@ -211,12 +231,13 @@ def decide(request: Request, facts, std: dict) -> Response:
     # flag count; the broad transfer/promotion regex would let a stray "promotion" suppress a needed ask.
     rehire = facts.rehire_transfer_or_promotion or trigger == "re-hire"
     if missing and not rehire:
-        return _out(request, Status.NEEDS_INFORMATION, "Provide: " + ", ".join(missing) + ".", missing_fields=missing)
+        return _out(request, Status.NEEDS_INFORMATION, "Provide: " + ", ".join(_field_label(f, facts) for f in missing) + ".",
+                    missing_fields=missing)
 
     # Only a re-hire reaches review with gaps (it skipped the ask), so whichever review it lands in must
     # still hand them over: the exception branch as data and prose, the earlier three in the comment.
     absent, contradictory = _gaps(facts, missing)
-    gaps_text = _gaps_sentence(absent, contradictory)
+    gaps_text = _gaps_sentence([_field_label(f, facts) for f in absent], contradictory)
 
     def review(reason, text):
         return _out(request, Status.HUMAN_REVIEW, text + gaps_text, review_reason=reason)
