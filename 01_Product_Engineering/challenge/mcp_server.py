@@ -72,6 +72,9 @@ TOOLSET = {part.strip() for part in (os.getenv("MCP_TOOLSET") or "answer").split
 # Every parameter name a tool here takes. The audit log records only these, plus a count of
 # any others: a client chooses its argument names, so an unknown key can carry content.
 KNOWN_ARG_KEYS = {"question", "query", "k"}
+# The same for tool names: an unknown tool's name is the client's text, so it is logged as a marker.
+KNOWN_TOOL_NAMES = {"answer_onboarding_question", "search_hybrid"}
+UNKNOWN_TOOL = "(unknown tool)"
 
 # The capability lives in retrieval.py, unchanged. Loading the corpus is lazy so
 # the server starts (and lists its tools) even before the corpus is mounted.
@@ -126,16 +129,17 @@ class AuditCounter(Middleware):
             raise
         finally:
             _call_tokens.reset(token)
+            logged = name if name in KNOWN_TOOL_NAMES else UNKNOWN_TOOL
             # A call that reached the capability counts whether it succeeded or raised;
             # a call rejected by dispatch or validation is logged but not counted.
             reached = error not in REJECTED_BEFORE_CAPABILITY
             if reached:
-                self.calls[name] = self.calls.get(name, 0) + 1
+                self.calls[logged] = self.calls.get(logged, 0) + 1
             if self.log_path:
                 size = sum(len((getattr(block, "text", "") or "").encode("utf-8"))
                            for block in getattr(result, "content", []) or [])
                 keys = (context.message.arguments or {}).keys()
-                line = {"tool": name, "arg_keys": sorted(k for k in keys if k in KNOWN_ARG_KEYS),
+                line = {"tool": logged, "arg_keys": sorted(k for k in keys if k in KNOWN_ARG_KEYS),
                         "unknown_arg_count": sum(1 for k in keys if k not in KNOWN_ARG_KEYS),
                         "response_bytes": size, "ms": round((time.perf_counter() - started) * 1000),
                         "error": error, "reached": reached,

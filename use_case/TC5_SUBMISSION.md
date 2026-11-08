@@ -34,7 +34,7 @@ and counts only calls that reached the capability, as Way 1's counter does. `Too
 unknown tools and bad arguments into short messages that never echo input, and an upstream outage into a
 fixed `UPSTREAM_UNAVAILABLE` marker. Our measurement client aborts the run on it, the same contract as
 Way 1; an outside client such as Claude Desktop does not abort, its model reads the marker. Tests:
-`python -m unittest test_mcp_server test_measure_tc5` (16 + 4 tests, offline; they include two overlapping guarded calls that each count only their own model tokens). The guarded tool rejects an empty, blank or over-2,000-character question with a clear "Bad arguments" message before the capability runs. **Docker, checked 2026-11-07:** the image builds,
+`python -m unittest test_mcp_server test_measure_tc5` (18 + 4 tests, offline; they include two overlapping guarded calls that each count only their own model tokens). The guarded tool rejects an empty, blank or over-2,000-character question with a clear "Bad arguments" message before the capability runs. **Docker, checked 2026-11-07:** the image builds,
 and `docker run -i ... python mcp_server.py` lists only `answer_onboarding_question` and answered the
 one-lookup question (Front Desk Associate) through it.
 

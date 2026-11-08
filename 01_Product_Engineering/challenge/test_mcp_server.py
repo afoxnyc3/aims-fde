@@ -91,6 +91,14 @@ class McpServerTest(unittest.TestCase):
         self.assertEqual(self.audit.calls, {})  # rejected before the capability: logged, not counted
         [line] = self.log_lines()
         self.assertEqual((line["error"], line["reached"]), ("NotFoundError", False))
+        self.assertEqual(line["tool"], mcp_server.UNKNOWN_TOOL)
+
+    def test_an_unknown_tool_name_never_reaches_the_audit_log(self):
+        # The name is the client's text; a prompt-injected client can put ticket text in it.
+        call(self.server, "SECRET ticket text", {"query": "x"})
+        [line] = self.log_lines()
+        self.assertEqual(line["tool"], mcp_server.UNKNOWN_TOOL)
+        self.assertNotIn("SECRET", self.log.read_text())
 
     def test_malformed_arguments_are_a_message_without_echoing_input(self):
         result = call(self.server, "search_hybrid", {"query": "SECRET ticket text", "k": "lots"})
@@ -240,6 +248,14 @@ class ToolsetTest(unittest.TestCase):
     def test_unknown_toolset_refuses_to_start(self):
         with self.assertRaises(ValueError):
             mcp_server.build_server(mcp_server.AuditCounter(None), toolset={"serach"})
+
+    def test_known_names_match_the_registered_tools_and_parameters(self):
+        async def go():
+            async with Client(mcp_server.build_server(mcp_server.AuditCounter(None), {"answer", "search"})) as client:
+                return await client.list_tools()
+        tools = asyncio.run(go())
+        self.assertEqual({t.name for t in tools}, mcp_server.KNOWN_TOOL_NAMES)
+        self.assertEqual({k for t in tools for k in t.input_schema["properties"]}, mcp_server.KNOWN_ARG_KEYS)
 
     def test_importing_does_not_patch_the_model_call(self):
         import llm
