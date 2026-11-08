@@ -33,6 +33,7 @@ import copy
 import hashlib
 import json
 import os
+import re
 import sys
 import urllib.request
 from datetime import datetime
@@ -104,9 +105,25 @@ SCENARIOS_NEED_V02 = (
 def scenarios_preflight() -> None:
     if not (os.getenv("ONBOARDING_STANDARD") or os.getenv("ONBOARDING_STANDARD_DIR")):
         raise SystemExit(SCENARIOS_NEED_V02)
-    # The scenarios are TC4 Step 5, pinned to v0.3: a folder alone would load the v0.4 default.
-    if not os.getenv("ONBOARDING_STANDARD") and os.getenv("ONBOARDING_STANDARD_VERSION") != TC4_STANDARD_VERSION:
-        raise SystemExit(f"--scenarios is TC4 work: set ONBOARDING_STANDARD_VERSION={TC4_STANDARD_VERSION} with ONBOARDING_STANDARD_DIR.")
+    # The scenarios are TC4 Step 5, pinned to v0.3, whichever way the standard is chosen: a folder alone would load
+    # the v0.4 default, and an explicit path could be any version. The pin is required in both cases (the endpoint
+    # then checks the file against it), and an explicit file must also declare it.
+    pin = f"--scenarios is TC4 work, pinned to standard v{TC4_STANDARD_VERSION}: "
+    if os.getenv("ONBOARDING_STANDARD_VERSION") != TC4_STANDARD_VERSION:
+        raise SystemExit(pin + f"set ONBOARDING_STANDARD_VERSION={TC4_STANDARD_VERSION} here and on the endpoint.")
+    path = os.getenv("ONBOARDING_STANDARD")
+    if path and declared_version(path) != TC4_STANDARD_VERSION:
+        raise SystemExit(pin + f"ONBOARDING_STANDARD declares v{declared_version(path)}.")
+
+
+def declared_version(path: str) -> str | None:
+    """The top-level `version:` of a standard file, read without a YAML parser (this script runs on plain python3)."""
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except OSError:
+        return None
+    match = re.search(r"""^version:\s*['"]?([^'"\s#]+)""", text, re.M)
+    return match.group(1) if match else None
 
 
 def of(k: int, n: int) -> str:
