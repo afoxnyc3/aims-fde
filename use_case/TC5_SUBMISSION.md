@@ -1,0 +1,194 @@
+# TC5: the question endpoint built a second way, and measured (DRAFT)
+
+> Draft 2026-11-07. Steps 3 to 5 are measured below. The Step 1 marks, the architecture row and the
+> stakeholder row are pending Alex's decisions and the Service Desk Manager session (Monday).
+
+## Step 2: the second way, and why
+
+Walking Session 10's ordering for the question endpoint (`search_hybrid` in a tool loop):
+
+1. **Already an HTTP API at work?** No. The retrieval over the standard and past tickets exists only here.
+2. **Does anything outside the codebase need to discover it?** **Yes.** Each stakeholder role in `stakeholders.md` has a seat in the organisation's Claude workspace (`ecosystem.md`, Week 5; project
+   owner's statement). How much those roles use Desktop and similar clients day to day is to be confirmed with
+   the Service Desk Manager, so this "yes" is conditional on that answer. They should reach the capability from Claude without importing our code.
+   **Second way: an MCP server.** Confirmation with the Service Desk Manager is pending (Step 7).
+3. Several calls, or calls that return a lot? Also yes (whole records, several searches): this is why
+   **Code Mode is the closest alternative not built.** It would keep the 4 to 8 KB of records per search out of
+   every model's context, but the guarded tool already keeps them out of the caller's, and Code Mode means
+   running model-written code, which needs a sandbox and a security review we do not have. It becomes the pick
+   if the switch condition in the Step 6 row fires (real-size numbers below).
+
+## Step 3: Way 2, running
+
+`01_Product_Engineering/challenge/mcp_server.py`: FastMCP 4.1.6, stdio, two tools behind one switch
+(`MCP_TOOLSET`):
+- `answer_onboarding_question` (**the shipped default**): the guarded question endpoint. It wraps
+  `qa.answer_question`, so declines, citation checks and the no-credentials rule all run inside the server,
+  and the caller gets back only the answer, its sources and any decline reason, never raw records.
+- `search_hybrid` (`MCP_TOOLSET=search`): the same raw search Way 1 gives its model. Used only for the like
+  for like measurement.
+
+Middlewares: `AuditCounter` logs every call's shape (tool, argument keys, response bytes, ms, error class,
+whether it reached the capability, and the model tokens the server spent on it; never values or results)
+and counts only calls that reached the capability, as Way 1's counter does. `ToolErrorMessages` turns
+unknown tools and bad arguments into short messages that never echo input, and an upstream outage into a
+fixed `UPSTREAM_UNAVAILABLE` marker. Our measurement client aborts the run on it, the same contract as
+Way 1; an outside client such as Claude Desktop does not abort, its model reads the marker. Tests:
+`python -m unittest test_mcp_server` (12 tests, offline). The guarded tool rejects an empty, blank or over-2,000-character question with a clear "Bad arguments" message before the capability runs. **Docker, checked 2026-11-07:** the image builds,
+and `docker run -i ... python mcp_server.py` lists only `answer_onboarding_question` and answered the
+one-lookup question (Front Desk Associate) through it.
+
+What the model gets back on a bad request (tested in `test_mcp_server.py`):
+
+| Request | Message to the model |
+| --- | --- |
+| unknown tool `lookup_team` | `Unknown tool 'lookup_team'. Available tools: search_hybrid.` |
+| `{"query": "...", "k": "lots"}` | `Bad arguments for 'search_hybrid': k: Input should be a valid integer, unable to parse string as an integer.` |
+| `{"k": "lots"}` | `Bad arguments for 'search_hybrid': query: Missing required argument; k: Input should be a valid integer, ...` |
+| guarded tool, `{"question": ""}` (or blank, or over 2,000 characters) | `Bad arguments for 'answer_onboarding_question': question: ...` (rejected before the capability runs; logged, not counted) |
+| shipped server, unknown tool `search_hybrid` | `Unknown tool 'search_hybrid'. Available tools: answer_onboarding_question.` |
+
+FastMCP's default validation text echoes the arguments back; ours does not, because arguments can carry ticket text.
+
+Point Claude Code or Claude Desktop at it (`.mcp.json`):
+
+```json
+{"mcpServers": {"onboarding-qa": {"command": "uv",
+  "args": ["run", "--directory", "<absolute path>/01_Product_Engineering/challenge",
+           "--env-file", "<absolute path to .env>", "python", "mcp_server.py"],
+  "env": {"CORPUS_PATH": "<absolute path to synthetic_v1.jsonl>",
+          "MCP_AUDIT_LOG": "<absolute path>/mcp_audit.jsonl", "MCP_PRELOAD": "1"}}}}
+```
+
+The app does not load `.env` itself, so `--env-file` is what gives the server its model and key; without it
+every guarded call returns `UPSTREAM_UNAVAILABLE`. The audit log is written only when `MCP_AUDIT_LOG` is set,
+so any deployment that relies on it (the counts, and the switch conditions below) must set it.
+
+## Steps 4 and 5: both ways measured
+
+`measure_tc5.py`, `anthropic/claude-sonnet-5-5` called **directly on Anthropic's API** through LiteLLM (no
+API base set), not through OpenRouter as in TC3 and TC4, so compare these numbers with earlier weeks' with care; same system prompt and loop limit (6 turns),
+3 runs per cell, **medians**. *Measured 2026-11-07.* Real-size rows: `use_case/evals/tc5_measure_run{1,2,3}.jsonl` (written with `--out`; the script's default name is `tc5_measure.jsonl`),
+taken after the MCP tool was given **the same description and parameter wording as Way 1's schema**. Demo-size
+rows and an earlier real-size round, taken before that change, are in `tc5_measure_schema_unmatched_run{1,2,3}.jsonl`.
+Way 2 runs against **one warm server session per size**, as Claude Desktop keeps a stdio server alive for a
+session. Session start-up is measured separately and is **about 2 s once per session**: this round the server
+loads and embeds the corpus before it answers the handshake (`MCP_PRELOAD`), so handshake 1.82 to 1.92 s and the first
+`list_tools` call 0.07 to 0.10 s, for both the raw-search and the guarded session (each recorded with its own timing). Earlier
+rounds warmed on the first call instead (1.8 to 3.0 s in total; those rounds are not on disk, only this one and the unmatched round are). An earlier version of this harness started a new server for every request,
+which put that cost into every row; those numbers are superseded.
+
+**Real size** (whole records, 4 by default; the model sets `k` up to 8, so **4.1 to 8.4 KB per raw-search
+response**, run averages). Way 2b is the guarded
+tool used the way an outside client would; its *client* tokens are what the caller's model reads, its
+*total* adds the tokens the server spends running the retrieval loop inside.
+
+| Request | Way | model calls (client) | capability calls | seconds | tokens (client) | tokens (total) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| one lookup | 1 tool | 2 | 2 | 4.9 | 9,136 | 9,136 |
+| one lookup | 2 MCP raw search (warm) | 2 | 2 | 5.6 | 8,991 | 8,991 |
+| one lookup | 2b MCP guarded (warm) | 2 | 1 guarded call* | 12.0 | 2,346 | 11,271 |
+| several lookups | 1 tool | 3 | 5 | 10.4 | 25,668 | 25,668 |
+| several lookups | 2 MCP raw search (warm) | 3 | 5 | 12.1 | 19,498 | 19,498 |
+| several lookups | 2b MCP guarded (warm) | 2 | 3 guarded calls* | 46.7 | 4,491 | 71,299 |
+
+\* For 2b, capability calls count calls to the guarded tool; each runs its own retrieval loop with several
+searches the client never sees (`server_model_turns` in the audit log), so these cells are not comparable with
+the search counts above them.
+
+Per run, several lookups: the tool made 5, 5, 5 searches in 3 turns each; raw-search MCP made 5, 7, 5, and the
+7-search run took a 4th turn and cost 42,340 tokens. The guarded server ran 9, 9 and 10 model turns of its own
+across 3 to 4 sub-questions (`server_model_turns`, from its audit log).
+
+All 18 real-size runs answered (no decline, by `retrieval.decline_reason`), and all 9 one-lookup runs named
+the expected role (`role_named`, a substring check for "front desk associate", so it would also pass an answer
+that names the role to reject it; read at n=9, not as grading). The several-lookups answers were not graded.
+
+**Demo size** (each hit cut to 300 characters; raw search only). **Not like for like:** these rows are from the round before the MCP tool's description was matched to Way 1's, and demo size was not re-run after matching. Read them for the size effect, not to compare the two ways:
+
+| Request | Way | model calls | capability calls | seconds | tokens |
+| --- | --- | ---: | ---: | ---: | ---: |
+| one lookup | 1 tool | 5 | 7 | 14.0 | 24,310 |
+| one lookup | 2 MCP (warm) | 6 | 6 | 14.0 | 23,414 |
+| several lookups | 1 tool | 5 | 10 | 15.3 | 30,476 |
+| several lookups | 2 MCP (warm) | 6 | 10 | 15.7 | 35,406 |
+
+**Parallel tool calls: yes.** The first turn asked for 1 to 4 tool calls at once (`len(msg.tool_calls)`), so
+capability calls usually exceed model calls and the round-trip argument does not apply to this model.
+
+**Findings**
+- **Raw search over MCP costs about what the in-app tool costs.** With matched schemas, warm, the medians match
+  on searches (2 and 5) and turns. Tokens: 8,991 vs 9,136 on one lookup; 19,498 vs 25,668 on several, where MCP's
+  searches happened to return smaller records (4.1 vs 5.5 KB), so that gap is the queries the model chose, not
+  the transport. The counts do not match run for run: on several lookups the tool made 5, 5, 5 searches and MCP
+  5, 7, 5 (the 7-search run took a 4th turn, 42,340 tokens). In the unmatched round on disk the tool made 6, 5, 7
+  and MCP 7, 5, 5. So 7-search, 4-turn runs happen on both paths; whether matching the
+  description made them rarer for MCP is unproven at this n. MCP's real cost is about 2 s once per session plus
+  a process to own and secure.
+- **The guarded tool is subagent-shaped.** The caller's model reads 4 to 6 times fewer tokens (2,346 vs
+  9,136; 4,491 vs 25,668), because the records stay inside the server. The total is higher: about 1.2x on one
+  lookup, and about 2.8x on several, because the client split the question into 3 or 4 calls and each ran its own
+  retrieval loop. It was also slower (12.0 s; 46.7 s). That is not start-up: with the corpus preloaded the
+  one-lookup median is 12.0 s, against 10.7 s in the unmatched round where the first question paid for
+  loading, so the time is the server's own 2-turn
+  model loop running behind the client's 2 turns. The several-lookups time is also our harness's doing: the client asked for
+  all three calls in one turn and our measurement loop sends them one at a time. A client that sends them
+  together could finish nearer one loop's time if the server runs them concurrently; that is untested, and
+  the server's per-call token counter assumes calls do not overlap. It buys a clean
+  caller context and the guards, and pays for them in total tokens and time.
+- **Demo size does not flatter this endpoint; it breaks it.** At 300 characters the role row is cut off,
+  the model searches to the turn limit, only 1 of 12 demo-size runs answered at all, and none named the role.
+- **The client cannot see the server's work.** Capability calls are counted by the client loop and by the
+  server's `AuditCounter`; they agreed on all 18 MCP rows. No call failed or was rejected in these runs
+  (`server_failed` = 0), so the failure path is covered by the unit tests, not by this data. The guarded
+  tool's model tokens are only visible from the server's log; the caller's own meter misses about 80 to 95%
+  of the cost.
+- **Small n:** across rounds, raw-search several-lookups runs ranged from about 19K to 44K tokens, more than 2x,
+  driven by whether the model took a fourth turn. Read the medians.
+
+**At 10x volume** (derived from the measured rows, not measured at 10x): cost per question follows **model
+turns**, not searches. Each turn re-reads everything gathered so far: in the tool rows 5 searches in 3 turns cost
+about 23 to 26K tokens (raw-search MCP's cost 19.4K, with smaller records), while the 7-search runs that needed a 4th turn cost 42 to 44K. On the shipped guarded path a
+question costs about 11K tokens (one lookup) to 71K (several), all chat-model tokens included (embedding the question adds a few tokens and is not counted). At [N] onboarding
+questions a day (Service Desk volume, to be confirmed Monday), 10x is [10N] a day, or about [10N × 11K to
+71K] tokens a day against [budget]. For illustration only, at 20 a day, 10x is 200 questions and 2.2M to
+14M tokens a day. What changes the slope is per-question cost: doubling the record size would roughly double
+the accumulated context, and so the per-turn cost, for the tool and for raw-search MCP; the guarded tool
+keeps the records out of the caller's context, and Code Mode would keep them out of every model's context.
+
+## Steps 1, 6, 7, 8: pending
+
+- Step 1 marks: proposed in the private feedback doc; Alex to confirm, then record under
+  `## Week 5 — what the room asked` in `decisions.md`.
+- Step 6 architecture row: draft below, Alex to decide, then copy into `decisions.md`. Step 6.2 (the Step 1
+  open question, answered or explained in the row) is filled once the marks are confirmed.
+- Step 7 stakeholder row: Service Desk Manager, Monday.
+
+**Draft architecture row (for Alex):** *Decision:* keep the in-app tool for the endpoint, and expose the
+**guarded** question endpoint as an MCP tool, which makes it a **subagent behind MCP** (a model loop that reads a lot and returns a little) (`answer_onboarding_question`, built and measured) for the
+named outside callers: staff in the organisation's Claude workspace, where every stakeholder role has a seat
+(`ecosystem.md` Week 5). *Rejected:* raw search over MCP,
+built and measured: with the tool description matched, its median searches and turns equal the tool's (one lookup 8,991 vs
+9,136 tokens; several 19,498 vs 25,668, the gap being smaller records returned, not the transport). Both paths
+occasionally take a 4th turn and 7 searches; whether matching the description affects how often is unproven at
+n=3. It buys reach but hands outside models the
+whole records and skips the guards. Code Mode, most seriously among the unbuilt: it would keep intermediate
+records out of context, but the guarded tool already does that for the caller, and Code Mode means running
+model-written code, which needs a sandbox and a security review we do not have. Gradio's built-in MCP mode
+over the existing HTTP endpoint is the other route to the same guarded tool (Q1 arguably applies once the
+caller needs the guarded endpoint); not tried, because whether `gradio.Server` supports it was not checked.
+A skill is the wrong shape for retrieval; UTCP has no existing third-party API to describe. *Cost:* about 2 s
+per session to start the server; per question, about 1.2x the tool's total tokens for a single lookup and
+about 2.8x for a multi-part question, against a caller context 4 to 6x smaller, and 2.5 to 4.5x the time. *Switch conditions:* (1) if
+multi-part questions dominate real usage and total cost matters more than caller context, give the guarded
+tool a multi-question input so one retrieval loop serves them; (2) to Code Mode when a sandbox is approved and,
+over a calendar month of real use, the guarded server's audit log shows either a median above [X]K server
+tokens per retrieval loop or more than [Y]% of loops needing a 4th model turn. The log records
+`server_model_tokens` and `server_model_turns` per call, so this is checkable on real traffic, not only in the
+harness. It reads the shipped guarded path, per retrieval loop (one sub-question), not per client request: today
+a loop costs about 8 to 9K tokens in 2 turns for one lookup and about 20K in about 3 turns per sub-question on
+several lookups. The two conditions are one trigger: every 3-turn run so far cost at most 27K and every 4-turn
+run 42 to 44K. [Budget the threshold is tied to: Alex to set, e.g. cost per question or latency]; (3) drop
+the MCP server if no Claude user calls it within a quarter of launch (the audit log counts this).
+*Open:* a stdio server has no caller identity, so per-caller scoping needs a hosted server with
+authentication, which is the same open hosting question as in `ecosystem.md`.

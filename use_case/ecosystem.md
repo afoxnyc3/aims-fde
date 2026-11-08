@@ -191,6 +191,17 @@ What the question endpoint would need to index real tickets. Drawn from two quer
 
 ---
 
+## Week 5 — who else would call this capability
+
+**Source:** project owner, 2026-11-07. To be confirmed with the Service Desk Manager in the Week 5 stakeholder session.
+
+- Every stakeholder role has a seat in the organisation's Claude workspace (Desktop and similar clients); how much each role uses them day to day is to be confirmed.
+- Each role named in `stakeholders.md` has a seat (daily use to be confirmed): CTO, Senior Product Manager, Senior Systems Administrator, Service Desk Manager, Technology Support Associate, and the business owners for each fitness role family.
+- What they would use it for now: ask questions of the onboarding standard and past tickets from inside Claude.
+- Future work, outside the charter: once an access-system connection exists, see which staff hold which role and what that role allows, inside Claude, for analysis and reporting. That is staff access data and needs its own scoping and approval.
+- This is the named outside caller for TC5 ordering question 2. It is also the reason the server must expose the guarded endpoint (declines, citation checks, no credentials), not raw search, and must scope what each caller can see.
+- Open: whether managed laptops may run a local MCP server, or whether it must be hosted privately and reached over the corporate network. Anthropic's remote (custom) connectors are called from Anthropic's cloud, so the server must be reachable from the public internet ([Anthropic: custom connectors using remote MCP](https://support.claude.com/en/articles/11175166-getting-started-with-custom-connectors-using-remote-mcp)), which the deployment rules forbid. A local stdio server also has no caller identity, so per-caller scoping needs the hosted option with authentication.
+
 ## Week 9 — the full checklist
 
 <!--
