@@ -64,13 +64,16 @@ class Scorers(unittest.TestCase):
         self.assertEqual(self.score("SYN-ASK-001", right, right), 0.0)  # recommended before it knew the name
 
     def test_rehire_goes_to_review_on_turn_one_not_an_ask(self):
-        handoff = response("human_review", review_reason="exception", jira_comment="Missing from the intake: person_name.")
+        handoff = response("human_review", review_reason="exception", jira_comment="Missing from the intake: person_name.",
+                           review_missing_fields=["person_name"])
         review = response("human_review", review_reason="exception", jira_comment="Re-hire.")
         self.assertEqual(self.score("SYN-ASK-002", handoff, review), 1.0)
+        prose_only = response("human_review", review_reason="exception", jira_comment="Missing from the intake: person_name.")
+        self.assertEqual(self.score("SYN-ASK-002", prose_only, review), 0.0)  # the gap must also be data, not only prose
         self.assertEqual(self.score("SYN-ASK-002", ASK, review), 0.0)  # asked first: the wasted round trip
         self.assertEqual(self.score("SYN-ASK-002", review, review), 0.0)  # review, but the gap is not in the handoff
         invented = response("human_review", review_reason="exception", jira_comment="Missing from the intake: person_name.",
-                            standard_proposal=proposal("Invented Person"))
+                            review_missing_fields=["person_name"], standard_proposal=proposal("Invented Person"))
         self.assertEqual(self.score("SYN-ASK-002", invented, review), 0.0)  # a baseline before the name is known
         baseline_later = response("human_review", review_reason="exception", standard_proposal=proposal("Marcus Ellery-Dunn"))
         self.assertEqual(self.score("SYN-ASK-002", handoff, baseline_later), 1.0)  # allowed once the name arrives

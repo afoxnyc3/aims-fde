@@ -7,14 +7,16 @@ The file supplies everything specific to the organisation: version, business_uni
 venues.in_club, out_of_scope_business_units, out_of_scope_venue_prefixes, aliases, and roles,
 each with title, staff_login, company_mailbox and account_role.
 
-Decision order, first match wins (the standard's decision_rules):
+Decision order, first match wins (the standard's decision_rules, except the re-hire order below,
+which is pending the Service Desk Manager's sign-off; the private standard still asks first):
   ignored            -> not an onboarding request
   needs_information  -> person name, job title or venue missing; personal email missing or unusable
                         for a role with no company mailbox; trainer level missing; the intake
                         contradicts itself. Not for a re-hire: see exception below
   human_review       -> out-of-scope unit, ambiguous identity, duplicate; then exception, which a
                         re-hire ("Re-hire: YES" or the extracted flag) reaches even with facts
-                        missing, naming them in the comment (TC5: an ask would be a wasted round
+                        missing, listing them in review_missing_fields / contradictory_fields and
+                        the comment, with no standard proposal (TC5: an ask would be a wasted round
                         trip); then unmapped title, blank matrix cell (standard_gap), login but
                         no mapped account-system role (role_unmapped)
   recommended        -> role, login yes/no, account-system role, venue, trainer level
@@ -140,11 +142,14 @@ TRIGGERS = [
 ONBOARDING_TYPES = {"employee onboarding"}
 
 
+def intake_triggers(text: str) -> list[str]:
+    """Every exception trigger the intake text hits, in TRIGGERS order."""
+    return [name for name, rx in TRIGGERS if rx.search(text or "")]
+
+
 def intake_trigger(text: str) -> str | None:
-    for name, rx in TRIGGERS:
-        if rx.search(text or ""):
-            return name
-    return None
+    found = intake_triggers(text)
+    return found[0] if found else None
 
 
 def _usable_email(email: str | None) -> bool:
@@ -179,7 +184,8 @@ def decide(request: Request, facts, std: dict) -> Response:
         return _out(request, Status.IGNORED, "Not a new-hire onboarding request.")
     role = resolve_role(facts.job_title, std)
     missing = _missing_fields(facts, role)
-    trigger = intake_trigger(request.ticket_text)
+    triggers = intake_triggers(request.ticket_text)
+    trigger = triggers[0] if triggers else None
     # A re-hire needs a person whatever the requester answers, so asking first only adds a round trip: it skips
     # the ask and reaches the exception review below with the gaps listed. Only "Re-hire: YES" and the extracted
     # flag count; the broad transfer/promotion regex would let a stray "promotion" suppress a needed ask.
@@ -187,13 +193,12 @@ def decide(request: Request, facts, std: dict) -> Response:
     if missing and not rehire:
         return _out(request, Status.NEEDS_INFORMATION, "Provide: " + ", ".join(missing) + ".", missing_fields=missing)
 
-    def review(reason, text):
+    def review(reason, text, **extra):
         details = {"review_reason": reason}
         if reason == "exception":
             details.update(exception_difference=[text], approval_owner_role=None,
-                           # No tier built on facts the intake lacks or contradicts: the reviewer gets the gaps instead.
-                           standard_proposal=None if missing else _baseline(facts, role, std, names))
-        return _out(request, Status.HUMAN_REVIEW, text, **details)
+                           standard_proposal=extra.pop("standard_proposal", None))
+        return _out(request, Status.HUMAN_REVIEW, text, **details, **extra)
 
     names = list(dict.fromkeys(_norm(v) for v in facts.venue_names))  # one club named twice is one club
     unit = _norm(facts.business_unit)
@@ -206,12 +211,21 @@ def decide(request: Request, facts, std: dict) -> Response:
     # A re-hire with gaps always reaches this branch (rehire implies the condition), after the three checks above,
     # so one that is also out of scope or a duplicate keeps that reason.
     if facts.rehire_transfer_or_promotion or facts.additional_access_request or trigger:
-        # Every reason, not the first found: a re-hire that also asks for extra access must say both.
-        reasons = [facts.additional_access_request, trigger,
-                   "re-hire, transfer, promotion or title change" if facts.rehire_transfer_or_promotion and not trigger else None]
+        # Every reason, not the first found: a re-hire that also asks for extra access, or whose intake also
+        # asks to mirror a colleague, must say both.
+        reasons = [facts.additional_access_request, *triggers,
+                   # The flag names its own reason unless a re-hire/transfer trigger already did (a hardware hit does not).
+                   "re-hire, transfer, promotion or title change"
+                   if facts.rehire_transfer_or_promotion and not set(triggers) & {"re-hire", "transfer or promotion"} else None]
         what = "; ".join(dict.fromkeys(r for r in reasons if r))
-        gaps = _gaps(facts, missing)
-        return review("exception", "Requested outside the standard: " + what + "." + gaps + " Assign the standard tier, never a mirror.")
+        absent, contradictory = _gaps(facts, missing)
+        # No tier is built on facts the intake lacks or contradicts: the reviewer gets the gaps instead.
+        baseline = None if missing else _baseline(facts, role, std, names)
+        text = "Requested outside the standard: " + what + "." + _gaps_sentence(absent, contradictory)
+        text += (" Assign the standard tier, never a mirror." if baseline else
+                 " No standard tier can be proposed yet; never mirror another user's access.")
+        return review("exception", text, standard_proposal=baseline,
+                      review_missing_fields=absent, contradictory_fields=contradictory)
     if role is None:
         return review("ambiguous_mapping", f"The title '{facts.job_title}' is not in the role matrix.")
     if any(n not in std["venues"] for n in names):
@@ -237,17 +251,19 @@ def _out_of_scope_venue(name: str, std: dict) -> bool:
     return name in std["out_of_scope"] or any(name == p or name.startswith(p + " ") for p in std["out_of_scope_prefixes"])
 
 
-def _gaps(facts, missing: list[str]) -> str:
-    """The handoff sentence for a re-hire that skipped the ask: what is absent, and what is there but conflicts."""
-    if not missing:
-        return ""
+def _gaps(facts, missing: list[str]) -> tuple[list[str], list[str]]:
+    """For a re-hire that skipped the ask: (fields absent from the intake, fields it gives but contradicts)."""
     present = {"venue": bool(facts.venue_names), "personal_email": _usable_email(facts.employee_email)}
     conflict = {"venue": "venue", "employee_email": "personal_email"}.get(facts.intake_contradiction)
     contradictory = [f for f in missing if f == conflict and present.get(f)]
-    absent = [f for f in missing if f not in contradictory]
+    return [f for f in missing if f not in contradictory], contradictory
+
+
+def _gaps_sentence(absent: list[str], contradictory: list[str]) -> str:
+    """The same gaps as the structured fields, in the comment the reviewer reads."""
     parts = ([f"Missing from the intake: {', '.join(absent)}."] if absent else []) + \
             ([f"Contradictory in the intake: {', '.join(contradictory)}."] if contradictory else [])
-    return " " + " ".join(parts) + " Resolve them during review."
+    return " " + " ".join(parts) + " Resolve them during review." if parts else ""
 
 
 def _baseline(facts, role, std, names):

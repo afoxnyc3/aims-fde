@@ -385,6 +385,22 @@ class Response(BaseModel):
             "empty otherwise."
         ),
     )
+    # A re-hire skips the ask (it needs a person anyway), so its gaps travel with the review.
+    # Separate from missing_fields, which means "ask the requester" and stays needs_information only.
+    review_missing_fields: list[str] = Field(
+        default_factory=list,
+        description=(
+            "For an exception review that skipped the ask: ticket facts absent from the intake, "
+            "for the reviewer to collect. Empty otherwise."
+        ),
+    )
+    contradictory_fields: list[str] = Field(
+        default_factory=list,
+        description=(
+            "For an exception review that skipped the ask: ticket facts the intake gives but "
+            "contradicts, for the reviewer to resolve. Empty otherwise."
+        ),
+    )
     approval_owner_role: str | None = Field(
         default=None,
         description=(
@@ -444,6 +460,17 @@ class Response(BaseModel):
             or self.approval_owner_role is not None
         ):
             raise ValueError("standard proposal and exception details belong only to exception review")
+        return self
+
+    @model_validator(mode="after")
+    def _review_gaps_match_reason(self) -> Response:
+        """Gaps handed to a reviewer belong only to an exception review, and rule out a baseline:
+        no standard tier is built on facts the intake lacks or contradicts."""
+        if self.review_missing_fields or self.contradictory_fields:
+            if self.review_reason != "exception":
+                raise ValueError("review gaps belong only to exception review")
+            if self.standard_proposal is not None:
+                raise ValueError("an exception review with gaps carries no standard proposal")
         return self
 
 
