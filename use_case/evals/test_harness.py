@@ -164,6 +164,25 @@ class UnnecessaryAsks(unittest.TestCase):
         self.assertTrue(rows["endpoint", "test"].endswith("| 2 of 29 (7%) | 8 of 29 (28%) | 0 of 29 (0%) |"), rows["endpoint", "test"])
         self.assertTrue(rows["endpoint", "grid"].endswith("| 11 of 180 (6%) | 0 of 180 (0%) | 7 of 180 (4%) |"), rows["endpoint", "grid"])
 
+    def test_the_name_policy_rescore_from_the_saved_outputs(self):
+        # 2026-11-07: no surname goes back to the manager, so 10 recommended labels became needs_information.
+        test_run = evals.harness.load(run.COMMITTED / "endpoint_test.json")
+        rescored = run.rescore(test_run, run.current_labels("test"))
+        self.assertEqual(sum(r.scores["status_accuracy"] for r in rescored.results), 22)
+        self.assertEqual(sum(r.scores["no_over_privilege"] < 1.0 for r in rescored.results), 2)
+        self.assertEqual(evals.count_asks(rescored), (0, 0, 29))
+        dev = run.rescore(evals.harness.load(run.COMMITTED / "endpoint_dev.json"), run.current_labels("dev"))
+        self.assertEqual(sum(r.scores["status_accuracy"] for r in dev.results), 27)
+        self.assertEqual(test_run.means["status_accuracy"], 14 / 29)  # the saved run itself is untouched
+
+    def test_a_recommendation_against_a_relabelled_ask_becomes_an_over_grant(self):
+        test_run = evals.harness.load(run.COMMITTED / "endpoint_test.json")
+        labels = run.current_labels("test")
+        first = test_run.results[0]
+        self.assertEqual(evals.parse(first.actual)["status"], "recommended")
+        labels[first.input] = {**labels[first.input], "status": "human_review"}
+        self.assertEqual(run.rescore(test_run, labels).results[0].scores["no_over_privilege"], 0.0)
+
     def test_errored_cases_leave_every_column_and_an_all_errored_run_does_not_divide_by_zero(self):
         real_load = evals.harness.load
 
