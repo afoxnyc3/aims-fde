@@ -129,6 +129,74 @@ class CommittedBaseline(unittest.TestCase):
             self.assertFalse(run.committed_report(baseline_path=run.COMMITTED / "oracle_test.json"))
 
 
+class UnnecessaryAsks(unittest.TestCase):
+    """An ask is unnecessary when the endpoint says needs_information and the label is recommended."""
+
+    def test_the_definition(self):
+        self.assertTrue(evals.unnecessary_ask({"status": "recommended"}, {"status": "needs_information"}))
+        self.assertFalse(evals.unnecessary_ask({"status": "needs_information"}, {"status": "needs_information"}))
+        self.assertFalse(evals.unnecessary_ask({"status": "human_review"}, {"status": "needs_information"}))
+        self.assertFalse(evals.unnecessary_ask({"status": "recommended"}, {"status": "human_review"}))
+        self.assertFalse(evals.unnecessary_ask({"status": "recommended"}, {}))
+
+    def test_a_missed_ask_is_the_other_direction(self):
+        self.assertTrue(evals.missed_ask({"status": "needs_information"}, {"status": "recommended"}))
+        self.assertFalse(evals.missed_ask({"status": "needs_information"}, {"status": "human_review"}))
+        self.assertFalse(evals.missed_ask({"status": "recommended"}, {"status": "needs_information"}))
+
+    def test_counted_from_a_saved_run_and_errors_left_out(self):
+        test_run = evals.harness.load(run.COMMITTED / "endpoint_test.json")
+        self.assertEqual(evals.count_asks(test_run), (8, 0, 29))
+        self.assertEqual(evals.count_asks(evals.harness.load(run.COMMITTED / "endpoint_grid.json")), (0, 7, 180))
+        self.assertEqual(evals.count_asks(evals.harness.load(run.COMMITTED / "oracle_test.json")), (0, 0, 29))
+        test_run.results[0].error = "boom"
+        self.assertEqual(evals.count_asks(test_run)[2], 28)
+
+    def report_rows(self):
+        with mock.patch("builtins.print") as printed:
+            run.committed_report()
+        table = printed.call_args_list[0].args[0]
+        self.assertIn("| over-access | unnecessary asks | missed asks |", table)
+        return {tuple(cell.strip() for cell in line.split("|")[1:3]): line for line in table.splitlines()[2:]}
+
+    def test_the_committed_report_puts_both_beside_over_access_on_one_denominator(self):
+        rows = self.report_rows()
+        self.assertTrue(rows["endpoint", "test"].endswith("| 2 of 29 (7%) | 8 of 29 (28%) | 0 of 29 (0%) |"), rows["endpoint", "test"])
+        self.assertTrue(rows["endpoint", "grid"].endswith("| 11 of 180 (6%) | 0 of 180 (0%) | 7 of 180 (4%) |"), rows["endpoint", "grid"])
+
+    def test_errored_cases_leave_every_column_and_an_all_errored_run_does_not_divide_by_zero(self):
+        real_load = evals.harness.load
+
+        def load(path):
+            report = real_load(path)
+            if Path(path).name == "endpoint_test.json":
+                report.results[0].error = "boom"
+            if Path(path).name == "echo_dev.json":
+                for r in report.results:
+                    r.error = "boom"
+            return report
+
+        with mock.patch.object(evals.harness, "load", side_effect=load):
+            rows = self.report_rows()
+        self.assertIn("| endpoint | test | 29 (1 errored) |", rows["endpoint", "test"])
+        self.assertTrue(rows["endpoint", "test"].endswith("of 28 (0%) |"), rows["endpoint", "test"])
+        self.assertTrue(rows["echo", "dev"].endswith("| 0 of 0 | 0 of 0 | 0 of 0 |"), rows["echo", "dev"])
+
+
+class ScenariosPreflight(unittest.TestCase):
+    def test_scenarios_refuse_to_run_without_the_v02_standard(self):
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch("sys.argv", ["run.py", "--scenarios"]), \
+             mock.patch.object(run, "make_endpoint") as endpoint:
+            with self.assertRaises(SystemExit) as stopped:
+                run.main()
+        self.assertIn("ONBOARDING_STANDARD", str(stopped.exception.code))
+        endpoint.assert_not_called()  # no client, no model call
+
+    def test_set_standard_passes_the_check(self):
+        with mock.patch.dict(os.environ, {"ONBOARDING_STANDARD": "/private/std.yaml"}):
+            run.scenarios_preflight()
+
+
 class SavedRun(unittest.TestCase):
     def test_a_long_response_stays_valid_json(self):
         long_answer = json.dumps({"declined": False, "answer": "x" * 5000, "sources": []})
