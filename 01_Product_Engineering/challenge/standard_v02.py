@@ -11,7 +11,7 @@ Decision order, first match wins (the standard's decision_rules, except the re-h
 confirmed by the owner 2026-11-07; transfers and promotions follow the same rule. The private v0.3
 runner behind the saved TC4 runs predates it and still asks first):
   ignored            -> not an onboarding request
-  needs_information  -> person name, job title or venue missing; personal email missing or unusable
+  needs_information  -> person name without a surname (has_surname), job title or venue missing; personal email missing or unusable
                         for a role with no company mailbox; trainer level missing; the intake
                         contradicts itself. Not for a re-hire, transfer or promotion: see exception
   human_review       -> out-of-scope unit, ambiguous identity, duplicate; then exception, which a
@@ -160,9 +160,27 @@ def _usable_email(email: str | None) -> bool:
     return bool(at and local and domain) and not any(ch.isspace() for ch in email)
 
 
+_EDGE_PUNCTUATION = ".,;:()[]\"'’"
+_INNER_NAME_MARKS = "-'’"
+
+
+def has_surname(name: str | None) -> bool:
+    """True when the name has a given name and a surname: at least two name tokens. Pure, no model call.
+
+    Owner's name policy, 2026-11-07: a legal surname is required; without one the intake goes back to the
+    requesting manager. A name token is letters, optionally joined by a hyphen or apostrophe ("García-López",
+    "O'Neill"), with at least two letters, so an initial ("S.") is not one. Anything with "@", a dot inside a
+    word, an underscore or a digit is a handle, not a name, and does not count ("sam.smith", "rq4471").
+    """
+    tokens = [t.strip(_EDGE_PUNCTUATION) for t in (name or "").split()]
+    names = [t for t in tokens if t and sum(c.isalpha() for c in t) >= 2
+             and all(c.isalpha() or c in _INNER_NAME_MARKS for c in t)]
+    return len(names) >= 2 and "@" not in (name or "")
+
+
 def _missing_fields(facts, role) -> list[str]:
     missing = []
-    if not facts.person_name:
+    if not has_surname(facts.person_name):  # empty, first name only, initials or a handle: ask for the legal name
         missing.append("person_name")
     if not facts.job_title:
         missing.append("job_title")

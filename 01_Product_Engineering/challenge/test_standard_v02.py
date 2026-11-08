@@ -375,6 +375,48 @@ class StandardV02Tests(unittest.TestCase):
         r = self.run_with(facts(venue_names=[], intake_contradiction="venue"))
         self.assertEqual(r.missing_fields, ["venue"])
 
+    # Owner's name policy, 2026-11-07: a legal surname is required; no surname goes back to the requesting manager.
+    def test_has_surname_shapes(self):
+        cases = {
+            "Sam": False,                          # single token
+            "sam.smith@example.invalid": False,    # email handle
+            "ssmith": False,                       # bare handle
+            "sam.smith": False,                    # dotted handle, no space
+            "S.": False,                           # initial only
+            "S. J.": False,                        # initials only
+            "Sam S.": False,                       # a surname initial is not a surname
+            "  Sam,  ": False,                     # whitespace and punctuation around a single name
+            None: False,
+            "": False,
+            "Sam Smith": True,
+            "  Sam Smith.  ": True,                # surrounding whitespace and punctuation
+            "Ana García-López": True,              # hyphenated, non-ASCII
+            "Van der Berg": True,                  # multi-part surname
+            "Riley O'Neill": True,                 # apostrophe
+            "Smith, Sam": True,                    # surname first
+        }
+        for name, expected in cases.items():
+            with self.subTest(name=name):
+                self.assertIs(standard_v02.has_surname(name), expected)
+
+    def test_first_name_only_is_asked_for_the_surname(self):
+        r = self.run_with(facts(person_name="Sam"))
+        self.assertEqual((r.status, r.missing_fields), (Status.NEEDS_INFORMATION, ["person_name"]))
+        self.assertIsNone(r.answer)
+
+    def test_a_full_name_is_unchanged(self):
+        r = self.run_with(facts(person_name="Ana García-López"))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        self.assertEqual(r.answer.person_name, "Ana García-López")
+        self.assertEqual(r.missing_fields, [])
+
+    def test_flagged_rehire_with_a_first_name_only_goes_to_review_with_the_gap(self):
+        r = self.run_text("Re-hire: YES", facts(person_name="Sam"))
+        self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, "exception"))
+        self.assertEqual(r.missing_fields, [])
+        self.assertEqual(r.review_missing_fields, ["person_name"])
+        self.assertIsNone(r.standard_proposal)
+
     def test_dockerfile_copies_the_module_onboarding_imports(self):
         self.assertIn("standard_v02.py", (Path(__file__).parent / "Dockerfile").read_text())
 

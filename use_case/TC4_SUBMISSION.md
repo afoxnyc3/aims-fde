@@ -60,7 +60,7 @@ Both endpoints answer one ticket or one question and hold no conversation, so th
 
 **Run live on 2026-11-07: 3 of 3 passed.** The first attempt passed 2 of 3, because of the fixture, not the endpoint: the scenario intakes named demo-only venues ("Venue A", "Venue B") that do not exist in the v0.3 standard. They now name Club A and Club B, and the re-run passed all three. One run each, so this shows the scenarios can pass, not how often.
 
-**A first-name-only probe** (an intake that gives only a first name) gets an ask for the surname. That is now policy (the name policy below), but the code does not enforce it yet: the v0.2 decision code checks only that extraction returned a name, so the ask came from extraction, not from a rule. A deterministic surname check is a follow-up. Whether the club-management system itself rejects an account with no surname is being checked on its TEST environment, for the record.
+**A first-name-only probe** (an intake that gives only a first name) gets an ask for the surname. That is now policy (the name policy below), and since #52 the v0.2 decision code enforces it with a deterministic surname check (`has_surname` in `standard_v02.py`, no model call). The saved baseline runs came from the private v0.3 runner, so the 22 of 29 (test) and 27 of 29 (dev) rescores are unchanged by that change and were not re-run. Whether the club-management system itself rejects an account with no surname is being checked on its TEST environment, for the record.
 
 ## Step 6: the baseline
 
