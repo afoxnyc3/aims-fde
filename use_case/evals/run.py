@@ -154,7 +154,9 @@ def rescore(run: "evals.harness.RunReport", labels: dict[str, dict]) -> "evals.h
     for key in out.means:
         out.means[key] = sum(r.scores.get(key, 0.0) for r in out.results) / out.n if out.n else 0.0
     out.errors = sum(bool(r.error) for r in out.results)
-    digest = hashlib.sha256(json.dumps([run.fingerprint, [r.expected for r in out.results]]).encode()).hexdigest()[:16]
+    # Which tickets were left out is part of the cohort: dropping a different case must not compare as the same run.
+    cohort = [[r.input, r.expected, bool(r.error)] for r in out.results]
+    digest = hashlib.sha256(json.dumps([run.fingerprint, cohort]).encode()).hexdigest()[:16]
     out.fingerprint = digest
     out.meta = {**out.meta, "rescored_against": "current labels", "rescored_from": run.fingerprint}
     out.meta.pop("ci95", None)  # the recorded interval belongs to the recorded scores

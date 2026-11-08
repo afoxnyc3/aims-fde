@@ -226,6 +226,16 @@ class UnnecessaryAsks(unittest.TestCase):
         self.assertIn("no current label", rescored.results[0].error)
         self.assertEqual(evals.count_asks(rescored)[2], 28)
 
+    def test_dropping_a_different_ticket_changes_the_fingerprint(self):
+        # Codex review: two runs that left out different cases must not compare as the same cohort.
+        grid = evals.harness.load(run.COMMITTED / "endpoint_grid.json")
+        prints = []
+        for i in (0, 1):
+            labels = run.current_labels("grid")
+            del labels[grid.results[i].input]
+            prints.append(run.rescore(grid, labels).fingerprint)
+        self.assertNotEqual(*prints)
+
     def test_errored_cases_leave_every_column_and_an_all_errored_run_does_not_divide_by_zero(self):
         real_load = evals.harness.load
 
