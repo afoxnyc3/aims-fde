@@ -18,6 +18,7 @@ ToolErrorMessages (unknown tools and bad arguments as short messages that never 
 input; an upstream outage as the fixed UPSTREAM_UNAVAILABLE marker).
 """
 
+import contextvars
 import json
 import os
 import time
@@ -41,16 +42,19 @@ import retrieval
 from qa_schema import QuestionRequest
 
 # Model tokens the server spends on behalf of a call (the guarded tool runs its own
-# retrieval loop). Counted here because the outside client cannot see them.
-_server_tokens = {"total": 0, "turns": 0}
+# retrieval loop). Counted here because the outside client cannot see them. One counter
+# per call, in a ContextVar: FastMCP runs sync tools in worker threads (anyio copies the
+# context in), so two overlapping calls each count only their own completions.
+_call_tokens: contextvars.ContextVar[dict | None] = contextvars.ContextVar("call_tokens", default=None)
 _raw_call_with_retry = llm.call_with_retry
 
 
 def _counting_call_with_retry(call, **kwargs):
     response = _raw_call_with_retry(call, **kwargs)
-    if call is litellm.completion:
-        _server_tokens["total"] += int(getattr(response.usage, "total_tokens", 0) or 0)
-        _server_tokens["turns"] += 1
+    counter = _call_tokens.get()
+    if counter is not None and call is litellm.completion:
+        counter["total"] += int(getattr(response.usage, "total_tokens", 0) or 0)
+        counter["turns"] += 1
     return response
 
 
@@ -65,9 +69,9 @@ def install_token_counter() -> None:
 KNOWN_TOOLSETS = {"answer", "search"}
 TOOLSET = {part.strip() for part in (os.getenv("MCP_TOOLSET") or "answer").split(",") if part.strip()}
 
-# The measurement sets HIT_CHARS to compare demo-size and real-size responses.
-if os.getenv("HIT_CHARS"):
-    retrieval.HIT_CHARS = int(os.environ["HIT_CHARS"])
+# Every parameter name a tool here takes. The audit log records only these, plus a count of
+# any others: a client chooses its argument names, so an unknown key can carry content.
+KNOWN_ARG_KEYS = {"question", "query", "k"}
 
 # The capability lives in retrieval.py, unchanged. Loading the corpus is lazy so
 # the server starts (and lists its tools) even before the corpus is mounted.
@@ -111,7 +115,8 @@ class AuditCounter(Middleware):
     async def on_call_tool(self, context, call_next):
         name = context.message.name
         started = time.perf_counter()
-        tokens_before, turns_before = _server_tokens["total"], _server_tokens["turns"]
+        tokens = {"total": 0, "turns": 0}
+        token = _call_tokens.set(tokens)
         result, error = None, None
         try:
             result = await call_next(context)
@@ -120,6 +125,7 @@ class AuditCounter(Middleware):
             error = _root_error(exc)
             raise
         finally:
+            _call_tokens.reset(token)
             # A call that reached the capability counts whether it succeeded or raised;
             # a call rejected by dispatch or validation is logged but not counted.
             reached = error not in REJECTED_BEFORE_CAPABILITY
@@ -128,11 +134,12 @@ class AuditCounter(Middleware):
             if self.log_path:
                 size = sum(len((getattr(block, "text", "") or "").encode("utf-8"))
                            for block in getattr(result, "content", []) or [])
-                line = {"tool": name, "arg_keys": sorted((context.message.arguments or {}).keys()),
+                keys = (context.message.arguments or {}).keys()
+                line = {"tool": name, "arg_keys": sorted(k for k in keys if k in KNOWN_ARG_KEYS),
+                        "unknown_arg_count": sum(1 for k in keys if k not in KNOWN_ARG_KEYS),
                         "response_bytes": size, "ms": round((time.perf_counter() - started) * 1000),
                         "error": error, "reached": reached,
-                        "server_model_tokens": _server_tokens["total"] - tokens_before,
-                        "server_model_turns": _server_tokens["turns"] - turns_before}
+                        "server_model_tokens": tokens["total"], "server_model_turns": tokens["turns"]}
                 with self.log_path.open("a") as handle:
                     handle.write(json.dumps(line) + "\n")
 
@@ -191,7 +198,8 @@ def build_server(audit: AuditCounter | None = None, toolset: set[str] | None = N
 
     if "search" in toolset:
         # Same name, description and parameter wording as Way 1's hand-written schema
-        # (retrieval.TECHNIQUES["agentic_hybrid"]), so the model sees the same tool either way.
+        # (retrieval.TECHNIQUES["agentic_hybrid"]). Not byte-identical: FastMCP adds "default": 4 on k
+        # and "additionalProperties": false. test_mcp_server pins exactly that difference.
         way1 = retrieval.TECHNIQUES["agentic_hybrid"][0]["function"]
 
         @server.tool(description=way1["description"])
@@ -203,6 +211,10 @@ def build_server(audit: AuditCounter | None = None, toolset: set[str] | None = N
 
 
 if __name__ == "__main__":
+    # The measurement sets HIT_CHARS to compare demo-size and real-size responses. Applied only
+    # when this runs as the server, so importing it (measure_tc5.py, tests) leaves retrieval alone.
+    if os.getenv("HIT_CHARS"):
+        retrieval.HIT_CHARS = int(os.environ["HIT_CHARS"])
     install_token_counter()
     server = build_server()
     if os.getenv("MCP_PRELOAD"):

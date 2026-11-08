@@ -97,7 +97,7 @@ async def way2_mcp(question: str, meter: Meter, client: Client, audit: Path, sys
     server alive for a session. Its start-up cost is measured separately (see open_session).
     """
     audit.write_text("")
-    client_calls, answer = 0, ""
+    client_calls, answer, server_declined = 0, "", 0
     listed = await client.list_tools()
     tools = [{"type": "function", "function": {"name": t.name, "description": t.description or "",
                                                "parameters": getattr(t, "input_schema", None) or t.inputSchema}} for t in listed]
@@ -113,17 +113,26 @@ async def way2_mcp(question: str, meter: Meter, client: Client, audit: Path, sys
         messages.append(message.model_dump(exclude_none=True))
         for tool_call in message.tool_calls:
             client_calls += 1
+            # Arguments the model got wrong are a message it can recover from, as in Way 1's run_agent
+            # (which also rejects JSON that is not an object). A failure on the client-server transport
+            # is infrastructure, not the model's doing, so it propagates and fails the run, like an outage.
             try:
                 args = json.loads(tool_call.function.arguments or "{}")
-                result = await client.call_tool(tool_call.function.name, args, raise_on_error=False)
-                output = "".join(getattr(b, "text", "") for b in result.content) or "(empty result)"
-                if result.is_error:
-                    if mcp_server.UPSTREAM_UNAVAILABLE in output:
-                        # Same contract as Way 1: an outage fails the run, it is never evidence.
-                        raise RuntimeError("upstream API outage during an MCP tool call")
-                    output = f"(tool error: {output[:200]})"
-            except json.JSONDecodeError:
-                output = "(tool error: arguments were not valid JSON)"
+                if not isinstance(args, dict):
+                    raise TypeError("arguments must be a JSON object")
+            except (ValueError, TypeError) as exc:
+                messages.append({"role": "tool", "tool_call_id": tool_call.id,
+                                 "content": f"(tool error: {type(exc).__name__})"})
+                continue
+            result = await client.call_tool(tool_call.function.name, args, raise_on_error=False)
+            output = "".join(getattr(b, "text", "") for b in result.content) or "(empty result)"
+            if result.is_error:
+                if mcp_server.UPSTREAM_UNAVAILABLE in output:
+                    # Same contract as Way 1: an outage fails the run, it is never evidence.
+                    raise RuntimeError("upstream API outage during an MCP tool call")
+                output = f"(tool error: {output[:200]})"
+            else:
+                server_declined += _declined(output)
             messages.append({"role": "tool", "tool_call_id": tool_call.id, "content": output})
     lines = [json.loads(line) for line in audit.read_text().splitlines() if line.strip()]
     reached = [line for line in lines if line.get("reached", True)]
@@ -132,7 +141,17 @@ async def way2_mcp(question: str, meter: Meter, client: Client, audit: Path, sys
             "server_ms": sum(line["ms"] for line in reached),
             "server_tokens": sum(line.get("server_model_tokens", 0) for line in reached),
             "server_turns": sum(line.get("server_model_turns", 0) for line in reached),
-            "bytes": [line["response_bytes"] for line in reached], "answer": answer}
+            "bytes": [line["response_bytes"] for line in reached], "answer": answer,
+            "server_declined": server_declined}
+
+
+def _declined(output: str) -> bool:
+    """The guarded tool's own verdict: its JSON says declined. Raw search returns text, never this."""
+    try:
+        body = json.loads(output)
+    except ValueError:
+        return False
+    return isinstance(body, dict) and body.get("declined") is True
 
 
 # Way 2b: the guarded tool as an outside client in the organisation's Claude workspace (Desktop and similar clients) would use it. The
@@ -159,9 +178,13 @@ async def open_session(hit_chars: int, audit: Path, toolset: str = "search"):
     return client, {"handshake_s": round(handshake, 2), "first_call_s": round(time.perf_counter() - started - handshake, 2)}
 
 
-def graded(answer: str, label: str) -> dict:
+def graded(answer: str, label: str, server_declined: int = 0) -> dict:
+    """answered: the final text is not a decline, and (guarded way) the server declined no call.
+
+    The client model may paraphrase a guarded decline instead of writing "CANNOT ANSWER:", so the
+    text check alone would count it as answered; the server's structured `declined` field cannot."""
     declined = retrieval.decline_reason(answer) is not None
-    row = {"answered": bool(answer.strip()) and not declined}
+    row = {"answered": bool(answer.strip()) and not declined and not server_declined}
     if label == "one lookup":
         row["role_named"] = "front desk associate" in answer.lower()
     return row
@@ -170,19 +193,24 @@ def graded(answer: str, label: str) -> dict:
 llm_call = llm.call_with_retry  # the unwrapped original
 
 
+def _temp_jsonl() -> Path:
+    fd, name = tempfile.mkstemp(suffix=".jsonl")
+    os.close(fd)  # the server process writes it by name; this process only reads it
+    return Path(name)
+
+
 def run(size: str, retriever) -> list[dict]:
     hit_chars = SIZES[size]
     retrieval.HIT_CHARS = hit_chars
     rows = []
-    audit = Path(tempfile.mkstemp(suffix=".jsonl")[1])
+    audit, guarded_audit = _temp_jsonl(), _temp_jsonl()
     loop = asyncio.new_event_loop()
-    client, session = loop.run_until_complete(open_session(hit_chars, audit))
-    guarded_audit = Path(tempfile.mkstemp(suffix=".jsonl")[1])
-    guarded, guarded_session = None, None
-    if size == "real":  # the guarded endpoint always returns whole-record evidence internally
-        guarded, guarded_session = loop.run_until_complete(open_session(hit_chars, guarded_audit, toolset="answer"))
-    print(json.dumps({"size": size, "mcp_session_start": session, "guarded_session_start": guarded_session}), flush=True)
-    try:
+    client, guarded, guarded_session = None, None, None
+    try:  # opened inside the try, so a server that fails to start never leaves the other one running
+        client, session = loop.run_until_complete(open_session(hit_chars, audit))
+        if size == "real":  # the guarded endpoint always returns whole-record evidence internally
+            guarded, guarded_session = loop.run_until_complete(open_session(hit_chars, guarded_audit, toolset="answer"))
+        print(json.dumps({"size": size, "mcp_session_start": session, "guarded_session_start": guarded_session}), flush=True)
         for label, question in REQUESTS.items():
             for way in ("1 tool", "2 MCP (stdio)") + (("2b MCP guarded",) if guarded else ()):
                 meter = Meter()
@@ -205,13 +233,15 @@ def run(size: str, retriever) -> list[dict]:
                     "first_turn_tool_calls": meter.first_turn_tool_calls,
                     "seconds": round(time.perf_counter() - started, 1), "tokens": meter.tokens,
                     "bytes_per_response": round(sum(per_call) / len(per_call)) if per_call else 0,
-                    **graded(out["answer"], label),
+                    "server_declined": out.get("server_declined"),
+                    **graded(out["answer"], label, out.get("server_declined") or 0),
                     **({"mcp_session_start": guarded_session if way == "2b MCP guarded" else session}
                        if way != "1 tool" else {}),
                 })
                 print(json.dumps(rows[-1]), flush=True)
     finally:
-        loop.run_until_complete(client.__aexit__(None, None, None))
+        if client:
+            loop.run_until_complete(client.__aexit__(None, None, None))
         if guarded:
             loop.run_until_complete(guarded.__aexit__(None, None, None))
         guarded_audit.unlink(missing_ok=True)

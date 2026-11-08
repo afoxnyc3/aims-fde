@@ -5,7 +5,11 @@ Runs under the challenge's own test command: python -m unittest test_mcp_server
 
 import asyncio
 import json
+import os
+import subprocess
+import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 
@@ -119,6 +123,68 @@ class McpServerTest(unittest.TestCase):
         self.assertEqual(text(result), mcp_server.UPSTREAM_UNAVAILABLE)
         [line] = self.log_lines()
         self.assertEqual(line["error"], "APIError")
+
+
+    def test_audit_log_keeps_only_known_argument_names(self):
+        # A client picks its argument names; an unknown one can carry ticket text, so it is counted, not logged.
+        call(self.server, "search_hybrid", {"query": "x", "SECRET ticket text": 1})
+        [line] = self.log_lines()
+        self.assertEqual((line["arg_keys"], line["unknown_arg_count"]), (["query"], 1))
+        self.assertNotIn("SECRET", self.log.read_text())
+
+    def test_search_schema_differs_from_way1_only_by_default_and_closed_properties(self):
+        async def go():
+            async with Client(self.server) as client:
+                return (await client.list_tools())[0].input_schema
+        way1 = mcp_server.retrieval.TECHNIQUES["agentic_hybrid"][0]["function"]["parameters"]
+        expected = json.loads(json.dumps(way1))
+        expected["properties"]["k"]["default"] = 4
+        expected["additionalProperties"] = False
+        self.assertEqual(asyncio.run(go()), expected)
+
+    def test_importing_does_not_resize_retrieval_hits(self):
+        # HIT_CHARS applies only when the module runs as the server; the measurement imports it.
+        out = subprocess.run([sys.executable, "-c", "import mcp_server, retrieval; print(retrieval.HIT_CHARS)"],
+                             env={**os.environ, "HIT_CHARS": "300"}, cwd=Path(__file__).parent,
+                             capture_output=True, text=True, check=True)
+        self.assertEqual(out.stdout.strip(), "2000")
+
+
+class ServerTokenCounterTest(unittest.TestCase):
+    """Overlapping guarded calls each count only their own model tokens (FastMCP runs them in threads)."""
+
+    def setUp(self):
+        self.saved = (mcp_server.qa.answer_question, mcp_server._raw_call_with_retry, mcp_server.llm.call_with_retry)
+        self.log = Path(tempfile.mkdtemp()) / "audit.jsonl"
+
+    def tearDown(self):
+        mcp_server.qa.answer_question, mcp_server._raw_call_with_retry, mcp_server.llm.call_with_retry = self.saved
+
+    def test_concurrent_calls_do_not_share_token_counts(self):
+        from types import SimpleNamespace
+        import litellm
+        from qa_schema import QuestionAnswer
+        overlap = threading.Barrier(2, timeout=5)
+        mcp_server._raw_call_with_retry = lambda call, **kw: SimpleNamespace(usage=SimpleNamespace(total_tokens=kw["n"]))
+        mcp_server.install_token_counter()
+
+        def fake(request):
+            n = int(request.question)
+            mcp_server.llm.call_with_retry(litellm.completion, n=n)
+            overlap.wait()  # both calls are mid-loop at once
+            mcp_server.llm.call_with_retry(litellm.completion, n=n)
+            mcp_server.llm.call_with_retry(litellm.embedding, n=999)  # embeddings are not chat turns
+            return QuestionAnswer.model_construct(**{**{f: None for f in QuestionAnswer.model_fields},
+                                                     "answer": "ok", "sources": []})
+        mcp_server.qa.answer_question = fake
+        server = mcp_server.build_server(mcp_server.AuditCounter(str(self.log)))
+
+        async def go():
+            async with Client(server) as client:
+                await asyncio.gather(*(client.call_tool("answer_onboarding_question", {"question": q}) for q in ("100", "7")))
+        asyncio.run(go())
+        lines = sorted((json.loads(l) for l in self.log.read_text().splitlines()), key=lambda l: l["server_model_tokens"])
+        self.assertEqual([(l["server_model_tokens"], l["server_model_turns"]) for l in lines], [(14, 2), (200, 2)])
 
 
 class GuardedToolTest(unittest.TestCase):

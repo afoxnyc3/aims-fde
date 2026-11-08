@@ -34,7 +34,7 @@ and counts only calls that reached the capability, as Way 1's counter does. `Too
 unknown tools and bad arguments into short messages that never echo input, and an upstream outage into a
 fixed `UPSTREAM_UNAVAILABLE` marker. Our measurement client aborts the run on it, the same contract as
 Way 1; an outside client such as Claude Desktop does not abort, its model reads the marker. Tests:
-`python -m unittest test_mcp_server` (12 tests, offline). The guarded tool rejects an empty, blank or over-2,000-character question with a clear "Bad arguments" message before the capability runs. **Docker, checked 2026-11-07:** the image builds,
+`python -m unittest test_mcp_server test_measure_tc5` (16 + 4 tests, offline; they include two overlapping guarded calls that each count only their own model tokens). The guarded tool rejects an empty, blank or over-2,000-character question with a clear "Bad arguments" message before the capability runs. **Docker, checked 2026-11-07:** the image builds,
 and `docker run -i ... python mcp_server.py` lists only `answer_onboarding_question` and answered the
 one-lookup question (Front Desk Associate) through it.
 
@@ -69,7 +69,7 @@ so any deployment that relies on it (the counts, and the switch conditions below
 `measure_tc5.py`, `anthropic/claude-sonnet-5-5` called **directly on Anthropic's API** through LiteLLM (no
 API base set), not through OpenRouter as in TC3 and TC4, so compare these numbers with earlier weeks' with care; same system prompt and loop limit (6 turns),
 3 runs per cell, **medians**. *Measured 2026-11-07.* Real-size rows: `use_case/evals/tc5_measure_run{1,2,3}.jsonl` (written with `--out`; the script's default name is `tc5_measure.jsonl`),
-taken after the MCP tool was given **the same description and parameter wording as Way 1's schema**. Demo-size
+taken after the MCP tool was given **the same description and parameter wording as Way 1's schema** (not byte-identical: FastMCP adds `"default": 4` on `k` and `"additionalProperties": false`; `test_mcp_server` pins that difference). Demo-size
 rows and an earlier real-size round, taken before that change, are in `tc5_measure_schema_unmatched_run{1,2,3}.jsonl`.
 Way 2 runs against **one warm server session per size**, as Claude Desktop keeps a stdio server alive for a
 session. Session start-up is measured separately and is **about 2 s once per session**: this round the server
@@ -100,7 +100,7 @@ Per run, several lookups: the tool made 5, 5, 5 searches in 3 turns each; raw-se
 7-search run took a 4th turn and cost 42,340 tokens. The guarded server ran 9, 9 and 10 model turns of its own
 across 3 to 4 sub-questions (`server_model_turns`, from its audit log).
 
-All 18 real-size runs answered (no decline, by `retrieval.decline_reason`), and all 9 one-lookup runs named
+All 18 real-size runs answered (no decline, by `retrieval.decline_reason` on the final text; for 2b that check reads the client's wording, so a paraphrased decline from the server would have passed it. The harness now also counts the server's own `declined` field (`server_declined`), but these runs predate that, so the 2b "answered" is the weaker text check), and all 9 one-lookup runs named
 the expected role (`role_named`, a substring check for "front desk associate", so it would also pass an answer
 that names the role to reject it; read at n=9, not as grading). The several-lookups answers were not graded.
 
@@ -155,6 +155,8 @@ questions a day (Service Desk volume, to be confirmed Monday), 10x is [10N] a da
 14M tokens a day. What changes the slope is per-question cost: doubling the record size would roughly double
 the accumulated context, and so the per-turn cost, for the tool and for raw-search MCP; the guarded tool
 keeps the records out of the caller's context, and Code Mode would keep them out of every model's context.
+
+**Harness fixes after these runs (code review, 2026-11-08), not re-measured:** the server's per-call token counter is now per call rather than a shared global (the measured calls ran one at a time, so the committed numbers are unaffected); Way 2 now answers non-object tool arguments with a message as Way 1 does (no such arguments occurred in these runs); `HIT_CHARS` is applied only when the server runs, not on import; and the audit log records only known argument names.
 
 ## Steps 1, 6, 7, 8: pending
 
