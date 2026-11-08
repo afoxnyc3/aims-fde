@@ -43,9 +43,16 @@ def _asked(out: dict, want: dict) -> bool:
 
 
 def _reviewed(out: dict, want: dict) -> bool:
-    """Review for the expected reason, no proposal, and every fact still missing named in the handoff comment."""
+    """Review for the expected reason, no proposal, and every fact still missing named in the handoff comment.
+
+    A turn that still has missing facts (handoff_names) must carry no standard_proposal either: a baseline
+    built before the name is known is a tier for nobody, or for an invented person. Once the facts are in,
+    the baseline is allowed again.
+    """
+    gaps = want.get("handoff_names", [])
     return (out.get("status") == "human_review" and out.get("review_reason") == want["review_reason"] and not out.get("answer")
-            and all(name in (out.get("jira_comment") or "") for name in want.get("handoff_names", [])))
+            and all(name in (out.get("jira_comment") or "") for name in gaps)
+            and not (gaps and out.get("standard_proposal")))
 
 
 def name_in_follow_up(turns: list[str], scenario: dict) -> float:

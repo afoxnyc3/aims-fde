@@ -69,6 +69,11 @@ class Scorers(unittest.TestCase):
         self.assertEqual(self.score("SYN-ASK-002", handoff, review), 1.0)
         self.assertEqual(self.score("SYN-ASK-002", ASK, review), 0.0)  # asked first: the wasted round trip
         self.assertEqual(self.score("SYN-ASK-002", review, review), 0.0)  # review, but the gap is not in the handoff
+        invented = response("human_review", review_reason="exception", jira_comment="Missing from the intake: person_name.",
+                            standard_proposal=proposal("Invented Person"))
+        self.assertEqual(self.score("SYN-ASK-002", invented, review), 0.0)  # a baseline before the name is known
+        baseline_later = response("human_review", review_reason="exception", standard_proposal=proposal("Marcus Ellery-Dunn"))
+        self.assertEqual(self.score("SYN-ASK-002", handoff, baseline_later), 1.0)  # allowed once the name arrives
         self.assertEqual(self.score("SYN-ASK-002", handoff, response("recommended", answer=proposal("Marcus Ellery-Dunn"))), 0.0)
         self.assertEqual(self.score("SYN-ASK-002", handoff, response("human_review", review_reason="ambiguous_mapping")), 0.0)
         self.assertEqual(self.score("SYN-ASK-002", handoff, response("human_review", review_reason="exception", answer=proposal("Marcus Ellery-Dunn"))), 0.0)
