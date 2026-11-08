@@ -19,14 +19,18 @@ instead, offline, with no model calls and no endpoint:
 
     python3 use_case/evals/run.py --committed
 
-It prints echo, oracle and the endpoint on the real_v03 dev, test and grid splits,
-checks that baseline.json is the committed test run, and compares the two, which
+It prints echo, oracle and the endpoint on the real_v03 dev, test and grid splits
+as recorded, then the endpoint's saved outputs rescored against the current labels
+(they moved after the runs: the 2026-11-07 name policy), checks that baseline.json
+is the committed test run, and compares the two, which
 must print PASS. Only a run from the private runner can be compared to
 baseline.json: the synthetic suite below has different cases and scorers, so
 compare() refuses it. Synthetic runs compare against each other (data/traces/).
 """
 
 import argparse
+import copy
+import hashlib
 import json
 import os
 import sys
@@ -101,25 +105,98 @@ def of(k: int, n: int) -> str:
     return f"{k} of {n} ({k / n:.0%})" if n else f"{k} of 0"
 
 
+LABEL_FILES = {"dev": "golden.jsonl", "test": "golden.jsonl", "grid": "grid.jsonl"}
+
+
+def current_labels(split: str, labels_dir: Path = COMMITTED.parent) -> dict[str, dict]:
+    """The `expected` block of every label in a split, keyed by ticket_ref, as the label files say today."""
+    rows = evals.load_jsonl(labels_dir / LABEL_FILES[split])
+    return {row["ticket_ref"]: row["expected"] for row in rows if row["split"] == split or split == "grid"}
+
+
+def rescore(run: "evals.harness.RunReport", labels: dict[str, dict]) -> "evals.harness.RunReport":
+    """The same saved outputs, scored against `labels` instead of the labels at run time. No model calls.
+
+    status_accuracy is the status matching, which reproduces every saved score. Over-access keeps the recorded
+    verdict where the label's status did not change, because the private scorer may check more than status; where
+    it did change, a recommendation against a label that is not `recommended` is an over-grant. Any label change under
+    a saved recommendation against a `recommended` label (newly made `recommended`, or a grant field such as
+    system_login changed) needs the private scorer's field checks, so it refuses rather than pass it. A ticket with no current label is marked errored, which leaves it out of every count.
+
+    The fingerprint changes with the labels: a rescored run measures different expected outputs, so compare()
+    must refuse to set it beside the original run or baseline.json.
+    """
+    out = copy.deepcopy(run)
+    changed = False
+    for r in out.results:
+        if r.error:
+            continue
+        if r.input not in labels:
+            r.error, r.scores = f"no current label for {r.input}", {key: 0.0 for key in r.scores}
+            changed = True
+            continue
+        old, actual = evals.parse(r.expected), evals.parse(r.actual)
+        new = {key: labels[r.input].get(key) for key in old}
+        if new == old:
+            continue
+        changed = True
+        r.expected = json.dumps(new, sort_keys=True)
+        if new["status"] == "recommended" and actual.get("status") == "recommended":
+            # The label changed (its status, or a grant field such as system_login) under a saved recommendation:
+            # whether that grant is still within the label needs the private scorer's field checks.
+            raise ValueError(f"{r.input}: the label changed under a saved recommendation; whether the grant matches "
+                             "needs the private scorer, so this cannot be rescored offline")
+        r.scores["status_accuracy"] = float(actual.get("status") == new["status"])
+        if new["status"] != old["status"]:
+            r.scores["no_over_privilege"] = 0.0 if actual.get("status") == "recommended" else 1.0
+    if not changed:
+        return out
+    for key in out.means:
+        out.means[key] = sum(r.scores.get(key, 0.0) for r in out.results) / out.n if out.n else 0.0
+    out.errors = sum(bool(r.error) for r in out.results)
+    # Which tickets were left out is part of the cohort: dropping a different case must not compare as the same run.
+    cohort = [[r.input, r.expected, bool(r.error)] for r in out.results]
+    digest = hashlib.sha256(json.dumps([run.fingerprint, cohort]).encode()).hexdigest()[:16]
+    out.fingerprint = digest
+    out.meta = {**out.meta, "rescored_against": "current labels", "rescored_from": run.fingerprint}
+    out.meta.pop("ci95", None)  # the recorded interval belongs to the recorded scores
+    return out
+
+
+def report_row(system: str, split: str, run) -> str:
+    mean = run.means["status_accuracy"]
+    recorded = run.meta.get("ci95", {}).get("status_accuracy")
+    # Prefer the interval the run recorded when it was scored, so this report and the write-up quote one number.
+    low, high = recorded or evals.bootstrap_ci([r.scores["status_accuracy"] for r in run.results])[1:]
+    # An errored case scores 0 on everything; count it as an error, not as an over-grant.
+    over = sum(r.scores["no_over_privilege"] < 1.0 for r in run.results if not r.error)
+    errored = sum(bool(r.error) for r in run.results)
+    note = f" ({errored} errored)" if errored else ""
+    # Unnecessary: an ask the label did not need. Missed: a recommendation where the label asks. See harness.
+    asks, missed, scored = evals.count_asks(run)
+    counts = " | ".join(of(k, scored) for k in (over, asks, missed))  # one denominator: the cases scored
+    right = sum(r.scores["status_accuracy"] for r in run.results)
+    return f"| {system} | {split} | {run.n}{note} | {right:.0f} of {run.n}: {mean:.2f} [{low:.2f}, {high:.2f}] | {counts} |"
+
+
+HEADER = ["| System | Split | n | status_accuracy (95% CI) | over-access | unnecessary asks | missed asks |",
+          "| --- | --- | --- | --- | --- | --- | --- |"]
+
+
 def committed_report(results_dir: Path = COMMITTED, baseline_path: Path = BASELINE) -> bool:
     """Report the saved real_v03 runs and check the baseline. Returns True if every check passed."""
-    lines = ["| System | Split | n | status_accuracy (95% CI) | over-access | unnecessary asks | missed asks |",
-             "| --- | --- | --- | --- | --- | --- | --- |"]
+    lines = list(HEADER)
     for split in SPLITS:
         for system in SYSTEMS:
-            run = evals.harness.load(results_dir / f"{system}_{split}.json")
-            mean = run.means["status_accuracy"]
-            recorded = run.meta.get("ci95", {}).get("status_accuracy")
-            # Prefer the interval the run recorded when it was scored, so this report and the write-up quote one number.
-            low, high = recorded or evals.bootstrap_ci([r.scores["status_accuracy"] for r in run.results])[1:]
-            # An errored case scores 0 on everything; count it as an error, not as an over-grant.
-            over = sum(r.scores["no_over_privilege"] < 1.0 for r in run.results if not r.error)
-            errored = sum(bool(r.error) for r in run.results)
-            note = f" ({errored} errored)" if errored else ""
-            # Unnecessary: an ask the label did not need. Missed: a recommendation where the label asks. See harness.
-            asks, missed, scored = evals.count_asks(run)
-            counts = " | ".join(of(k, scored) for k in (over, asks, missed))  # one denominator: the cases scored
-            lines.append(f"| {system} | {split} | {run.n}{note} | {mean:.2f} [{low:.2f}, {high:.2f}] | {counts} |")
+            lines.append(report_row(system, split, evals.harness.load(results_dir / f"{system}_{split}.json")))
+    print("\n".join(lines))
+
+    # The labels have moved since the runs (the 2026-11-07 name policy). Same outputs, today's labels, endpoint only:
+    # the saved oracle output is the old label, so rescoring it would only measure the relabel.
+    lines = ["\nThe endpoint's saved outputs, rescored against the current labels (no model calls):", *HEADER]
+    for split in SPLITS:
+        run = evals.harness.load(results_dir / f"endpoint_{split}.json")
+        lines.append(report_row("endpoint", split, rescore(run, current_labels(split, results_dir.parent))))
     print("\n".join(lines))
 
     baseline = evals.harness.load(baseline_path)

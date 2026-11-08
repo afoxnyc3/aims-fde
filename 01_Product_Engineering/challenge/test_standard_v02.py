@@ -136,6 +136,18 @@ class StandardV02Tests(unittest.TestCase):
         r = self.run_text("Previously promoted to lead.", facts(person_name=None, rehire_transfer_or_promotion=True))
         self.assertEqual(r.exception_difference, ["transfer or promotion", "re-hire, transfer, promotion or title change"])
 
+    def test_flagged_transfer_and_promotion_with_a_gap_go_to_review_not_an_ask(self):
+        # Owner decision 2026-11-07: transfers and promotions follow the re-hire rule. Straight to review, gaps listed,
+        # no ask. "Flagged" means extraction set the flag; the broad regex alone does not skip an ask (test below).
+        for kind, text in (("transfer", "Transferring from Club B to Club A."), ("promotion", "Promoted to Desk Associate.")):
+            with self.subTest(kind=kind):
+                r = self.run_text(text, facts(job_title=None, rehire_transfer_or_promotion=True))
+                self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, "exception"))
+                self.assertEqual(r.missing_fields, [])
+                self.assertEqual(r.review_missing_fields, ["job_title"])
+                self.assertIn("job_title", r.jira_comment)
+                self.assertIsNone(r.standard_proposal)
+
     def test_a_stray_promotion_does_not_suppress_an_ask(self):
         r = self.run_text("Will help run the January membership promotion", facts(venue_names=[]))
         self.assertEqual((r.status, r.missing_fields), (Status.NEEDS_INFORMATION, ["venue"]))

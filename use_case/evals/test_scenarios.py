@@ -28,7 +28,7 @@ ASK = response("needs_information", missing_fields=["person_name"])
 
 
 def proposal(name):
-    return {"person_name": name, "assignments": [], "venues": [{"id": "v", "name": "Venue B"}]}
+    return {"person_name": name, "assignments": [], "venues": [{"id": "v", "name": "Club B"}]}
 
 
 class Requests(unittest.TestCase):
@@ -191,7 +191,7 @@ class SavedScenarioRun(unittest.TestCase):
 V02 = """
 version: "0.2-test"
 business_unit: {id: "unit-test", name: "Fitness"}
-venues: {in_club: ["Venue A", "Venue B"]}
+venues: {in_club: ["Club A", "Club B"]}
 out_of_scope_business_units: []
 out_of_scope_venue_prefixes: []
 aliases: {"Hospitality Associate Level 1": "Hospitality Associate"}
@@ -221,7 +221,7 @@ class PolicyWithStubbedExtraction(unittest.TestCase):
 
         def call(req_json):
             base = dict(request_kind="onboarding", person_name=None, job_title="Hospitality Associate Level 1",
-                        employee_email="hire.personal@example.invalid", start_date="2026-11-16", venue_names=["Venue B"],
+                        employee_email="hire.personal@example.invalid", start_date="2026-11-16", venue_names=["Club B"],
                         business_unit="Fitness", login_required=True, person_id=None, personal_trainer_level=None,
                         ambiguous_identity=False, additional_access_request=None)
             base.update(next(facts))

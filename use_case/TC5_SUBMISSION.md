@@ -1,7 +1,8 @@
 # TC5: the question endpoint built a second way, and measured (DRAFT)
 
-> Draft 2026-11-07. Steps 3 to 5 are measured below. The Step 1 marks, the architecture row and the
-> stakeholder row are pending Alex's decisions and the Service Desk Manager session (Monday).
+> Draft 2026-11-07, updated 2026-11-08. Steps 3 to 5 are measured below, and the Step 6 architecture row is
+> decided (owner, 2026-11-07). The Step 1 marks and the stakeholder row are pending Alex's confirmation and
+> the Service Desk Manager session (Monday).
 
 ## Step 2: the second way, and why
 
@@ -151,46 +152,62 @@ turns**, not searches. Each turn re-reads everything gathered so far: in the too
 about 23 to 26K tokens (raw-search MCP's cost 19.4K, with smaller records), while the 7-search runs that needed a 4th turn cost 42 to 44K. On the shipped guarded path a
 question costs about 11K tokens (one lookup) to 71K (several), all chat-model tokens included (embedding the question adds a few tokens and is not counted). At [N] onboarding
 questions a day (Service Desk volume, to be confirmed Monday), 10x is [10N] a day, or about [10N × 11K to
-71K] tokens a day against [budget]. For illustration only, at 20 a day, 10x is 200 questions and 2.2M to
+71K] tokens a day, against the tokens-per-question budget reviewed monthly (Step 6). For illustration only, at 20 a day, 10x is 200 questions and 2.2M to
 14M tokens a day. What changes the slope is per-question cost: doubling the record size would roughly double
 the accumulated context, and so the per-turn cost, for the tool and for raw-search MCP; the guarded tool
 keeps the records out of the caller's context, and Code Mode would keep them out of every model's context.
 
 **Harness fixes after these runs (code review, 2026-11-08), not re-measured:** the server's per-call token counter is now per call rather than a shared global (the measured calls ran one at a time, so the committed numbers are unaffected); Way 2 now answers non-object tool arguments with a message as Way 1 does (no such arguments occurred in these runs); `HIT_CHARS` is applied only when the server runs, not on import; and the audit log records only known argument names.
 
-## Steps 1, 6, 7, 8: pending
+## Step 6: the architecture row
+
+Decided by the owner on 2026-11-07, and copied into [`decisions.md`](decisions.md#week-5--architecture-row-tc5).
+Roles only: no product or vendor names for the identity provider, vault or host.
+
+*Decision:* expose the capability as tools on a **separate, gated tools service, hosted privately**. It has two
+kinds of client: the onboarding app, which calls it as a direct internal API with no model in the path, and staff
+using Claude, who reach it over MCP. The guarded `answer_onboarding_question` (built and measured above) is
+its first tool.
+- **Identity** comes from the organisation's SSO only; no user credentials are stored. SSO groups map to
+  roles, and a versioned policy table decides which tools, and which business-unit rows, each role can reach.
+  Default deny. Read-only in v1.
+- **System of record:** each consumer (the tools service, the onboarding app) has its own least-privilege,
+  read-only service account. Secrets live in a vault, reached through managed identity.
+- **Rollout:** a Service Desk pilot first; widen when the sign-in, per-unit filtering and deny tests pass.
+
+*Rejected:*
+- **Raw search over MCP**, built and measured. With the tool description matched, its median searches and turns
+  equal the tool's (one lookup 8,991 vs 9,136 tokens; several 19,498 vs 25,668, the gap being smaller records
+  returned, not the transport). It buys reach but hands outside models whole records and skips the guards.
+- **Code Mode, until the trigger below fires.** It would keep intermediate records out of every model's context,
+  but the guarded tool already keeps them out of the caller's, and Code Mode means running model-written code,
+  which needs a sandbox and a security review we do not have.
+- **A skill:** the wrong shape for retrieval.
+- **UTCP:** there is no existing third-party API to describe.
+
+*Cost (measured, Steps 4 and 5):* on the guarded path, about 11K tokens per one-lookup question and 71K per
+multi-part question, all chat-model tokens included. Against the in-app tool: about 1.2x the total tokens for a
+single lookup and about 2.8x for a multi-part question, for a caller context 4 to 6x smaller and 2.5 to 4.5x the
+time. Starting the stdio server costs about 2 s per session; the hosted service's cost is not measured yet.
+
+*Switch conditions:*
+1. **To Code Mode** when a sandbox is approved and, over a calendar month of real use, the guarded server's
+   audit log shows either a **median above 40K model tokens per retrieval loop** or **more than 25% of loops
+   needing a 4th model turn**. The log records `server_model_tokens` and `server_model_turns` per call, so this
+   is checkable on real traffic, not only in the harness. It reads per retrieval loop (one sub-question), not per
+   client request: today a loop costs about 8 to 9K tokens in 2 turns for one lookup and about 20K in about 3
+   turns per sub-question on several lookups. The two conditions are one trigger: every 3-turn run so far cost at
+   most 27K and every 4-turn run 42 to 44K, so 40K sits just under the 4-turn cost. **Budget:** tokens per question
+   is the cost proxy, reviewed monthly; the dollar figure comes later, from the API bill.
+2. **Widen beyond the Service Desk** when the sign-in, per-unit filtering and deny tests pass.
+3. **Drop the MCP route** if no Claude user calls it within a quarter of launch (the audit log counts this).
+
+*Open:* the ingress route to the privately hosted service, and the data sign-off for real tickets (the same
+open items as in `ecosystem.md`).
+
+## Steps 1, 7, 8: pending
 
 - Step 1 marks: proposed in the private feedback doc; Alex to confirm, then record under
-  `## Week 5 — what the room asked` in `decisions.md`.
-- Step 6 architecture row: draft below, Alex to decide, then copy into `decisions.md`. Step 6.2 (the Step 1
-  open question, answered or explained in the row) is filled once the marks are confirmed.
+  `## Week 5 — what the room asked` in `decisions.md`. Step 6.2 (the Step 1 open question, answered or
+  explained in the row) is filled once the marks are confirmed.
 - Step 7 stakeholder row: Service Desk Manager, Monday.
-
-**Draft architecture row (for Alex):** *Decision:* keep the in-app tool for the endpoint, and expose the
-**guarded** question endpoint as an MCP tool, which makes it a **subagent behind MCP** (a model loop that reads a lot and returns a little) (`answer_onboarding_question`, built and measured) for the
-named outside callers: staff in the organisation's Claude workspace, where every stakeholder role has a seat
-(`ecosystem.md` Week 5). *Rejected:* raw search over MCP,
-built and measured: with the tool description matched, its median searches and turns equal the tool's (one lookup 8,991 vs
-9,136 tokens; several 19,498 vs 25,668, the gap being smaller records returned, not the transport). Both paths
-occasionally take a 4th turn and 7 searches; whether matching the description affects how often is unproven at
-n=3. It buys reach but hands outside models the
-whole records and skips the guards. Code Mode, most seriously among the unbuilt: it would keep intermediate
-records out of context, but the guarded tool already does that for the caller, and Code Mode means running
-model-written code, which needs a sandbox and a security review we do not have. Gradio's built-in MCP mode
-over the existing HTTP endpoint is the other route to the same guarded tool (Q1 arguably applies once the
-caller needs the guarded endpoint); not tried, because whether `gradio.Server` supports it was not checked.
-A skill is the wrong shape for retrieval; UTCP has no existing third-party API to describe. *Cost:* about 2 s
-per session to start the server; per question, about 1.2x the tool's total tokens for a single lookup and
-about 2.8x for a multi-part question, against a caller context 4 to 6x smaller, and 2.5 to 4.5x the time. *Switch conditions:* (1) if
-multi-part questions dominate real usage and total cost matters more than caller context, give the guarded
-tool a multi-question input so one retrieval loop serves them; (2) to Code Mode when a sandbox is approved and,
-over a calendar month of real use, the guarded server's audit log shows either a median above [X]K server
-tokens per retrieval loop or more than [Y]% of loops needing a 4th model turn. The log records
-`server_model_tokens` and `server_model_turns` per call, so this is checkable on real traffic, not only in the
-harness. It reads the shipped guarded path, per retrieval loop (one sub-question), not per client request: today
-a loop costs about 8 to 9K tokens in 2 turns for one lookup and about 20K in about 3 turns per sub-question on
-several lookups. The two conditions are one trigger: every 3-turn run so far cost at most 27K and every 4-turn
-run 42 to 44K. [Budget the threshold is tied to: Alex to set, e.g. cost per question or latency]; (3) drop
-the MCP server if no Claude user calls it within a quarter of launch (the audit log counts this).
-*Open:* a stdio server has no caller identity, so per-caller scoping needs a hosted server with
-authentication, which is the same open hosting question as in `ecosystem.md`.

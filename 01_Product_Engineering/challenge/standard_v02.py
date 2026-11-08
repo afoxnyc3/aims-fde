@@ -8,13 +8,15 @@ venues.in_club, out_of_scope_business_units, out_of_scope_venue_prefixes, aliase
 each with title, staff_login, company_mailbox and account_role.
 
 Decision order, first match wins (the standard's decision_rules, except the re-hire order below,
-which is pending the Service Desk Manager's sign-off; the private standard still asks first):
+confirmed by the owner 2026-11-07; transfers and promotions follow the same rule. The private v0.3
+runner behind the saved TC4 runs predates it and still asks first):
   ignored            -> not an onboarding request
   needs_information  -> person name, job title or venue missing; personal email missing or unusable
                         for a role with no company mailbox; trainer level missing; the intake
-                        contradicts itself. Not for a re-hire: see exception below
+                        contradicts itself. Not for a re-hire, transfer or promotion: see exception
   human_review       -> out-of-scope unit, ambiguous identity, duplicate; then exception, which a
-                        re-hire ("Re-hire: YES" or the extracted flag) reaches even with facts
+                        re-hire ("Re-hire: YES") or a flagged re-hire, transfer or promotion (the
+                        extracted flag) reaches even with facts
                         missing, listing them in review_missing_fields / contradictory_fields and
                         the comment, with no standard proposal (TC5: an ask would be a wasted round
                         trip); then unmapped title, blank matrix cell (standard_gap), login but
