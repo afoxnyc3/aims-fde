@@ -193,12 +193,13 @@ def decide(request: Request, facts, std: dict) -> Response:
     if missing and not rehire:
         return _out(request, Status.NEEDS_INFORMATION, "Provide: " + ", ".join(missing) + ".", missing_fields=missing)
 
-    def review(reason, text, **extra):
-        details = {"review_reason": reason}
-        if reason == "exception":
-            details.update(exception_difference=[text], approval_owner_role=None,
-                           standard_proposal=extra.pop("standard_proposal", None))
-        return _out(request, Status.HUMAN_REVIEW, text, **details, **extra)
+    # Only a re-hire reaches review with gaps (it skipped the ask), so whichever review it lands in must
+    # still hand them over: the exception branch as data and prose, the earlier three in the comment.
+    absent, contradictory = _gaps(facts, missing)
+    gaps_text = _gaps_sentence(absent, contradictory)
+
+    def review(reason, text):
+        return _out(request, Status.HUMAN_REVIEW, text + gaps_text, review_reason=reason)
 
     names = list(dict.fromkeys(_norm(v) for v in facts.venue_names))  # one club named twice is one club
     unit = _norm(facts.business_unit)
@@ -214,18 +215,19 @@ def decide(request: Request, facts, std: dict) -> Response:
         # Every reason, not the first found: a re-hire that also asks for extra access, or whose intake also
         # asks to mirror a colleague, must say both.
         reasons = [facts.additional_access_request, *triggers,
-                   # The flag names its own reason unless a re-hire/transfer trigger already did (a hardware hit does not).
+                   # The flag names its own reason unless "Re-hire: YES" already did. Another trigger, even the broad
+                   # transfer/promotion one, does not say why the ask was skipped.
                    "re-hire, transfer, promotion or title change"
-                   if facts.rehire_transfer_or_promotion and not set(triggers) & {"re-hire", "transfer or promotion"} else None]
-        what = "; ".join(dict.fromkeys(r for r in reasons if r))
-        absent, contradictory = _gaps(facts, missing)
+                   if facts.rehire_transfer_or_promotion and "re-hire" not in triggers else None]
+        differences = list(dict.fromkeys(r for r in reasons if r))  # the access beyond the standard, nothing else
         # No tier is built on facts the intake lacks or contradicts: the reviewer gets the gaps instead.
         baseline = None if missing else _baseline(facts, role, std, names)
-        text = "Requested outside the standard: " + what + "." + _gaps_sentence(absent, contradictory)
+        text = "Requested outside the standard: " + "; ".join(differences) + "." + gaps_text
         text += (" Assign the standard tier, never a mirror." if baseline else
                  " No standard tier can be proposed yet; never mirror another user's access.")
-        return review("exception", text, standard_proposal=baseline,
-                      review_missing_fields=absent, contradictory_fields=contradictory)
+        return _out(request, Status.HUMAN_REVIEW, text, review_reason="exception",
+                    exception_difference=differences, approval_owner_role=None, standard_proposal=baseline,
+                    review_missing_fields=absent, contradictory_fields=contradictory)
     if role is None:
         return review("ambiguous_mapping", f"The title '{facts.job_title}' is not in the role matrix.")
     if any(n not in std["venues"] for n in names):

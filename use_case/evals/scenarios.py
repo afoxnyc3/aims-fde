@@ -44,7 +44,7 @@ def _asked(out: dict, want: dict) -> bool:
 
 def _reviewed(out: dict, want: dict) -> bool:
     """Review for the expected reason, no proposal, and every fact still missing handed over twice: as data in
-    review_missing_fields, and by name in the comment the reviewer reads.
+    review_missing_fields (or contradictory_fields), and by name in the comment the reviewer reads.
 
     A turn that still has missing facts (handoff_names) must carry no standard_proposal either: a baseline
     built before the name is known is a tier for nobody, or for an invented person. Once the facts are in,
@@ -52,7 +52,8 @@ def _reviewed(out: dict, want: dict) -> bool:
     """
     gaps = want.get("handoff_names", [])
     return (out.get("status") == "human_review" and out.get("review_reason") == want["review_reason"] and not out.get("answer")
-            and set(gaps) <= set(out.get("review_missing_fields") or [])
+            # A gap is absent or contradicted; decide() files it under one or the other.
+            and set(gaps) <= set(out.get("review_missing_fields") or []) | set(out.get("contradictory_fields") or [])
             and all(name in (out.get("jira_comment") or "") for name in gaps)
             and not (gaps and out.get("standard_proposal")))
 

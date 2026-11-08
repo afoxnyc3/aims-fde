@@ -70,6 +70,9 @@ class Scorers(unittest.TestCase):
         self.assertEqual(self.score("SYN-ASK-002", handoff, review), 1.0)
         prose_only = response("human_review", review_reason="exception", jira_comment="Missing from the intake: person_name.")
         self.assertEqual(self.score("SYN-ASK-002", prose_only, review), 0.0)  # the gap must also be data, not only prose
+        contradicted = response("human_review", review_reason="exception", jira_comment="Contradictory in the intake: person_name.",
+                                contradictory_fields=["person_name"])
+        self.assertEqual(self.score("SYN-ASK-002", contradicted, review), 1.0)  # a contradicted gap counts as handed over
         self.assertEqual(self.score("SYN-ASK-002", ASK, review), 0.0)  # asked first: the wasted round trip
         self.assertEqual(self.score("SYN-ASK-002", review, review), 0.0)  # review, but the gap is not in the handoff
         invented = response("human_review", review_reason="exception", jira_comment="Missing from the intake: person_name.",

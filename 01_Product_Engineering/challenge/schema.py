@@ -471,6 +471,8 @@ class Response(BaseModel):
                 raise ValueError("review gaps belong only to exception review")
             if self.standard_proposal is not None:
                 raise ValueError("an exception review with gaps carries no standard proposal")
+            if set(self.review_missing_fields) & set(self.contradictory_fields):
+                raise ValueError("a field is either missing or contradictory, not both")
         return self
 
 
