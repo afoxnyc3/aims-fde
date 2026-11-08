@@ -20,7 +20,7 @@ RUN uv export --frozen --no-dev --no-emit-project -o requirements.txt \
  && uv pip install --system --no-cache -r requirements.txt
 
 COPY llm.py app.py schema.py onboarding.py standard_v02.py demo_standard.json ./
-COPY corpus.py retrieval.py qa.py qa_schema.py standard_v0_1.md ./
+COPY corpus.py retrieval.py qa.py qa_schema.py standard_v0_1.md mcp_server.py ./
 
 # The ticket corpus is NOT copied in: use_case/data/ is gitignored, and an image
 # carries whatever is baked into it to everyone who can pull it. Mount it
@@ -43,4 +43,7 @@ EXPOSE 7860
 # The API key is NOT baked into this image. It arrives at runtime via
 # environment variable. Never COPY a .env file into a container image --
 # anyone who can pull the image can read it.
+# Way 2 (TC5): the same capability as an MCP server on stdio, in the same image:
+#   docker run -i --rm -v ".../use_case/data:/data:ro" -e CORPUS_PATH=/data/synthetic_v1.jsonl \
+#     -e MCP_PRELOAD=1 -e MCP_AUDIT_LOG=/tmp/mcp_audit.jsonl --env-file ../../.env <image> python mcp_server.py
 CMD ["python", "app.py"]

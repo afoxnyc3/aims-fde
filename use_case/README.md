@@ -13,6 +13,9 @@ annoys you weekly.
 
 ---
 
+> **What changed after critique (TC5):** *Pending: written after the Week 5 demo and stakeholder session,
+> from the critique actually received. Not drafted ahead of it.*
+
 ## The files
 
 ### [`CHARTER.md`](./CHARTER.md) — the definition of what you are building
@@ -228,6 +231,21 @@ model openrouter/anthropic/claude-sonnet-5.5, standard v0.3 (private path), publ
 PASS  endpoint_test → endpoint_test  [no_over_privilege +0.000  status_accuracy +0.000]
 ```
 
+## TC5 — the same capability as an MCP server
+
+The second way, the measurements and the draft architecture row are in [`TC5_SUBMISSION.md`](TC5_SUBMISSION.md); the server is [`01_Product_Engineering/challenge/mcp_server.py`](../01_Product_Engineering/challenge/mcp_server.py), and the runs are [`evals/tc5_measure_run{1,2,3}.jsonl`](evals/). Real size, medians of 3, `anthropic/claude-sonnet-5-5` on Anthropic's API, measured 2026-11-07:
+
+| Request | Way | Model calls | Capability calls | Seconds | Client tokens | Total tokens |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| one lookup | 1 tool | 2 | 2 | 4.9 | 9,136 | 9,136 |
+| one lookup | 2 MCP raw search | 2 | 2 | 5.6 | 8,991 | 8,991 |
+| one lookup | 2b MCP guarded | 2 | 1 guarded call* | 12.0 | 2,346 | 11,271 |
+| several lookups | 1 tool | 3 | 5 | 10.4 | 25,668 | 25,668 |
+| several lookups | 2 MCP raw search | 3 | 5 | 12.1 | 19,498 | 19,498 |
+| several lookups | 2b MCP guarded | 2 | 3 guarded calls* | 46.7 | 4,491 | 71,299 |
+
+\* Each guarded call runs its own retrieval loop inside the server, so it is not comparable with a search count. Session start-up (about 2 s) is measured separately; the demo-size table and the caveats are in the submission.
+
 ## Bring it to work
 
 **Project:** We can't decide which roles keep seats under a fixed AI-tool
@@ -265,3 +283,11 @@ Technology Support Associates decide new-hire access by mirroring a colleague in
 - **Data:** swap the 58 pseudonymised, intake-only tickets for a live replay of the JSM onboarding queue (onboarding, promotion and transfer requests, with comments), labelled by the Technology Support Associates against the ratified standard, and refreshed monthly so the test split is never one the agent has been tuned on.
 - **Model or endpoint:** run the same harness against `claude-sonnet-5.5` on Anthropic's API (CTO-approved 2026-10-07) instead of OpenRouter, and keep the judge on a different model family. Re-baseline on the switch rather than carrying this number over.
 - **Approval:** the CTO and the acting Information Security Officer sign off on sending real ticket text to the answer model and the judge (today `JUDGE_CORPUS_APPROVED` is off for real tickets), with the Senior Engineering Director as independent reviewer. The CTO, as the named approver, signs off each promotion against the threshold: 95% on synthetic tickets per role, or 90% over at least 20 live tickets, with zero over-access.
+
+### TC5 — the capability for outside callers
+
+Every stakeholder role has a seat in the organisation's Claude workspace (Desktop and similar clients); how much each uses it day to day is to be confirmed with the Service Desk Manager. (The seat-budget project above is about which of the wider staff keep seats; these roles are already among the seat holders.) The onboarding question endpoint lives only in our app, so they cannot ask it from where they work. Exposing the guarded endpoint as an MCP tool (`answer_onboarding_question`) lets them ask it from Claude, with the endpoint's declines and citation checks still enforced inside the server.
+
+- **Data:** swap the synthetic corpus for the indexed JSM onboarding, promotion and transfer tickets and the ratified standard (TC3 above). The tool returns only the answer and its cited sources, never raw records, so the caller's Claude context does not hold ticket text.
+- **Endpoint and credential:** open, not settled. Anthropic's custom connectors are called from Anthropic's cloud and must be reachable from the public internet ([`ecosystem.md`](ecosystem.md#week-5--who-else-would-call-this-capability)), which the deployment rules forbid. The two candidate routes: a stdio server on each managed laptop (needs approval to run local MCP servers, and has no caller identity), or a private server in Azure (Container Apps, existing NAT egress, model key in Key Vault, Entra ID sign-in, which per-caller scoping needs) reached from each laptop through a local stdio bridge, which brings back the same local-server approval. The server's `MCP_AUDIT_LOG` must be set in either route.
+- **Approval:** the CTO and the acting Information Security Officer sign off on letting Claude clients call the tool and on the hosting route, with the Senior Engineering Director as independent reviewer; the Service Desk Manager confirms who uses it. Cost: **about 11K tokens per one-lookup question and 71K per multi-part question, all chat-model tokens included, measured** (real size, medians of 3, `evals/tc5_measure_run{1,2,3}.jsonl`); at 10x volume that scales with [daily question volume, to confirm Monday].

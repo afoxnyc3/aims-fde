@@ -98,6 +98,22 @@ For v1 `solve()`, the answers are **no, yes, no, no**:
 
 **Strongest counterargument:** Live identity resolution may require searching accounts by one identifier, inspecting a possible match, then choosing another lookup based on that result. An agent could handle that investigation better than fixed branches. Switch only if supported-ticket evidence shows adaptive investigation, rather than missing standards or poor intake, is the pipeline's limitation and an agent improves the result.
 
+## Week 5 — what the room asked
+
+*Pending: the project owner confirms the Step 1 marks (Fair / Open / Confusion) for each question the room
+asked, by role. Draft marks are held privately until then.*
+
+## Week 5 — architecture row (TC5)
+
+*Pending the project owner's decision. Draft in [`TC5_SUBMISSION.md`](TC5_SUBMISSION.md) (Steps 1, 6, 7, 8):
+decision, what was rejected and why, cost, switch conditions, and the Step 1 open question answered or
+explained.*
+
+## Week 5 — what the stakeholder changed (Step 7.2)
+
+*Pending the Service Desk Manager session (Monday). One line, in the stakeholder's words where possible, on
+what the demo changed; not filled before the session.*
+
 ## Decisions still required
 
 - Replace the hard-coded exception phrase about “nonspecific replies” with wording that distinguishes a claim of approval from verified authority. My DEMO-004 injection test retained human_review but exposed this explanation gap.
