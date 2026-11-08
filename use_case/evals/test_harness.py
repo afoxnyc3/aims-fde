@@ -175,13 +175,45 @@ class UnnecessaryAsks(unittest.TestCase):
         self.assertEqual(sum(r.scores["status_accuracy"] for r in dev.results), 27)
         self.assertEqual(test_run.means["status_accuracy"], 14 / 29)  # the saved run itself is untouched
 
+    def first_with_status(self, run_report, status):
+        return next(i for i, r in enumerate(run_report.results) if evals.parse(r.actual)["status"] == status)
+
     def test_a_recommendation_against_a_relabelled_ask_becomes_an_over_grant(self):
         test_run = evals.harness.load(run.COMMITTED / "endpoint_test.json")
+        i = self.first_with_status(test_run, "recommended")
         labels = run.current_labels("test")
-        first = test_run.results[0]
-        self.assertEqual(evals.parse(first.actual)["status"], "recommended")
-        labels[first.input] = {**labels[first.input], "status": "human_review"}
-        self.assertEqual(run.rescore(test_run, labels).results[0].scores["no_over_privilege"], 0.0)
+        labels[test_run.results[i].input] = {**labels[test_run.results[i].input], "status": "human_review"}
+        self.assertEqual(run.rescore(test_run, labels).results[i].scores["no_over_privilege"], 0.0)
+
+    def test_a_label_newly_made_recommended_is_not_passed_offline(self):
+        # The private scorer checks the grant's fields; a status match alone could hide an over-grant.
+        test_run = evals.harness.load(run.COMMITTED / "endpoint_test.json")
+        i = self.first_with_status(test_run, "recommended")
+        labels = run.current_labels("test")
+        old = evals.parse(test_run.results[i].expected)
+        labels[test_run.results[i].input] = {**labels[test_run.results[i].input], "status": "recommended"}
+        test_run.results[i].expected = json.dumps({**old, "status": "human_review"})
+        with self.assertRaises(ValueError):
+            run.rescore(test_run, labels)
+
+    def test_a_rescored_run_cannot_be_compared_to_the_baseline(self):
+        test_run = evals.harness.load(run.COMMITTED / "endpoint_test.json")
+        rescored = run.rescore(test_run, run.current_labels("test"))
+        self.assertNotEqual(rescored.fingerprint, test_run.fingerprint)
+        self.assertFalse(evals.harness.compare(evals.harness.load(run.BASELINE), rescored).passed)
+
+    def test_an_unchanged_split_keeps_its_fingerprint_and_interval(self):
+        grid = evals.harness.load(run.COMMITTED / "endpoint_grid.json")
+        rescored = run.rescore(grid, run.current_labels("grid"))
+        self.assertEqual((rescored.fingerprint, rescored.meta.get("ci95")), (grid.fingerprint, grid.meta.get("ci95")))
+
+    def test_a_ticket_with_no_current_label_is_left_out_not_a_crash(self):
+        test_run = evals.harness.load(run.COMMITTED / "endpoint_test.json")
+        labels = run.current_labels("test")
+        del labels[test_run.results[0].input]
+        rescored = run.rescore(test_run, labels)
+        self.assertIn("no current label", rescored.results[0].error)
+        self.assertEqual(evals.count_asks(rescored)[2], 28)
 
     def test_errored_cases_leave_every_column_and_an_all_errored_run_does_not_divide_by_zero(self):
         real_load = evals.harness.load

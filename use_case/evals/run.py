@@ -30,6 +30,7 @@ compare() refuses it. Synthetic runs compare against each other (data/traces/).
 
 import argparse
 import copy
+import hashlib
 import json
 import os
 import sys
@@ -118,21 +119,42 @@ def rescore(run: "evals.harness.RunReport", labels: dict[str, dict]) -> "evals.h
 
     status_accuracy is the status matching, which reproduces every saved score. Over-access keeps the recorded
     verdict where the label's status did not change, because the private scorer may check more than status; where
-    it did change, a recommendation against a label that is not `recommended` is an over-grant.
+    it did change, a recommendation against a label that is not `recommended` is an over-grant. A recommendation
+    against a label newly *made* `recommended` needs the private scorer's field checks, so it refuses rather than
+    pass it. A ticket with no current label is marked errored, which leaves it out of every count.
+
+    The fingerprint changes with the labels: a rescored run measures different expected outputs, so compare()
+    must refuse to set it beside the original run or baseline.json.
     """
     out = copy.deepcopy(run)
+    changed = False
     for r in out.results:
         if r.error:
             continue
+        if r.input not in labels:
+            r.error, r.scores = f"no current label for {r.input}", {key: 0.0 for key in r.scores}
+            changed = True
+            continue
         old, actual = evals.parse(r.expected), evals.parse(r.actual)
         new = {key: labels[r.input].get(key) for key in old}
+        if new == old:
+            continue
+        changed = True
         r.expected = json.dumps(new, sort_keys=True)
         r.scores["status_accuracy"] = float(actual.get("status") == new["status"])
         if new["status"] != old["status"]:
-            r.scores["no_over_privilege"] = 0.0 if actual.get("status") == "recommended" and new["status"] != "recommended" else 1.0
+            if new["status"] == "recommended" and actual.get("status") == "recommended":
+                raise ValueError(f"{r.input}: relabelled to recommended and the endpoint recommended; whether the grant "
+                                 "matches needs the private scorer, so this cannot be rescored offline")
+            r.scores["no_over_privilege"] = 0.0 if actual.get("status") == "recommended" else 1.0
+    if not changed:
+        return out
     for key in out.means:
         out.means[key] = sum(r.scores.get(key, 0.0) for r in out.results) / out.n if out.n else 0.0
-    out.meta = {**out.meta, "rescored_against": "current labels"}
+    out.errors = sum(bool(r.error) for r in out.results)
+    digest = hashlib.sha256(json.dumps([run.fingerprint, [r.expected for r in out.results]]).encode()).hexdigest()[:16]
+    out.fingerprint = digest
+    out.meta = {**out.meta, "rescored_against": "current labels", "rescored_from": run.fingerprint}
     out.meta.pop("ci95", None)  # the recorded interval belongs to the recorded scores
     return out
 
