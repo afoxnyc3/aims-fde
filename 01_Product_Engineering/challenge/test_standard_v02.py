@@ -434,5 +434,209 @@ class StandardV02Tests(unittest.TestCase):
         self.assertIn("standard_v02.py", (Path(__file__).parent / "Dockerfile").read_text())
 
 
+# v0.4 shape: pool clubs, the pool rule, and role groups (synthetic names only).
+SYNTHETIC_V04 = """
+version: "0.4-test"
+business_unit: {id: "unit-test", name: "Test Unit"}
+venues: {in_club: ["Club A", "Club B", "Club D"]}
+pool_clubs: ["Club A", "Club D"]
+pool_roles_outside_pool_club: needs_information
+roles:
+  - {title: "Lifeguard",      group: Aquatics,            staff_login: true, company_mailbox: false, account_role: "Lifeguard"}
+  - {title: "Aquatics Lead",  group: Aquatics,            staff_login: true, company_mailbox: false, account_role: "Aquatics Lead"}
+  - {title: "Desk Associate", group: Hospitality,         staff_login: true, company_mailbox: false, account_role: "Desk Associate"}
+  - {title: "Coach",          group: Group Fitness,       staff_login: true, company_mailbox: true,  account_role: "Coach"}
+  - {title: "Trainer",        group: Personal Training,   staff_login: true, company_mailbox: true,  account_role: "Trainer"}
+  - {title: "Odd Job",        group: Unlisted Group,      staff_login: true, company_mailbox: true,  account_role: "Odd Job"}
+"""
+
+
+def v04_facts(**kw):
+    return facts(**{"job_title": "Lifeguard", **kw})
+
+
+class StandardV04Tests(unittest.TestCase):
+    """The pool rule, the exception approver and version selection (owner decisions, 2026-11-07)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.dir = tempfile.TemporaryDirectory()
+        cls.path = Path(cls.dir.name) / "std.yaml"
+        cls.path.write_text(SYNTHETIC_V04)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.dir.cleanup()
+
+    def run_with(self, extracted, text="Synthetic"):
+        req = Request(ticket_ref="T-40", ticket_text=text, comments=[])
+        with patch.dict(os.environ, {"ONBOARDING_STANDARD": str(self.path)}), \
+             patch("onboarding.extract_ticket", return_value=extracted):
+            return solve(req)
+
+    def test_pool_role_at_a_pool_club_is_unchanged(self):
+        for title in ("Lifeguard", "Aquatics Lead"):
+            for club in ("Club A", "Club D"):
+                with self.subTest(title=title, club=club):
+                    r = self.run_with(v04_facts(job_title=title, venue_names=[club]))
+                    self.assertEqual(r.status, Status.RECOMMENDED)
+                    self.assertEqual(r.answer.assignments[0].role.name, title)
+
+    def test_pool_role_at_a_non_pool_club_asks_for_venue_confirmation(self):
+        for title in ("Lifeguard", "Aquatics Lead"):
+            for venues in (["Club B"], ["Club A", "Club B"]):  # one non-pool club is enough to ask
+                with self.subTest(title=title, venues=venues):
+                    r = self.run_with(v04_facts(job_title=title, venue_names=venues))
+                    self.assertEqual(r.status, Status.NEEDS_INFORMATION)
+                    self.assertEqual(r.missing_fields, ["venue_confirmation"])
+        self.assertEqual(self.run_with(v04_facts(job_title="Desk Associate", venue_names=["Club B"])).status,
+                         Status.RECOMMENDED)  # the rule is for pool roles only
+
+    def test_pool_rule_does_not_replace_a_missing_venue(self):
+        r = self.run_with(v04_facts(venue_names=[]))
+        self.assertEqual(r.missing_fields, ["venue"])
+
+    def test_flagged_rehire_at_a_non_pool_club_goes_to_review_with_venue_confirmation(self):
+        r = self.run_with(v04_facts(venue_names=["Club B"], rehire_transfer_or_promotion=True))
+        self.assertEqual(r.status, Status.HUMAN_REVIEW)
+        self.assertEqual(r.review_reason, "exception")
+        self.assertEqual(r.missing_fields, [])
+        self.assertEqual(r.review_missing_fields, ["venue_confirmation"])
+        self.assertIsNone(r.standard_proposal)
+        self.assertIn("venue_confirmation", r.jira_comment)
+
+    def test_rehire_transfer_or_promotion_approver_is_the_service_desk_manager(self):
+        for label, kw, text in (("flag", {"rehire_transfer_or_promotion": True}, "Synthetic"),
+                                ("Re-hire: YES", {}, "Re-hire: YES")):
+            with self.subTest(label):
+                r = self.run_with(v04_facts(job_title="Coach", **kw), text=text)
+                self.assertEqual(r.review_reason, "exception")
+                self.assertEqual(r.approval_owner_role, "Service Desk Manager")
+                self.assertIn("Approver: Service Desk Manager.", r.jira_comment)
+        r = self.run_with(v04_facts(venue_names=["Club B"], rehire_transfer_or_promotion=True))  # with a gap
+        self.assertEqual(r.approval_owner_role, "Service Desk Manager")
+
+    def test_other_exceptions_go_to_the_roles_business_unit_owner(self):
+        for title, owner in (("Lifeguard", "Business Development Manager (Fitness)"),
+                             ("Desk Associate", "Business Development Manager (Fitness)"),
+                             ("Coach", "Group Fitness lead"),
+                             ("Trainer", "Director of Personal Training"),
+                             ("Odd Job", "Service Desk Manager"),       # group with no owner yet: the desk
+                             ("Not In Matrix", "Service Desk Manager")):  # no role at all
+            with self.subTest(title=title):
+                r = self.run_with(v04_facts(job_title=title), text="Please mirror a colleague's access")
+                self.assertEqual(r.review_reason, "exception")
+                self.assertEqual(r.approval_owner_role, owner)
+                self.assertIn(f"Approver: {owner}.", r.jira_comment)
+
+    def test_a_transfer_named_only_in_the_intake_goes_to_the_service_desk_manager(self):
+        r = self.run_with(v04_facts(job_title="Coach"), text="Transferring from Club B")  # extraction did not flag it
+        self.assertEqual(r.review_reason, "exception")
+        self.assertEqual(r.approval_owner_role, "Service Desk Manager")
+
+    def test_venue_confirmation_is_explained_to_the_requester(self):
+        r = self.run_with(v04_facts(venue_names=["Club B"]))
+        self.assertIn("a pool role at a club with no pool", r.jira_comment)
+
+    def test_pool_roles_come_from_the_standard_when_listed(self):
+        p = Path(self.dir.name) / "roles.yaml"
+        p.write_text(SYNTHETIC_V04.replace("pool_roles_outside_pool_club:", 'pool_roles: ["desk associate"]\npool_roles_outside_pool_club:'))
+        req = Request(ticket_ref="T-42", ticket_text="Synthetic", comments=[])
+        with patch.dict(os.environ, {"ONBOARDING_STANDARD": str(p)}):
+            for title, status in (("Desk Associate", Status.NEEDS_INFORMATION), ("Lifeguard", Status.RECOMMENDED)):
+                with self.subTest(title=title), patch("onboarding.extract_ticket",
+                                                       return_value=v04_facts(job_title=title, venue_names=["Club B"])):
+                    self.assertEqual(solve(req).status, status)
+
+    def test_malformed_pool_and_group_settings_fail_safely(self):
+        req = Request(ticket_ref="T-43", ticket_text="Synthetic", comments=[])
+        for label, text in (("misspelt rule", SYNTHETIC_V04.replace("outside_pool_club: needs_information", "outside_pool_club: needs_info")),
+                            ("unknown club", SYNTHETIC_V04.replace('pool_clubs: ["Club A", "Club D"]', 'pool_clubs: ["Club Z"]')),
+                            ("list group", SYNTHETIC_V04.replace("group: Aquatics,", "group: [Aquatics],", 1)),
+                            ("unquoted version", SYNTHETIC_V04.replace('version: "0.4-test"', "version: 0.10"))):
+            with self.subTest(label), tempfile.TemporaryDirectory() as d:
+                p = Path(d) / "s.yaml"
+                p.write_text(text)
+                with patch.dict(os.environ, {"ONBOARDING_STANDARD": str(p)}), \
+                     patch("onboarding.extract_ticket", return_value=v04_facts()):
+                    self.assertEqual(solve(req).status, Status.FAILED)
+
+    def test_an_empty_pool_clubs_key_means_no_pool_rule(self):
+        p = Path(self.dir.name) / "nopool.yaml"
+        p.write_text(SYNTHETIC_V04.replace('pool_clubs: ["Club A", "Club D"]', "pool_clubs:"))
+        req = Request(ticket_ref="T-44", ticket_text="Synthetic", comments=[])
+        with patch.dict(os.environ, {"ONBOARDING_STANDARD": str(p)}), \
+             patch("onboarding.extract_ticket", return_value=v04_facts(venue_names=["Club B"])):
+            self.assertEqual(solve(req).status, Status.RECOMMENDED)
+
+    def test_only_exception_reviews_name_an_approver(self):
+        r = self.run_with(v04_facts(job_title="Not In Matrix"))
+        self.assertEqual(r.review_reason, "ambiguous_mapping")
+        self.assertIsNone(r.approval_owner_role)
+
+
+class StandardVersionTests(unittest.TestCase):
+    """v0.4 is the default from TC5 on; TC4 stays pinned to v0.3 (owner decision, 2026-11-07)."""
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.dir.cleanup)
+        for v in ("0.3", "0.4"):
+            text = SYNTHETIC_V04.replace('version: "0.4-test"', f'version: "{v}"')
+            (Path(self.dir.name) / standard_v02.FILENAME.format(version=v)).write_text(text)
+        standard_v02._load.cache_clear()
+
+    def env(self, **kw):
+        base = {k: "" for k in (standard_v02.ENV, standard_v02.DIR_ENV, standard_v02.VERSION_ENV)}
+        return patch.dict(os.environ, {**base, standard_v02.DIR_ENV: self.dir.name, **kw})
+
+    def test_defaults_and_pins(self):
+        self.assertEqual(standard_v02.DEFAULT_VERSION, "0.4")
+        self.assertEqual(standard_v02.TC4_VERSION, "0.3")
+
+    def test_directory_selects_the_default_version(self):
+        with self.env():
+            self.assertTrue(standard_v02.configured())
+            self.assertEqual(standard_v02.load_standard()["version"], "0.4")
+
+    def test_version_can_be_selected(self):
+        with self.env(ONBOARDING_STANDARD_VERSION="0.3"):
+            self.assertEqual(standard_v02.load_standard()["version"], "0.3")
+        with self.env():
+            self.assertEqual(standard_v02.load_standard(standard_v02.TC4_VERSION)["version"], "0.3")
+
+    def test_an_explicit_path_still_wins(self):
+        p = Path(self.dir.name) / "other.yaml"
+        p.write_text(SYNTHETIC_V04)
+        with self.env(ONBOARDING_STANDARD=str(p)):
+            self.assertEqual(standard_v02.load_standard()["version"], "0.4-test")
+
+    def test_a_file_whose_version_disagrees_fails_safely(self):
+        (Path(self.dir.name) / standard_v02.FILENAME.format(version="0.4")).write_text(SYNTHETIC_V04)  # says 0.4-test
+        with self.env(), patch("onboarding.extract_ticket", return_value=v04_facts()):
+            r = solve(Request(ticket_ref="T-41", ticket_text="Synthetic", comments=[]))
+        self.assertEqual(r.status, Status.FAILED)
+
+    def test_tc4_runner_pin_matches_the_module(self):
+        run_py = (Path(__file__).resolve().parents[2] / "use_case/evals/run.py").read_text()
+        self.assertIn(f'TC4_STANDARD_VERSION = "{standard_v02.TC4_VERSION}"', run_py)
+
+    def test_a_version_set_beside_an_explicit_path_is_checked(self):
+        p = Path(self.dir.name) / standard_v02.FILENAME.format(version="0.4")
+        with self.env(ONBOARDING_STANDARD=str(p), ONBOARDING_STANDARD_VERSION="0.3"):
+            with self.assertRaisesRegex(ValueError, "asked for standard v0.3"):
+                standard_v02.load_standard()
+
+    def test_a_version_without_the_directory_is_a_clear_error(self):
+        with self.env(ONBOARDING_STANDARD_DIR="", ONBOARDING_STANDARD="/some/file.yaml"):
+            with self.assertRaisesRegex(ValueError, "ONBOARDING_STANDARD_DIR"):
+                standard_v02.load_standard(standard_v02.TC4_VERSION)
+
+    def test_unknown_version_is_refused(self):
+        with self.env(ONBOARDING_STANDARD_VERSION="../../etc/x"):
+            with self.assertRaises(ValueError):
+                standard_v02.standard_path()
+
+
 if __name__ == "__main__":
     unittest.main()

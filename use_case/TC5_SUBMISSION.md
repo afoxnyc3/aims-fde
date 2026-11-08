@@ -205,6 +205,16 @@ time. Starting the stdio server costs about 2 s per session; the hosted service'
 *Open:* the ingress route to the privately hosted service, and the data sign-off for real tickets (the same
 open items as in `ecosystem.md`).
 
+### What the room raised, answered by the row
+
+A reviewer pointed out that putting Claude in front of the system of record needs a middleware layer, not a
+direct connection. The row is that layer: a **gated, read-only tools service between Claude and the system of
+record**, with **per-caller scoping**. SSO identity maps each caller to a role, a versioned policy table decides
+which tools and which business-unit rows that role can reach (default deny), and the service reaches the system
+of record through its own least-privilege, read-only service account. So no model holds a credential, and no
+caller sees rows outside its scope. Another reviewer's advice to **lead with one ticket** shapes the Loom: it
+opens on a single real-shaped ticket end to end, then shows the measured numbers.
+
 ## Steps 1, 7, 8: pending
 
 - Step 1 marks: proposed in the private feedback doc; Alex to confirm, then record under

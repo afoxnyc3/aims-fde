@@ -7,6 +7,7 @@ import copy
 import json
 import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -127,6 +128,16 @@ class CommittedBaseline(unittest.TestCase):
         # oracle_test shares the baseline's fingerprint, so only the means tell them apart.
         with mock.patch("builtins.print"):
             self.assertFalse(run.committed_report(baseline_path=run.COMMITTED / "oracle_test.json"))
+
+    def test_a_baseline_not_on_the_tc4_standard_fails(self):
+        # TC4 is pinned to v0.3 (owner, 2026-11-07): a baseline recorded on a later standard must not pass.
+        with tempfile.TemporaryDirectory() as d:
+            data = json.loads(run.BASELINE.read_text())
+            data["meta"]["standard"] = "v0.4 (private path)"
+            p = Path(d) / "baseline.json"
+            p.write_text(json.dumps(data))
+            with mock.patch("builtins.print"):
+                self.assertFalse(run.committed_report(baseline_path=p))
 
 
 class UnnecessaryAsks(unittest.TestCase):
