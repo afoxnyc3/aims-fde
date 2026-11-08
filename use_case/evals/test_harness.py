@@ -196,6 +196,17 @@ class UnnecessaryAsks(unittest.TestCase):
         with self.assertRaises(ValueError):
             run.rescore(test_run, labels)
 
+    def test_a_changed_grant_under_a_saved_recommendation_is_not_passed_offline(self):
+        # Codex review: system_login yes -> no with the status unchanged must not keep the old over-access verdict.
+        test_run = evals.harness.load(run.COMMITTED / "endpoint_test.json")
+        i = self.first_with_status(test_run, "recommended")
+        labels = run.current_labels("test")
+        ref = test_run.results[i].input
+        self.assertEqual(labels[ref]["status"], "recommended")
+        labels[ref] = {**labels[ref], "system_login": "no" if labels[ref]["system_login"] == "yes" else "yes"}
+        with self.assertRaises(ValueError):
+            run.rescore(test_run, labels)
+
     def test_a_rescored_run_cannot_be_compared_to_the_baseline(self):
         test_run = evals.harness.load(run.COMMITTED / "endpoint_test.json")
         rescored = run.rescore(test_run, run.current_labels("test"))

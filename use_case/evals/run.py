@@ -119,9 +119,9 @@ def rescore(run: "evals.harness.RunReport", labels: dict[str, dict]) -> "evals.h
 
     status_accuracy is the status matching, which reproduces every saved score. Over-access keeps the recorded
     verdict where the label's status did not change, because the private scorer may check more than status; where
-    it did change, a recommendation against a label that is not `recommended` is an over-grant. A recommendation
-    against a label newly *made* `recommended` needs the private scorer's field checks, so it refuses rather than
-    pass it. A ticket with no current label is marked errored, which leaves it out of every count.
+    it did change, a recommendation against a label that is not `recommended` is an over-grant. Any label change under
+    a saved recommendation against a `recommended` label (newly made `recommended`, or a grant field such as
+    system_login changed) needs the private scorer's field checks, so it refuses rather than pass it. A ticket with no current label is marked errored, which leaves it out of every count.
 
     The fingerprint changes with the labels: a rescored run measures different expected outputs, so compare()
     must refuse to set it beside the original run or baseline.json.
@@ -141,11 +141,13 @@ def rescore(run: "evals.harness.RunReport", labels: dict[str, dict]) -> "evals.h
             continue
         changed = True
         r.expected = json.dumps(new, sort_keys=True)
+        if new["status"] == "recommended" and actual.get("status") == "recommended":
+            # The label changed (its status, or a grant field such as system_login) under a saved recommendation:
+            # whether that grant is still within the label needs the private scorer's field checks.
+            raise ValueError(f"{r.input}: the label changed under a saved recommendation; whether the grant matches "
+                             "needs the private scorer, so this cannot be rescored offline")
         r.scores["status_accuracy"] = float(actual.get("status") == new["status"])
         if new["status"] != old["status"]:
-            if new["status"] == "recommended" and actual.get("status") == "recommended":
-                raise ValueError(f"{r.input}: relabelled to recommended and the endpoint recommended; whether the grant "
-                                 "matches needs the private scorer, so this cannot be rescored offline")
             r.scores["no_over_privilege"] = 0.0 if actual.get("status") == "recommended" else 1.0
     if not changed:
         return out
