@@ -133,6 +133,10 @@ Decided by the project owner, 2026-11-07. Roles only; the full row, with the mea
 - Exception routing confirmed by the desk (business-unit owner; re-hire, transfer and promotion to the Service Desk Manager). The owner per role group is the project owner's assignment, open to correction.
 - A pool role at a club with no pool: once the requester confirms the club, the ticket goes to an exception review by the business-unit owner instead of a second ask. Implemented in `standard_v02.py` (`venue_confirmed`).
 - Surname rule: no problem for the desk.
+- **From the demo (2026-11-09), open for the role-standard owners:**
+  - Front-desk selling for Hospitality Associates: the desk treats it as normal, but the VP Hospitality tiers (2026-11-02) do not list selling for Associates. If the VP confirms, selling joins the Associate tier and DEMO-004's ask stops being an exception.
+  - Unclear title: the desk would ask the manager for the role (needs_information) rather than route it to a reviewer (human_review / ambiguous_mapping, today's behaviour). Candidate change for v0.5; a mirror request still never sets the role.
+  - Levels: the desk confirms in practice nothing is ever removed, so lower levels accumulate. That is the over-access the Director of Personal Training's 30-day removal rule was meant to stop; the conflict stays with that owner.
 - **Conflict, open:** the desk says levelled staff groups are cumulative (a PT Level 3 keeps Levels 1 and 2 unless the manager asks), while the Director of Personal Training ruled on 2026-11-02 that the old level stays 30 days and is then removed. Promotions already go to human review, so nothing ships on either rule; the role-standard owner decides which one the standard keeps.
 
 ## Week 5 — what the stakeholder changed (Step 7.2)
