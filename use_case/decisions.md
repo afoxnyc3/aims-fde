@@ -141,8 +141,14 @@ Decided by the project owner, 2026-11-07. Roles only; the full row, with the mea
 
 ## Week 5 — what the stakeholder changed (Step 7.2)
 
-*Pending the Service Desk Manager session (Monday). One line, in the stakeholder's words where possible, on
-what the demo changed; not filled before the session.*
+Technology Support Associate, 2026-11-09, after the demo (relayed by the project owner, close to their words):
+"Nothing changed, other than understanding that some are black and white and some are gray, and we need better
+defined and established rules and policy."
+
+What it changed for us: the demo did not move the desk's view of the tool, it moved the work. Three of four tickets
+drew a policy answer, not a model correction (front-desk selling, unclear title back to the manager, levels never
+removed). That confirms the confirmed fair mark: the role-to-permissions standard is the product, and the next
+iteration is policy ratification with the owners, not model tuning.
 
 ## Decisions still required
 
