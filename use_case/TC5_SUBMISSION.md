@@ -1,8 +1,7 @@
 # TC5: the question endpoint built a second way, and measured (DRAFT)
 
 > Draft 2026-11-07, updated 2026-11-08. Steps 3 to 5 are measured below, and the Step 6 architecture row is
-> decided (owner, 2026-11-07). The Step 1 marks and the stakeholder row are pending Alex's confirmation and
-> the Service Desk Manager session (Monday).
+> decided (owner, 2026-11-07). The Step 1 marks are confirmed and the service desk session was held 2026-11-09; the Step 7.2 line is pending.
 
 ## Step 2: the second way, and why
 
@@ -214,7 +213,5 @@ opens on a single real-shaped ticket end to end, then shows the measured numbers
 
 ## Steps 1, 7, 8: pending
 
-- Step 1 marks: proposed in the private feedback doc; Alex to confirm, then record under
-  `## Week 5 — what the room asked` in `decisions.md`. Step 6.2 (the Step 1 open question, answered or
-  explained in the row) is filled once the marks are confirmed.
-- Step 7 stakeholder row: Service Desk Manager, Monday.
+- Step 1 marks: confirmed 2026-11-09 and recorded in `decisions.md` (two fair, one open). Step 6.2: the open question (middleware) is answered by the architecture row above.
+- Step 7: service desk session held 2026-11-09 (Technology Support Associate); answers in `stakeholders.md` and `decisions.md`. The Step 7.2 line is pending.

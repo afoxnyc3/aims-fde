@@ -100,8 +100,14 @@ For v1 `solve()`, the answers are **no, yes, no, no**:
 
 ## Week 5 — what the room asked
 
-*Pending: the project owner confirms the Step 1 marks (Fair / Open / Confusion) for each question the room
-asked, by role. Draft marks are held privately until then.*
+Marks confirmed by the project owner, 2026-11-09. Reviewers are named by role.
+
+| Question (by role) | Mark | What changed |
+|---|---|---|
+| Peer reviewer: the agent asks for things it does not need; is a preferred first name and email enough? | **Fair** | Owner policy: a legal surname is required, and without one the ticket goes back to the manager (service desk agreed, 2026-11-09). Relabelled; unnecessary asks fell from 8 to 0. The demo shows one clear ask. |
+| Course reviewers: the role-to-permissions mapping is the product, not the model | **Fair** | Standard v0.4, versioned, with the pool rule, the exception approver map and the service desk answers. The model extracts facts; code builds access from the standard. |
+| Course reviewer: put middleware in front of the system of record instead of waiting for the admin cleanup | **Open** | Answered in the architecture row below (Step 6.2): a gated, read-only tools service with per-caller scoping. The admin cleanup itself (the nested Hospitality Lead role) waits on the CTO. |
+| Course reviewers: why do roles matter? | Confusion | The demo opens on one ticket and the admin over-grant. |
 
 ## Week 5 — architecture row (TC5)
 
