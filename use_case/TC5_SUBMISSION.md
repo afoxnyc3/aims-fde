@@ -150,10 +150,7 @@ capability calls usually exceed model calls and the round-trip argument does not
 **At 10x volume** (derived from the measured rows, not measured at 10x): cost per question follows **model
 turns**, not searches. Each turn re-reads everything gathered so far: in the tool rows 5 searches in 3 turns cost
 about 23 to 26K tokens (raw-search MCP's cost 19.4K, with smaller records), while the 7-search runs that needed a 4th turn cost 42 to 44K. On the shipped guarded path a
-question costs about 11K tokens (one lookup) to 71K (several), all chat-model tokens included (embedding the question adds a few tokens and is not counted). At [N] onboarding
-questions a day (Service Desk volume, to be confirmed Monday), 10x is [10N] a day, or about [10N × 11K to
-71K] tokens a day, against the tokens-per-question budget reviewed monthly (Step 6). For illustration only, at 20 a day, 10x is 200 questions and 2.2M to
-14M tokens a day. What changes the slope is per-question cost: doubling the record size would roughly double
+question costs about 11K tokens (one lookup) to 71K (several), all chat-model tokens included (embedding the question adds a few tokens and is not counted). At the Service Desk's volume of about 5 onboarding or access requests a day (Technology Support Associate, 2026-11-09), 10x is 50 a day, or about 0.55M to 3.6M tokens a day, against the tokens-per-question budget reviewed monthly (Step 6). What changes the slope is per-question cost: doubling the record size would roughly double
 the accumulated context, and so the per-turn cost, for the tool and for raw-search MCP; the guarded tool
 keeps the records out of the caller's context, and Code Mode would keep them out of every model's context.
 

@@ -492,6 +492,20 @@ class StandardV04Tests(unittest.TestCase):
         self.assertEqual(self.run_with(v04_facts(job_title="Desk Associate", venue_names=["Club B"])).status,
                          Status.RECOMMENDED)  # the rule is for pool roles only
 
+    def test_confirmed_pool_role_at_a_non_pool_club_goes_to_the_business_unit_owner(self):
+        # Service desk, 2026-11-09: once the requester confirms the club, a person reviews; no second ask.
+        r = self.run_with(v04_facts(venue_names=["Club B"], venue_confirmed=True))
+        self.assertEqual(r.status, Status.HUMAN_REVIEW)
+        self.assertEqual(r.review_reason, "exception")
+        self.assertEqual(r.missing_fields, [])
+        self.assertTrue(any("pool" in d for d in r.exception_difference))
+        self.assertNotEqual(r.approval_owner_role, "Service Desk Manager")
+        self.assertIsNotNone(r.standard_proposal)
+
+    def test_venue_confirmation_changes_nothing_at_a_pool_club(self):
+        r = self.run_with(v04_facts(venue_names=["Club A"], venue_confirmed=True))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+
     def test_pool_rule_does_not_replace_a_missing_venue(self):
         r = self.run_with(v04_facts(venue_names=[]))
         self.assertEqual(r.missing_fields, ["venue"])

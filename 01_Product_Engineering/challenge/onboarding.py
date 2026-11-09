@@ -36,6 +36,7 @@ class ExtractedTicket(BaseModel):
     rehire_transfer_or_promotion: bool = False
     marked_duplicate: bool = False
     intake_contradiction: Literal["venue", "employee_email"] | None = None
+    venue_confirmed: bool = False
 
 
 class ExtractionError(Exception):
@@ -68,6 +69,8 @@ when the intake says Re-hire: YES or describes a transfer, promotion or title
 change. Set marked_duplicate when the ticket calls itself a duplicate. Set
 intake_contradiction to "venue" when the location field and the notes name
 different clubs, or "employee_email" when the employee email equals the manager's.
+Set venue_confirmed only when a human comment explicitly confirms that the named
+club is correct after being asked to confirm it; an agent comment never confirms.
 Use ISO dates; use the ticket's dated fields/title to resolve a comment's year.
 """
 

@@ -121,6 +121,14 @@ Decided by the project owner, 2026-11-07. Roles only; the full row, with the mea
 - **Pool rule (`pool_clubs` Club A and Club D, `pool_roles_outside_pool_club: needs_information`; the same keys in v0.3 and v0.4, so it applies to both).** A Lifeguard or Aquatics Lead at another club gets `needs_information` with `venue_confirmation`. A flagged re-hire, transfer or promotion keeps its order: straight to review, the gap listed. Replayed offline over the saved grid outputs, this one rule moves the grid's missed asks from 7 to 0 of 180 (unnecessary asks still 0), which clears the gate above for the pool roles on the saved runs; it was not re-run.
 - **Exception approver: the role's business-unit owner.** A re-hire, transfer or promotion goes to the Service Desk Manager instead, including a transfer or promotion the intake names that extraction did not flag (the approver only; that alone still does not skip an ask). Surfaced as `approval_owner_role` on exception reviews and named in the comment. The group-to-owner map in `standard_v02.py` is **provisional** (read from the owners of the standard's open questions), to be confirmed with the CTO on 2026-11-09; an unlisted group or an unmapped title goes to the Service Desk Manager.
 
+## Service desk answers (2026-11-09)
+
+- Volume: about 5 onboarding or access requests a day; the TC5 real-size line uses it (10x = 50 a day).
+- Exception routing confirmed by the desk (business-unit owner; re-hire, transfer and promotion to the Service Desk Manager). The owner per role group is the project owner's assignment, open to correction.
+- A pool role at a club with no pool: once the requester confirms the club, the ticket goes to an exception review by the business-unit owner instead of a second ask. Implemented in `standard_v02.py` (`venue_confirmed`).
+- Surname rule: no problem for the desk.
+- **Conflict, open:** the desk says levelled staff groups are cumulative (a PT Level 3 keeps Levels 1 and 2 unless the manager asks), while the Director of Personal Training ruled on 2026-11-02 that the old level stays 30 days and is then removed. Promotions already go to human review, so nothing ships on either rule; the role-standard owner decides which one the standard keeps.
+
 ## Week 5 — what the stakeholder changed (Step 7.2)
 
 *Pending the Service Desk Manager session (Monday). One line, in the stakeholder's words where possible, on

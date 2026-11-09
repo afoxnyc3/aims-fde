@@ -17,7 +17,8 @@ confirmed by the owner 2026-11-07; transfers and promotions follow the same rule
 runner behind the saved TC4 runs predates it and still asks first):
   ignored            -> not an onboarding request
   needs_information  -> person name without a surname (has_surname), job title or venue missing; a pool role
-                        (Lifeguard, Aquatics Lead) at a club not in pool_clubs (venue_confirmation);
+                        (Lifeguard, Aquatics Lead) at a club not in pool_clubs (venue_confirmation; once the
+                        requester confirms the club, it becomes an exception review instead);
                         personal email missing or unusable
                         for a role with no company mailbox; trainer level missing; the intake
                         contradicts itself. Not for a re-hire, transfer or promotion: see exception
@@ -30,7 +31,7 @@ runner behind the saved TC4 runs predates it and still asks first):
                         no mapped account-system role (role_unmapped)
   recommended        -> role, login yes/no, account-system role, venue, trainer level
 An exception review names its approver (approval_owner_role): the Service Desk Manager for a re-hire,
-transfer or promotion, otherwise the role's business-unit owner (BUSINESS_UNIT_OWNERS, provisional).
+transfer or promotion, otherwise the role's business-unit owner (BUSINESS_UNIT_OWNERS).
 Comments go to extraction, as on the demo path. An evaluator grading on intake alone sends
 comments=[] itself; that choice belongs to the evaluation, not to the endpoint.
 """
@@ -54,7 +55,8 @@ LEVELLED_ROLE = "Personal Trainer"
 POOL_ROLES = ("Lifeguard", "Aquatics Lead")  # the standard's pool_roles list wins when it has one
 SERVICE_DESK_MANAGER = "Service Desk Manager"
 # Exception approver = the role's business-unit owner (owner decision 2026-11-07), keyed by the matrix's role group.
-# PROVISIONAL: inferred from the owners of the standard's open questions; to be confirmed with the CTO on 2026-11-09.
+# The routing (exceptions -> business-unit owner; re-hire, transfer, promotion -> Service Desk Manager) was confirmed
+# by the service desk on 2026-11-09. The owner per group is the project owner's assignment, open to correction.
 # A group not listed here, or a title not in the matrix, goes to the Service Desk Manager.
 BUSINESS_UNIT_OWNERS = {
     **dict.fromkeys((
@@ -299,7 +301,7 @@ def _missing_fields(facts, role, std, names) -> list[str]:
         missing.append("job_title")
     if not facts.venue_names or facts.intake_contradiction == "venue":
         missing.append("venue")
-    elif _pool_venue_unconfirmed(role, names, std):
+    elif _pool_venue_unconfirmed(role, names, std) and not getattr(facts, "venue_confirmed", False):
         missing.append("venue_confirmation")
     if role and role.get("company_mailbox") is False and (
         not _usable_email(facts.employee_email) or facts.intake_contradiction == "employee_email"
@@ -347,10 +349,14 @@ def decide(request: Request, facts, std: dict) -> Response:
         return review("duplicate", "The ticket marks itself a duplicate; confirm before acting.")
     # A re-hire with gaps always reaches this branch (rehire implies the condition), after the three checks above,
     # so one that is also out of scope or a duplicate keeps that reason.
-    if facts.rehire_transfer_or_promotion or facts.additional_access_request or trigger:
+    # Service desk, 2026-11-09: a pool role at a club with no pool, once the requester confirms the club,
+    # goes to a person (the business-unit owner) rather than being asked again or refused.
+    pool_confirmed = getattr(facts, "venue_confirmed", False) and _pool_venue_unconfirmed(role, names, std)
+    if facts.rehire_transfer_or_promotion or facts.additional_access_request or trigger or pool_confirmed:
         # Every reason, not the first found: a re-hire that also asks for extra access, or whose intake also
         # asks to mirror a colleague, must say both.
         reasons = [facts.additional_access_request, *triggers,
+                   "pool role at a club with no pool (requester confirmed the club)" if pool_confirmed else None,
                    # The flag names its own reason unless "Re-hire: YES" already did. Another trigger, even the broad
                    # transfer/promotion one, does not say why the ask was skipped.
                    "re-hire, transfer, promotion or title change"
