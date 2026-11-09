@@ -211,7 +211,9 @@ of record through its own least-privilege, read-only service account. So no mode
 caller sees rows outside its scope. Another reviewer's advice to **lead with one ticket** shapes the Loom: it
 opens on a single real-shaped ticket end to end, then shows the measured numbers.
 
-## Steps 1, 7, 8: pending
+## Steps 1, 7, 8: status
 
 - Step 1 marks: confirmed 2026-11-09 and recorded in `decisions.md` (two fair, one open). Step 6.2: the open question (middleware) is answered by the architecture row above.
 - Step 7: service desk session held 2026-11-09 (Technology Support Associate); answers in `stakeholders.md` and `decisions.md`. The Step 7.2 line is recorded in `decisions.md`.
+- Step 8: `README.md` "Bring it to work" / TC5 updated 2026-11-09 (Desktop use confirmed, hosting route settled and CTO-approved, real volume).
+- Docker: image rebuilt 2026-11-09 after the pool-confirmation change; non-root (UID 1000), no `.env` in the image, `/health` ok, the new field imports. Model calls not re-run in the container (no key supplied to this check).
