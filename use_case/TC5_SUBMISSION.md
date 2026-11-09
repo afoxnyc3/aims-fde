@@ -9,9 +9,9 @@ Walking Session 10's ordering for the question endpoint (`search_hybrid` in a to
 
 1. **Already an HTTP API at work?** No. The retrieval over the standard and past tickets exists only here.
 2. **Does anything outside the codebase need to discover it?** **Yes.** Each stakeholder role in `stakeholders.md` has a seat in the organisation's Claude workspace (`ecosystem.md`, Week 5; project
-   owner's statement). How much those roles use Desktop and similar clients day to day is to be confirmed with
-   the Service Desk Manager, so this "yes" is conditional on that answer. They should reach the capability from Claude without importing our code.
-   **Second way: an MCP server.** Confirmation with the Service Desk Manager is pending (Step 7).
+   owner's statement). Confirmed with the service desk on 2026-11-09: the Technology Support Associate uses Claude Desktop every day, so
+   the "yes" holds. They should reach the capability from Claude without importing our code.
+   **Second way: an MCP server.**
 3. Several calls, or calls that return a lot? Also yes (whole records, several searches): this is why
    **Code Mode is the closest alternative not built.** It would keep the 4 to 8 KB of records per search out of
    every model's context, but the guarded tool already keeps them out of the caller's, and Code Mode means
