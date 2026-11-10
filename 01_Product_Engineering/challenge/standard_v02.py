@@ -56,29 +56,28 @@ POOL_ROLES = ("Lifeguard", "Aquatics Lead")  # the standard's pool_roles list wi
 SERVICE_DESK_MANAGER = "Service Desk Manager"
 # Exception approver = the role's business-unit owner (owner decision 2026-11-07), keyed by the matrix's role group.
 # The routing (exceptions -> business-unit owner; re-hire, transfer, promotion -> Service Desk Manager) was confirmed
-# by the service desk on 2026-11-09. The owner per group is the project owner's assignment, open to correction.
-# A group not listed here, or a title not in the matrix, goes to the Service Desk Manager.
+# by the service desk on 2026-11-09. The owner per group was assigned by the project owner on 2026-11-10.
+# A group not listed here, or a title not in the matrix, goes to the Service Desk Manager, who holds and routes it.
+# A tuple means either role can approve; the output names them joined by "or", in this order.
 BUSINESS_UNIT_OWNERS = {
-    **dict.fromkeys((
-        "Accounting",
-        "Aquatics",
-        "Cafe",
-        "Childcare",
-        "Hospitality",
-        "Housekeeping",
-        "Human Resources",
-        "Maintenance",
-        "Managers",
-        "Marketing",
-        "Massage",
-        "Member Services",
-        "Membership Sales",
-        "Rockwall",
-        "Special Events",
-        "Technology",
-    ), "Business Development Manager (Fitness)"),
-    "Group Fitness": "Group Fitness lead",
+    "Accounting": "Business Development Manager (Fitness)",
+    "Aquatics": "Business Development Manager (Fitness)",
+    "Cafe": "Food & Beverage Director",
+    "Childcare": ("VP Hospitality", "Business Development Manager (Fitness)"),
+    "Group Fitness": ("Group Fitness Senior Manager", "Group Fitness Director"),
+    "Hospitality": ("VP Hospitality", "Business Development Manager (Fitness)"),
+    "Housekeeping": ("VP Hospitality", "Business Development Manager (Fitness)"),
+    "Human Resources": "HR / People Ops Director",
+    "Maintenance": "Business Development Manager (Fitness)",
+    "Managers": ("VP Hospitality", "Business Development Manager (Fitness)"),
+    "Marketing": "VP Marketing",
+    "Massage": ("VP Hospitality", "Business Development Manager (Fitness)"),
+    "Member Services": ("VP Hospitality", "Business Development Manager (Fitness)"),
+    "Membership Sales": "VP Sales",
     "Personal Training": "Director of Personal Training",
+    "Rockwall": "Business Development Manager (Fitness)",
+    "Special Events": "Events Director",
+    "Technology": ("Senior Director IT", "CTO"),
 }
 
 
@@ -290,7 +289,8 @@ def _approver(role, desk: bool) -> str:
     """Who approves an exception: the desk for a re-hire, transfer or promotion, else the business-unit owner."""
     if desk:
         return SERVICE_DESK_MANAGER
-    return BUSINESS_UNIT_OWNERS.get((role or {}).get("group"), SERVICE_DESK_MANAGER)
+    owner = BUSINESS_UNIT_OWNERS.get((role or {}).get("group"), SERVICE_DESK_MANAGER)
+    return " or ".join(owner) if isinstance(owner, tuple) else owner
 
 
 def _missing_fields(facts, role, std, names) -> list[str]:
