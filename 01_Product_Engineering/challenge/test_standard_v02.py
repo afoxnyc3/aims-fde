@@ -499,7 +499,8 @@ class StandardV04Tests(unittest.TestCase):
         self.assertEqual(r.review_reason, "exception")
         self.assertEqual(r.missing_fields, [])
         self.assertTrue(any("pool" in d for d in r.exception_difference))
-        self.assertNotEqual(r.approval_owner_role, "Service Desk Manager")
+        self.assertEqual(r.approval_owner_role, "Business Development Manager (Fitness)")  # Lifeguard: Aquatics
+        self.assertIn("Approver: Business Development Manager (Fitness).", r.jira_comment)
         self.assertIsNotNone(r.standard_proposal)
 
     def test_venue_confirmation_changes_nothing_at_a_pool_club(self):
