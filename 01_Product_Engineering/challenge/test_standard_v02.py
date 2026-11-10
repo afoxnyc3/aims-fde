@@ -24,6 +24,7 @@ roles:
   - {title: "Cafe Associate", staff_login: false, company_mailbox: false, account_role: null}
   - {title: "Desk Manager",   staff_login: true,  company_mailbox: true,  account_role: null}
   - {title: "Pool Captain",   staff_login: null,  company_mailbox: null,  account_role: null}
+  - {title: "Guard",          staff_login: true,  company_mailbox: false, account_role: "Desk Associate", account_role_scope: business_unit}
 """
 
 
@@ -59,6 +60,18 @@ class StandardV02Tests(unittest.TestCase):
         self.assertTrue(r.answer.staff_login)
         self.assertEqual(r.answer.assignments[0].role.name, "Desk Associate")
         self.assertEqual([v.name for v in r.answer.venues], ["Club A"])
+
+    def test_business_unit_scoped_role_is_granted_once_at_the_unit(self):
+        r = self.run_with(facts(job_title="Guard", venue_names=["Club A", "Club B"]))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        self.assertEqual(len(r.answer.assignments), 1)
+        a = r.answer.assignments[0]
+        self.assertEqual((a.role.name, a.scope_type, a.scope.name), ("Desk Associate", "business_unit", "Test Unit"))
+        self.assertEqual([v.name for v in r.answer.venues], ["Club A", "Club B"])
+
+    def test_venue_scoped_role_is_granted_per_club(self):
+        r = self.run_with(facts(venue_names=["Club A", "Club B"]))
+        self.assertEqual([(a.scope_type, a.scope.name) for a in r.answer.assignments], [("venue", "Club A"), ("venue", "Club B")])
 
     def test_no_login_role_gets_member_record_only(self):
         r = self.run_with(facts(job_title="Cafe Associate"))
