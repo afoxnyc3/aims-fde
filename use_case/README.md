@@ -13,8 +13,12 @@ annoys you weekly.
 
 ---
 
-> **What changed after critique (TC5):** *Pending: written after the Week 5 demo and stakeholder session,
-> from the critique actually received. Not drafted ahead of it.*
+> **What changed after critique (TC5):** The room said the agent asked for things it did not need and that the
+> role standard is the real product. Unnecessary asks went from 8 to 0 once the owner made a legal surname
+> required, and the standard moved to v0.5 with six role and routing decisions closed by their owners. On the
+> same 29 test tickets: 14 to 27 right, over-access 2 to 0 (not held out; see [TC5](TC5_SUBMISSION.md#results-after-the-2026-11-10-rulings)).
+> A reviewer asked for a middleware layer in front of the system of record: it is the architecture row, and a
+> read-only tools server on that route is in test. Another asked to lead with one ticket: the Loom does.
 
 ## The files
 

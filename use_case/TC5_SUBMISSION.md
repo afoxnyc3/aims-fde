@@ -1,7 +1,24 @@
 # TC5: the question endpoint built a second way, and measured (DRAFT)
 
-> Draft 2026-11-07, updated 2026-11-08. Steps 3 to 5 are measured below, and the Step 6 architecture row is
+> Draft 2026-11-07, updated 2026-11-10. Steps 3 to 5 are measured below, and the Step 6 architecture row is
 > decided (owner, 2026-11-07). The Step 1 marks are confirmed and the service desk session was held 2026-11-09; the Step 7.2 line is recorded.
+
+## Results after the 2026-11-10 rulings
+
+Same 29 real test tickets as TC4, current agent, standard v0.5. **Not held out:** this split has been read closely, and one check below was added after a test run.
+
+| | TC4 (2026-11-03, v0.3) | TC5 (2026-11-10, v0.5) |
+| --- | --- | --- |
+| Test, right outcome | 14 of 29 (0.48) | **27 of 29 (0.93)** |
+| Test, over-access | 2 | **0** |
+| Dev, right outcome | 25 of 29 | **28 of 29**, 0 over-access |
+| Synthetic grid | 168 of 180, 11 over-access | **174 of 180, 2 over-access** |
+
+What moved it: six owner and service-desk rulings that closed role mappings and the exception order, a business-unit scope and a title staff group in the decision code, and a deterministic check for systems beyond the role bundle ([`decisions.md`](decisions.md#owner-decisions-2026-11-10); labels and runs in [`evals/real_v05`](evals/real_v05/README.md)).
+
+**Failure analysis.** A morning run showed over-access 2 -> 0. It was luck: the two TC4 over-access tickets went to a person only because their roles were still unmapped. Once mapped, the agent recommended both, and both ask for systems outside the bundle (one for a scheduling app, one for several business systems), which extraction did not flag. The fix is in code, not the prompt: the standard names those systems and any intake that names one is an exception. Validated on dev and the synthetic grid, which it was not tuned on. Remaining: 3 real tickets sent to a person as conflicting identity (the safe direction), and 2 grid tickets where the intake corrects the venue (the next rule).
+
+**Known risk, accepted by the owner.** NY Group Fitness Instructors are recommended Senior Group Fitness Instructor, the current SOP, which carries staff admin. "0 over-access" is measured against labels that accept that SOP. Each such recommendation carries a warning, and the exception ends when the role is cleaned up with stakeholders.
 
 ## Step 2: the second way, and why
 
@@ -216,4 +233,4 @@ opens on a single real-shaped ticket end to end, then shows the measured numbers
 - Step 1: marks confirmed 2026-11-09 and recorded in `decisions.md` (two fair, one open). The Step 6.2 open question (middleware) is answered by the architecture row above.
 - Step 7: Service Desk session held 2026-11-09 with the Technology Support Associate. Answers are in `stakeholders.md` and `decisions.md`. The Step 7.2 line is recorded in `decisions.md`.
 - Step 8: `README.md` "Bring it to work" / TC5 updated 2026-11-09: Desktop use confirmed, hosting route settled and CTO-approved, real volume added.
-- Docker: image rebuilt 2026-11-10 from main (49faead). It runs non-root (UID 1000), has no `.env` in the image, mounts `/data` read-only, and `/health` returns ok on `anthropic/claude-sonnet-5-5`. Live model calls ran in the container with the key supplied at runtime. The app answered two role questions with cited sources. The MCP server, run over stdio, listed only `answer_onboarding_question`, answered with a citation, declined the password question with no sources, and rejected `search_hybrid` as an unknown tool. Open finding: through the app, the password question was refused in the answer text every time and no credential appeared, but only 1 of 5 runs set `declined: true` with empty `sources`. The other 4 came back `declined: false` with ticket citations. The decline flag follows the model's output, so it is not yet reliable on this question.
+- Docker: image rebuilt 2026-11-10 from main (49faead). It runs non-root (UID 1000), has no `.env` in the image, mounts `/data` read-only, and `/health` returns ok on `anthropic/claude-sonnet-5-5`. Live model calls ran in the container with the key supplied at runtime. The app answered two role questions with cited sources. The MCP server, run over stdio, listed only `answer_onboarding_question`, answered with a citation, declined the password question with no sources, and rejected `search_hybrid` as an unknown tool. Re-checked after the v0.5 changes (image rebuilt from this branch, standard mounted read-only): a synthetic Massage Therapist ticket recommended Personal Trainer/Pro New plus the Massage Therapist group at the club, and a synthetic ticket asking for Zoho and Prospr went to review as an exception naming both systems and the approver. Open finding: through the app, the password question was refused in the answer text every time and no credential appeared, but only 1 of 5 runs set `declined: true` with empty `sources`. The other 4 came back `declined: false` with ticket citations. The decline flag follows the model's output, so it is not yet reliable on this question.
