@@ -340,11 +340,15 @@ def decide(request: Request, facts, std: dict) -> Response:
     # the ask and reaches the exception review below with the gaps listed. Only "Re-hire: YES" and the extracted
     # flag count; the broad transfer/promotion regex would let a stray "promotion" suppress a needed ask.
     rehire = facts.rehire_transfer_or_promotion or trigger == "re-hire"
-    if missing and not rehire:
+    # Owner, 2026-11-10: any exception needs a person whatever the requester answers, so it skips the ask too
+    # (extra access, mirror, non-standard start, hardware). The broad transfer/promotion regex alone does not.
+    exception = rehire or bool(facts.additional_access_request) or any(
+        t not in ("re-hire", "transfer or promotion") for t in triggers)
+    if missing and not exception:
         return _out(request, Status.NEEDS_INFORMATION, "Provide: " + ", ".join(_field_label(f, facts) for f in missing) + ".",
                     missing_fields=missing)
 
-    # Only a re-hire reaches review with gaps (it skipped the ask), so whichever review it lands in must
+    # Only an exception reaches review with gaps (it skipped the ask), so whichever review it lands in must
     # still hand them over: the exception branch as data and prose, the earlier three in the comment.
     absent, contradictory = _gaps(facts, missing)
     gaps_text = _gaps_sentence([_field_label(f, facts) for f in absent], contradictory)

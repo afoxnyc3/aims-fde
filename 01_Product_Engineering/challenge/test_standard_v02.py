@@ -122,6 +122,20 @@ class StandardV02Tests(unittest.TestCase):
         r = self.run_with(facts(person_name=None))  # not a re-hire: still an ask
         self.assertEqual((r.status, r.missing_fields), (Status.NEEDS_INFORMATION, ["person_name"]))
 
+    def test_any_exception_with_missing_fields_goes_to_review_not_an_ask(self):
+        # Owner, 2026-11-10: hardware, mirror, non-standard start and extra access need a person anyway.
+        for text, f in (("Needs a laptop", facts(person_name=None)),
+                        ("Same access as her manager", facts(person_name=None)),
+                        ("Contractor start", facts(person_name=None)),
+                        ("Synthetic", facts(person_name=None, additional_access_request="extra system"))):
+            with self.subTest(text=text):
+                r = self.run_text(text, f)
+                self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, "exception"))
+                self.assertEqual(r.review_missing_fields, ["person_name"])
+                self.assertIsNone(r.standard_proposal)
+        r = self.run_text("Was promoted last year", facts(person_name=None))  # the broad regex alone still asks
+        self.assertEqual((r.status, r.missing_fields), (Status.NEEDS_INFORMATION, ["person_name"]))
+
     def test_rehire_handoff_names_the_gap_and_the_extra_access(self):
         # Code review finding: a second exception branch once wrote "re-hire" alone and dropped the extra access.
         r = self.run_text("Re-hire: YES", facts(person_name=None, additional_access_request="also let her sell memberships"))
