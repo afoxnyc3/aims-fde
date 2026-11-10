@@ -451,6 +451,9 @@ def build_proposal(facts, role, std, names) -> Recommendation:
             assignments = [{"role": role_ref, "scope_type": "venue", "scope": v} for v in venues]
         groups = ([{"staff_group": {"id": f"group-trainer-{level}", "name": f"Trainer Level {level}"},
                     "scope_type": "business_unit", "scope": std["unit"]}] if level and role["title"] == LEVELLED_ROLE else [])
+        if role.get("staff_group"):  # a title's own staff group, granted at each club (owner, 2026-11-10)
+            groups += [{"staff_group": {"id": "group-" + _slug(role["staff_group"]), "name": role["staff_group"]},
+                        "scope_type": "venue", "scope": v} for v in venues]
         mailbox = bool(role.get("company_mailbox"))
         login = None if mailbox else facts.employee_email
         steps = [f"Create a staff login for {role['title']}.",

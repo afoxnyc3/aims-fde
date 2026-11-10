@@ -25,6 +25,7 @@ roles:
   - {title: "Desk Manager",   staff_login: true,  company_mailbox: true,  account_role: null}
   - {title: "Pool Captain",   staff_login: null,  company_mailbox: null,  account_role: null}
   - {title: "Guard",          staff_login: true,  company_mailbox: false, account_role: "Desk Associate", account_role_scope: business_unit}
+  - {title: "Therapist",      staff_login: true,  company_mailbox: false, account_role: "Trainer", staff_group: "Therapist"}
 """
 
 
@@ -68,6 +69,13 @@ class StandardV02Tests(unittest.TestCase):
         a = r.answer.assignments[0]
         self.assertEqual((a.role.name, a.scope_type, a.scope.name), ("Desk Associate", "business_unit", "Test Unit"))
         self.assertEqual([v.name for v in r.answer.venues], ["Club A", "Club B"])
+
+    def test_title_staff_group_is_granted_at_each_club(self):
+        r = self.run_with(facts(job_title="Therapist", venue_names=["Club A", "Club B"]))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        self.assertEqual([(g.staff_group.name, g.scope_type, g.scope.name) for g in r.answer.staff_groups],
+                         [("Therapist", "venue", "Club A"), ("Therapist", "venue", "Club B")])
+        self.assertEqual(self.run_with(facts()).answer.staff_groups, [])  # no group on the title, none granted
 
     def test_venue_scoped_role_is_granted_per_club(self):
         r = self.run_with(facts(venue_names=["Club A", "Club B"]))
