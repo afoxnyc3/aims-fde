@@ -144,6 +144,9 @@ def _check(std) -> None:
     pool = std.get("pool_clubs") or []
     if not (isinstance(pool, list) and all(isinstance(v, str) and v in std["venues"].get("in_club", []) for v in pool)):
         raise ValueError("pool_clubs must be a list of clubs from venues.in_club")
+    nbs = std.get("non_bundle_systems") or []
+    if not (isinstance(nbs, list) and all(isinstance(x, str) and x.strip() for x in nbs)):
+        raise ValueError("non_bundle_systems must be a list of system names")
     pool_roles = std.get("pool_roles", POOL_ROLES)
     if not (isinstance(pool_roles, (list, tuple)) and all(isinstance(t, str) and t.strip() for t in pool_roles)):
         raise ValueError("pool_roles must be a list of titles")
@@ -166,7 +169,10 @@ def _parse(path: str, mtime_ns: int, size: int) -> dict:  # key includes the fil
             "out_of_scope": {_norm(u) for u in std.get("out_of_scope_business_units", [])},
             "out_of_scope_prefixes": [_norm(p) for p in std.get("out_of_scope_venue_prefixes", [])],
             "pool_clubs": {_norm(v) for v in std.get("pool_clubs") or []},
-            "pool_roles": {_norm(t) for t in std.get("pool_roles", POOL_ROLES)}}
+            "pool_roles": {_norm(t) for t in std.get("pool_roles", POOL_ROLES)},
+            # Systems outside every role's bundle, named by the standard. An intake that names one is an exception.
+            "non_bundle_systems": [(n, re.compile(r"(?<![\w.])" + re.escape(n) + r"(?![\w])", re.I))
+                                   for n in std.get("non_bundle_systems") or []]}
 
 
 def _load(path: str) -> dict:
@@ -335,6 +341,9 @@ def decide(request: Request, facts, std: dict) -> Response:
     names = list(dict.fromkeys(_norm(v) for v in facts.venue_names))  # one club named twice is one club
     missing = _missing_fields(facts, role, std, names)
     triggers = intake_triggers(request.ticket_text)
+    named = [n for n, rx in std.get("non_bundle_systems", ()) if rx.search(request.ticket_text or "")]
+    if named:  # a deterministic backstop: extraction missed "needs Prospr" and "all Zoho accounts" (TC5 test)
+        triggers.append("systems beyond the role bundle: " + ", ".join(named))
     trigger = triggers[0] if triggers else None
     # A re-hire needs a person whatever the requester answers, so asking first only adds a round trip: it skips
     # the ask and reaches the exception review below with the gaps listed. Only "Re-hire: YES" and the extracted

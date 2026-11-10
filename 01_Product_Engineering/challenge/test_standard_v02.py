@@ -17,6 +17,7 @@ venues: {in_club: ["Club A", "Club B"]}
 out_of_scope_business_units: ["Golf Club"]
 out_of_scope_venue_prefixes: ["Annex"]
 aliases: {"Desk Associate Level 1": "Desk Associate", "Level 2 Coach": "Coach"}
+non_bundle_systems: ["Prospr", "Zoho", "Monday.com"]
 roles:
   - {title: "Desk Associate", staff_login: true,  company_mailbox: false, account_role: "Desk Associate"}
   - {title: "Coach",          staff_login: true,  company_mailbox: true,  account_role: "Coach"}
@@ -84,6 +85,16 @@ class StandardV02Tests(unittest.TestCase):
         self.assertEqual(r.answer.assignments[0].role.name, "Senior Instructor")
         self.assertIn("Senior Instructor carries staff admin; owner-approved SOP.", r.caveats)
         self.assertNotIn("Senior Instructor carries staff admin; owner-approved SOP.", self.run_with(facts()).caveats)
+
+    def test_a_named_system_outside_the_bundle_is_an_exception(self):
+        for text in ("Guard needs prospr to sub at fitness", "Please give access to all Zoho accounts", "Add to Monday.com"):
+            with self.subTest(text=text):
+                r = self.run_text(text, facts())
+                self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, "exception"))
+                self.assertTrue(any("systems beyond the role bundle" in d for d in r.exception_difference))
+        for text in ("Synthetic", "Prosprity is not a system", "zohobar"):  # whole names only
+            with self.subTest(text=text):
+                self.assertEqual(self.run_text(text, facts()).status, Status.RECOMMENDED)
 
     def test_venue_scoped_role_is_granted_per_club(self):
         r = self.run_with(facts(venue_names=["Club A", "Club B"]))
