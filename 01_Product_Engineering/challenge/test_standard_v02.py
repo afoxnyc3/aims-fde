@@ -557,8 +557,8 @@ class StandardV04Tests(unittest.TestCase):
         self.assertEqual(set(expected) | {"Managers"}, set(standard_v02.BUSINESS_UNIT_OWNERS))
         for group, owner in expected.items():
             with self.subTest(group=group):
-                self.assertEqual(standard_v02._approver({"group": group}, desk=False), owner)
-        self.assertEqual(standard_v02._approver({"group": "Technology"}, desk=True), "Service Desk Manager")
+                self.assertEqual(standard_v02._approver({"group": group}, False, [], None), owner)
+        self.assertEqual(standard_v02._approver({"group": "Technology"}, True, [], None), "Service Desk Manager")
 
     def test_other_exceptions_go_to_the_roles_business_unit_owner(self):
         for title, owner in (("Lifeguard", "VP of Operations (Fitness)"),
@@ -583,10 +583,14 @@ class StandardV04Tests(unittest.TestCase):
                 self.assertIn(f"Approver: General Manager ({club}).", r.jira_comment)
         role = {"group": "Managers"}
         venues = {"club b": {"name": "Club B"}, "club d": {"name": "Club D"}}
-        for names in ([], ["club b", "club d"], ["somewhere else"]):  # no club, two clubs, an unknown club: the desk routes
+        for names in ([], ["club b", "club d"], ["club b", "somewhere else"], ["somewhere else"]):  # the desk routes
             with self.subTest(names=names):
                 self.assertEqual(standard_v02._approver(role, False, names, {"venues": venues}), "Service Desk Manager")
         self.assertEqual(standard_v02._approver(role, False, ["club b"], None), "Service Desk Manager")
+        # A club manager's re-hire, transfer or promotion still goes to the desk, not the club's GM.
+        self.assertEqual(standard_v02._approver(role, True, ["club b"], {"venues": venues}), "Service Desk Manager")
+        r = self.run_with(v04_facts(job_title="Club Manager", venue_names=["Club B"], rehire_transfer_or_promotion=True))
+        self.assertEqual(r.approval_owner_role, "Service Desk Manager")
 
     def test_a_transfer_named_only_in_the_intake_goes_to_the_service_desk_manager(self):
         r = self.run_with(v04_facts(job_title="Coach"), text="Transferring from Club B")  # extraction did not flag it

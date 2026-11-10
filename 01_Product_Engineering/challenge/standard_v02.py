@@ -31,7 +31,8 @@ runner behind the saved TC4 runs predates it and still asks first):
                         no mapped account-system role (role_unmapped)
   recommended        -> role, login yes/no, account-system role, venue, trainer level
 An exception review names its approver (approval_owner_role): the Service Desk Manager for a re-hire,
-transfer or promotion, otherwise the role's business-unit owner (BUSINESS_UNIT_OWNERS).
+transfer or promotion, otherwise the role's business-unit owner (BUSINESS_UNIT_OWNERS). A club manager's owner is
+the General Manager of the ticket's one club; a ticket naming several clubs, or none, goes to the Service Desk Manager.
 Comments go to extraction, as on the demo path. An evaluator grading on intake alone sends
 comments=[] itself; that choice belongs to the evaluation, not to the endpoint.
 """
@@ -288,7 +289,7 @@ def _pool_venue_unconfirmed(role, names: list[str], std: dict) -> bool:
                 and any(n in std["venues"] and n not in std["pool_clubs"] for n in names))
 
 
-def _approver(role, desk: bool, names=(), std: dict | None = None) -> str:
+def _approver(role, desk: bool, names: list[str], std: dict | None) -> str:
     """Who approves an exception: the desk for a re-hire, transfer or promotion, else the business-unit owner.
 
     A club manager's owner is the General Manager of the ticket's club, so it needs exactly one known club;
@@ -298,8 +299,9 @@ def _approver(role, desk: bool, names=(), std: dict | None = None) -> str:
         return SERVICE_DESK_MANAGER
     owner = BUSINESS_UNIT_OWNERS.get((role or {}).get("group"), SERVICE_DESK_MANAGER)
     if owner == CLUB_GENERAL_MANAGER:
-        clubs = [std["venues"][n]["name"] for n in names if std and n in std["venues"]]
-        return f"General Manager ({clubs[0]})" if len(names) == 1 and len(clubs) == 1 else SERVICE_DESK_MANAGER
+        if std and len(names) == 1 and names[0] in std["venues"]:
+            return f"General Manager ({std['venues'][names[0]]['name']})"
+        return SERVICE_DESK_MANAGER
     return " or ".join(owner) if isinstance(owner, tuple) else owner
 
 
