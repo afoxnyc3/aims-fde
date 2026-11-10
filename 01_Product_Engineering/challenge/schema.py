@@ -404,7 +404,8 @@ class Response(BaseModel):
     approval_owner_role: str | None = Field(
         default=None,
         description=(
-            "For exception reviews: the role that can approve the exception, or null if unknown. "
+            "For exception reviews: the role that can approve the exception, or several roles joined by ' or ', "
+            "any one of whom can approve; null if unknown. "
             "Must be null for every other outcome."
         ),
     )
