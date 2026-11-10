@@ -69,6 +69,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 main{max-width:1180px;margin:0 auto;padding:44px 32px 120px}
 section.seg{display:none;animation:in .3s ease-out}
 section.seg.on{display:block}
+@media (min-width:900px){.next.four{grid-template-columns:repeat(4,1fr)}}
 @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .eyebrow{font:500 12px/1.2 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
 h1{font:500 clamp(36px,5.2vw,60px)/1.06 var(--sans);letter-spacing:-.02em;margin:0 0 20px;max-width:17ch}
@@ -426,6 +427,22 @@ h3{font:500 17px/1.3 var(--sans);margin:0 0 6px}
   </table>
 </section>
 
+<!-- TOOLS -->
+<section class="seg" id="s-tools">
+  <p class="eyebrow">Already running in test</p>
+  <h2>13 tools, all reads. The admin decides what runs.</h2>
+  <div class="next four">
+    <div class="card"><p class="s">Identity &amp; health</p><h3>Who is calling, is it up</h3><p>Whoami · Egress IP · System ping</p></div>
+    <div class="card"><p class="s">Org structure</p><h3>Clubs and areas</h3><p>Get Centers · Get Centers In Area · Get Scope</p></div>
+    <div class="card"><p class="s">People</p><h3>Look up, never change</h3><p>Find Persons · Get Changed Persons</p></div>
+    <div class="card"><p class="s">Access</p><h3>Who holds which role</h3><p>Get Roles For Login · Get Assigned Staff Groups · Get Available Staff Groups · Get Available Roles For Scope · Get Scope For Roles Matching</p></div>
+  </div>
+  <div class="guard">
+    <span>No write tool exists</span><span>Every tool set to Ask: a person approves each call</span><span>Tools added later default to Ask or Block</span><span>Entra sign-in, one security group</span><span>Secrets in Key Vault</span>
+  </div>
+  <p class="foot">A read-only MCP server on the member-management system's test environment, hosted in a private Azure container. The project owner and the CTO are testing it now. Hardening comes before production, and the onboarding server goes on the same route.</p>
+</section>
+
 <!-- 10 NEXT -->
 <section class="seg" id="s-next">
   <p class="eyebrow">Next</p>
@@ -480,6 +497,7 @@ const SEGS=[
  {tok:"replay",name:"Replay",t:170,notes:["Recorded results, no live calls. Click once for the agent, again for the human answer.","Save the lifeguard for last."]},
  {tok:"misses",name:"Misses",t:220,notes:["Five misses. Two are my anonymizer, two asked instead of escalating. Four of five erred toward caution.","The fifth is a gap in the matrix, not the model: nobody has written the rule for cross-unit work."]},
  {tok:"decisions",name:"Decisions",t:250,notes:["Each of these moves tickets from ‘send to a person’ to ‘recommend.’ The cross-unit rule closes the only over-access case."]},
+ {tok:"tools",name:"Tools",t:255,notes:["This is already running in test against the member system. Thirteen tools, every one a read: find, get, list. There is no write tool to approve because none exists.","Every tool is set to Ask, so a person approves each call, and tools added later default to Ask or Block. Entra sign-in, one security group, secrets in Key Vault.","The CTO and I are testing it now. Hardening comes next, then the onboarding server goes on this same route."]},
  {tok:"next",name:"Next",t:275,notes:["Close the matrix questions, have the desk review at scale, then shadow mode: the agent comments, the desk applies, we measure agreement.","Nothing gets automated until shadow mode earns it."]}
 ];
 

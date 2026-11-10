@@ -211,9 +211,9 @@ of record through its own least-privilege, read-only service account. So no mode
 caller sees rows outside its scope. Another reviewer's advice to **lead with one ticket** shapes the Loom: it
 opens on a single real-shaped ticket end to end, then shows the measured numbers.
 
-## Steps 1, 7, 8: status
+## Steps 1, 7 and 8: Status
 
-- Step 1 marks: confirmed 2026-11-09 and recorded in `decisions.md` (two fair, one open). Step 6.2: the open question (middleware) is answered by the architecture row above.
-- Step 7: service desk session held 2026-11-09 (Technology Support Associate); answers in `stakeholders.md` and `decisions.md`. The Step 7.2 line is recorded in `decisions.md`.
-- Step 8: `README.md` "Bring it to work" / TC5 updated 2026-11-09 (Desktop use confirmed, hosting route settled and CTO-approved, real volume).
-- Docker: image rebuilt 2026-11-09 after the pool-confirmation change; non-root (UID 1000), no `.env` in the image, `/health` ok, the new field imports. Model calls not re-run in the container (no key supplied to this check).
+- Step 1: marks confirmed 2026-11-09 and recorded in `decisions.md` (two fair, one open). The Step 6.2 open question (middleware) is answered by the architecture row above.
+- Step 7: Service Desk session held 2026-11-09 with the Technology Support Associate. Answers are in `stakeholders.md` and `decisions.md`. The Step 7.2 line is recorded in `decisions.md`.
+- Step 8: `README.md` "Bring it to work" / TC5 updated 2026-11-09: Desktop use confirmed, hosting route settled and CTO-approved, real volume added.
+- Docker: image rebuilt 2026-11-10 from main (49faead). It runs non-root (UID 1000), has no `.env` in the image, mounts `/data` read-only, and `/health` returns ok on `anthropic/claude-sonnet-5-5`. Live model calls ran in the container with the key supplied at runtime. The app answered two role questions with cited sources. The MCP server, run over stdio, listed only `answer_onboarding_question`, answered with a citation, declined the password question with no sources, and rejected `search_hybrid` as an unknown tool. Open finding: through the app, the password question was refused in the answer text every time and no credential appeared, but only 1 of 5 runs set `declined: true` with empty `sources`. The other 4 came back `declined: false` with ticket citations. The decline flag follows the model's output, so it is not yet reliable on this question.
