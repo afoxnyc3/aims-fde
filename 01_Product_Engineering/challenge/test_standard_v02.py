@@ -693,12 +693,12 @@ class StandardV04Tests(unittest.TestCase):
 
 
 class StandardVersionTests(unittest.TestCase):
-    """v0.4 is the default from TC5 on; TC4 stays pinned to v0.3 (owner decision, 2026-11-07)."""
+    """v0.5 is the default from 2026-11-10; TC4 stays pinned to v0.3 (owner decision, 2026-11-07)."""
 
     def setUp(self):
         self.dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.dir.cleanup)
-        for v in ("0.3", "0.4"):
+        for v in ("0.3", "0.4", "0.5"):
             text = SYNTHETIC_V04.replace('version: "0.4-test"', f'version: "{v}"')
             (Path(self.dir.name) / standard_v02.FILENAME.format(version=v)).write_text(text)
         standard_v02._load.cache_clear()
@@ -708,13 +708,13 @@ class StandardVersionTests(unittest.TestCase):
         return patch.dict(os.environ, {**base, standard_v02.DIR_ENV: self.dir.name, **kw})
 
     def test_defaults_and_pins(self):
-        self.assertEqual(standard_v02.DEFAULT_VERSION, "0.4")
+        self.assertEqual(standard_v02.DEFAULT_VERSION, "0.5")
         self.assertEqual(standard_v02.TC4_VERSION, "0.3")
 
     def test_directory_selects_the_default_version(self):
         with self.env():
             self.assertTrue(standard_v02.configured())
-            self.assertEqual(standard_v02.load_standard()["version"], "0.4")
+            self.assertEqual(standard_v02.load_standard()["version"], "0.5")
 
     def test_version_can_be_selected(self):
         with self.env(ONBOARDING_STANDARD_VERSION="0.3"):
@@ -729,7 +729,7 @@ class StandardVersionTests(unittest.TestCase):
             self.assertEqual(standard_v02.load_standard()["version"], "0.4-test")
 
     def test_a_file_whose_version_disagrees_fails_safely(self):
-        (Path(self.dir.name) / standard_v02.FILENAME.format(version="0.4")).write_text(SYNTHETIC_V04)  # says 0.4-test
+        (Path(self.dir.name) / standard_v02.FILENAME.format(version=standard_v02.DEFAULT_VERSION)).write_text(SYNTHETIC_V04)  # says 0.4-test
         with self.env(), patch("onboarding.extract_ticket", return_value=v04_facts()):
             r = solve(Request(ticket_ref="T-41", ticket_text="Synthetic", comments=[]))
         self.assertEqual(r.status, Status.FAILED)

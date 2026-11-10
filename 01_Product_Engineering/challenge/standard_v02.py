@@ -3,7 +3,7 @@
 The standard file is never part of this repository. Point the endpoint at it one of two ways:
   ONBOARDING_STANDARD=<path>        one file, used as is (wins over the two below)
   ONBOARDING_STANDARD_DIR=<dir>     the private folder holding onboarding_standard_v<N>_scrubbed_loader.yaml,
-  ONBOARDING_STANDARD_VERSION=<N>   with the version to load: 0.4 by default from TC5 on. TC4 stays pinned
+  ONBOARDING_STANDARD_VERSION=<N>   with the version to load: 0.5 by default (2026-11-10). TC4 stays pinned
                                     to 0.3 (TC4_VERSION; owner decision 2026-11-07) and is never rescored on 0.4.
 A file chosen by version must say that version, or the endpoint fails safely rather than mislabel a run.
 When none is set, the endpoint keeps using demo_standard.json (onboarding.py).
@@ -50,7 +50,7 @@ ENV = "ONBOARDING_STANDARD"
 DIR_ENV = "ONBOARDING_STANDARD_DIR"
 VERSION_ENV = "ONBOARDING_STANDARD_VERSION"
 FILENAME = "onboarding_standard_v{version}_scrubbed_loader.yaml"
-DEFAULT_VERSION = "0.4"  # from TC5 on
+DEFAULT_VERSION = "0.5"  # from 2026-11-10 (owner rulings); 0.4 stays loadable by version
 TC4_VERSION = "0.3"  # frozen for TC4 (owner decision 2026-11-07): its evals and baseline load 0.3 explicitly
 LEVELLED_ROLE = "Personal Trainer"
 POOL_ROLES = ("Lifeguard", "Aquatics Lead")  # the standard's pool_roles list wins when it has one
