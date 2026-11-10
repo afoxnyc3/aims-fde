@@ -276,15 +276,18 @@ h3{font:500 17px/1.3 var(--sans);margin:0 0 6px}
 
 <!-- 2 ADVISORS -->
 <section class="seg" id="s-advisors">
-  <p class="eyebrow">What the advisors said, and what we did</p>
-  <h2>Four pieces of feedback. Each one changed the product.</h2>
+  <p class="eyebrow">Your feedback, and what we did</p>
+  <h2>Every point from the TC4 review changed the product.</h2>
   <table class="dt">
-    <thead><tr><th>Feedback (by role)</th><th>What we did</th></tr></thead>
+    <thead><tr><th>You said</th><th>What we did</th></tr></thead>
     <tbody>
-      <tr><td>Peer reviewer: the agent asks for things it doesn’t need</td><td>The owner made a legal surname policy. Unnecessary asks went from <b>8 to 0</b>.</td></tr>
-      <tr class="hot"><td>Course reviewers: the role-to-permissions mapping is the product, not the model</td><td>Standard v0.5. <b>Six role and routing rulings</b> closed by their owners: Hospitality Associate; Membership Consultant → Sales Associate per club; Lifeguard → Hospitality Associate at the Fitness unit; Massage Therapist → the leanest trainer role plus its staff group; exceptions skip the ask; NY instructors → Senior Group Fitness Instructor as current practice, with a warning. The model reads; code decides.</td></tr>
-      <tr><td>Course reviewer: put middleware in front of the system of record</td><td>A gated, read-only tools service with per-caller scoping. <b>In test now.</b></td></tr>
-      <tr><td>Course reviewers: why do roles matter?</td><td>The demo opens on one ticket, end to end.</td></tr>
+      <tr><td><b>Tyler:</b> put middleware in front of the admin problem while access gets cleaned up</td><td>A gated, read-only tools service: one sign-in, one group, every tool set to Ask. <b>In test now.</b> The staff-admin cleanup is scheduled with stakeholders.</td></tr>
+      <tr><td><b>Phil:</b> lead with one ticket</td><td>This Loom opened on one ticket, end to end.</td></tr>
+      <tr class="hot"><td><b>Phil:</b> the policy cleanup is the product</td><td>Standard v0.5: <b>six role and routing rulings</b> closed by their owners, each now in code. The model reads; code decides.</td></tr>
+      <tr><td><b>Phil:</b> prove onboarding first, then role changes</td><td>Re-hires, transfers and promotions now go straight to a person with the gaps listed. Removing stale access is on the list after go-live.</td></tr>
+      <tr><td><b>Ovo:</b> take the name question to the owner</td><td>The owner ruled a legal surname is required. Unnecessary asks: <b>8 → 0</b>.</td></tr>
+      <tr><td><b>Ovo:</b> score three multi-turn scenarios</td><td>Built and run live: <b>3 of 3 pass</b> (surname then recommend, re-hire to review, mirror refused).</td></tr>
+      <tr><td><b>Ovo:</b> report unnecessary asks beside over-grants</td><td>Now a column. The CTO line today: <b>0 over-grants, 1 extra round-trip</b> on 29 test tickets.</td></tr>
     </tbody>
   </table>
 </section>
@@ -388,7 +391,7 @@ const DEMO=[
 ];
 const SEGS=[
  {tok:"opening",name:"Opening",t:0,notes:["Same 29 real test tickets as TC4: 14 right then, 27 now, and over-access from 2 to 0.","Same tickets re-run, so not a held-out score."]},
- {tok:"advisors",name:"Feedback",t:35,notes:["Four pieces of feedback, each changed the product. The big one: the mapping is the product, so six rulings closed with their owners.","The model reads; code decides."]},
+ {tok:"advisors",name:"Feedback",t:35,notes:["Tyler: middleware, in test now. Phil: one ticket, the policy is the product, onboarding first. Ovo: surname to the owner, three scenarios, unnecessary asks as a column.","Every point changed the product."]},
  {tok:"results",name:"Results",t:80,notes:["Test 14 to 27, over-access 2 to 0. Dev 25 to 28. Grid 168 to 174, over-access 11 to 2."]},
  {tok:"misses",name:"Caught",t:115,notes:["Our first zero was luck: two tickets were safe only because their roles weren’t mapped. Fixed in code.","Known risk: NY instructors get Senior Group Fitness Instructor, which carries staff admin, with a warning until the cleanup."]},
  {tok:"tools",name:"Tools",t:160,notes:["Already running in test: thirteen read-only tools, every one set to Ask. MCP keeps the rules and credentials on our side, where the desk already works."]},
