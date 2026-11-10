@@ -65,7 +65,7 @@ BUSINESS_UNIT_OWNERS = {
     "Aquatics": "Business Development Manager (Fitness)",
     "Cafe": "Food & Beverage Director",
     "Childcare": ("VP Hospitality", "Business Development Manager (Fitness)"),
-    "Group Fitness": ("Group Fitness Senior Manager", "Group Fitness Director"),
+    "Group Fitness": ("Senior Group Fitness Manager", "Group Fitness Director"),
     "Hospitality": ("VP Hospitality", "Business Development Manager (Fitness)"),
     "Housekeeping": ("VP Hospitality", "Business Development Manager (Fitness)"),
     "Human Resources": "HR / People Ops Director",

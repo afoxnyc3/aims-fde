@@ -537,7 +537,7 @@ class StandardV04Tests(unittest.TestCase):
             "Aquatics": "Business Development Manager (Fitness)",
             "Cafe": "Food & Beverage Director",
             "Childcare": "VP Hospitality or Business Development Manager (Fitness)",
-            "Group Fitness": "Group Fitness Senior Manager or Group Fitness Director",
+            "Group Fitness": "Senior Group Fitness Manager or Group Fitness Director",
             "Hospitality": "VP Hospitality or Business Development Manager (Fitness)",
             "Housekeeping": "VP Hospitality or Business Development Manager (Fitness)",
             "Human Resources": "HR / People Ops Director",
@@ -561,7 +561,7 @@ class StandardV04Tests(unittest.TestCase):
     def test_other_exceptions_go_to_the_roles_business_unit_owner(self):
         for title, owner in (("Lifeguard", "Business Development Manager (Fitness)"),
                              ("Desk Associate", "VP Hospitality or Business Development Manager (Fitness)"),
-                             ("Coach", "Group Fitness Senior Manager or Group Fitness Director"),  # either approves
+                             ("Coach", "Senior Group Fitness Manager or Group Fitness Director"),  # either approves
                              ("Trainer", "Director of Personal Training"),
                              ("Odd Job", "Service Desk Manager"),       # group with no owner yet: the desk
                              ("Not In Matrix", "Service Desk Manager")):  # no role at all
