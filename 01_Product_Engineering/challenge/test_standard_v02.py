@@ -447,6 +447,7 @@ roles:
   - {title: "Desk Associate", group: Hospitality,         staff_login: true, company_mailbox: false, account_role: "Desk Associate"}
   - {title: "Coach",          group: Group Fitness,       staff_login: true, company_mailbox: true,  account_role: "Coach"}
   - {title: "Trainer",        group: Personal Training,   staff_login: true, company_mailbox: true,  account_role: "Trainer"}
+  - {title: "Club Manager",   group: Managers,            staff_login: true, company_mailbox: true,  account_role: "Club Manager"}
   - {title: "Odd Job",        group: Unlisted Group,      staff_login: true, company_mailbox: true,  account_role: "Odd Job"}
 """
 
@@ -499,8 +500,8 @@ class StandardV04Tests(unittest.TestCase):
         self.assertEqual(r.review_reason, "exception")
         self.assertEqual(r.missing_fields, [])
         self.assertTrue(any("pool" in d for d in r.exception_difference))
-        self.assertEqual(r.approval_owner_role, "Business Development Manager (Fitness)")  # Lifeguard: Aquatics
-        self.assertIn("Approver: Business Development Manager (Fitness).", r.jira_comment)
+        self.assertEqual(r.approval_owner_role, "VP of Operations (Fitness)")  # Lifeguard: Aquatics
+        self.assertIn("Approver: VP of Operations (Fitness).", r.jira_comment)
         self.assertIsNotNone(r.standard_proposal)
 
     def test_venue_confirmation_changes_nothing_at_a_pool_club(self):
@@ -532,35 +533,35 @@ class StandardV04Tests(unittest.TestCase):
         self.assertEqual(r.approval_owner_role, "Service Desk Manager")
 
     def test_every_group_has_the_owner_the_project_owner_assigned(self):
-        # The project owner's assignment (2026-11-10), one line per group: a changed owner must change here too.
+        # The project owner's assignment (2026-11-10, with the business development manager's review), one line per
+        # group: a changed owner must change here too. Managers depends on the club, so it is checked below.
         expected = {
-            "Accounting": "Business Development Manager (Fitness)",
-            "Aquatics": "Business Development Manager (Fitness)",
+            "Accounting": "VP of Finance (Fitness)",
+            "Aquatics": "VP of Operations (Fitness)",
             "Cafe": "Food & Beverage Director",
             "Childcare": "VP Hospitality or Business Development Manager (Fitness)",
             "Group Fitness": "Senior Group Fitness Manager or Group Fitness Director",
             "Hospitality": "VP Hospitality or Business Development Manager (Fitness)",
-            "Housekeeping": "VP Hospitality or Business Development Manager (Fitness)",
+            "Housekeeping": "VP of Operations (Fitness)",
             "Human Resources": "HR / People Ops Director",
-            "Maintenance": "Business Development Manager (Fitness)",
-            "Managers": "VP Hospitality or Business Development Manager (Fitness)",
+            "Maintenance": "VP of Operations (Fitness)",
             "Marketing": "VP Marketing",
             "Massage": "VP Hospitality or Business Development Manager (Fitness)",
             "Member Services": "VP Hospitality or Business Development Manager (Fitness)",
-            "Membership Sales": "VP Sales",
+            "Membership Sales": "VP of Membership Sales (Fitness)",
             "Personal Training": "Director of Personal Training",
-            "Rockwall": "Business Development Manager (Fitness)",
+            "Rockwall": "General Manager (Club A)",
             "Special Events": "Events Director",
             "Technology": "Senior Director IT or CTO",
         }
-        self.assertEqual(set(expected), set(standard_v02.BUSINESS_UNIT_OWNERS))
+        self.assertEqual(set(expected) | {"Managers"}, set(standard_v02.BUSINESS_UNIT_OWNERS))
         for group, owner in expected.items():
             with self.subTest(group=group):
                 self.assertEqual(standard_v02._approver({"group": group}, desk=False), owner)
         self.assertEqual(standard_v02._approver({"group": "Technology"}, desk=True), "Service Desk Manager")
 
     def test_other_exceptions_go_to_the_roles_business_unit_owner(self):
-        for title, owner in (("Lifeguard", "Business Development Manager (Fitness)"),
+        for title, owner in (("Lifeguard", "VP of Operations (Fitness)"),
                              ("Desk Associate", "VP Hospitality or Business Development Manager (Fitness)"),
                              ("Coach", "Senior Group Fitness Manager or Group Fitness Director"),  # either approves
                              ("Trainer", "Director of Personal Training"),
@@ -571,6 +572,21 @@ class StandardV04Tests(unittest.TestCase):
                 self.assertEqual(r.review_reason, "exception")
                 self.assertEqual(r.approval_owner_role, owner)
                 self.assertIn(f"Approver: {owner}.", r.jira_comment)
+
+    def test_a_club_managers_exception_goes_to_that_clubs_general_manager(self):
+        for club in ("Club B", "Club D"):
+            with self.subTest(club=club):
+                r = self.run_with(v04_facts(job_title="Club Manager", venue_names=[club]),
+                                  text="Please mirror a colleague's access")
+                self.assertEqual(r.review_reason, "exception")
+                self.assertEqual(r.approval_owner_role, f"General Manager ({club})")
+                self.assertIn(f"Approver: General Manager ({club}).", r.jira_comment)
+        role = {"group": "Managers"}
+        venues = {"club b": {"name": "Club B"}, "club d": {"name": "Club D"}}
+        for names in ([], ["club b", "club d"], ["somewhere else"]):  # no club, two clubs, an unknown club: the desk routes
+            with self.subTest(names=names):
+                self.assertEqual(standard_v02._approver(role, False, names, {"venues": venues}), "Service Desk Manager")
+        self.assertEqual(standard_v02._approver(role, False, ["club b"], None), "Service Desk Manager")
 
     def test_a_transfer_named_only_in_the_intake_goes_to_the_service_desk_manager(self):
         r = self.run_with(v04_facts(job_title="Coach"), text="Transferring from Club B")  # extraction did not flag it

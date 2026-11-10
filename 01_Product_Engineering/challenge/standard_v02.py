@@ -60,23 +60,25 @@ SERVICE_DESK_MANAGER = "Service Desk Manager"
 # Group Fitness: two of the three leaders the 2026-11-04 call named; the VP is left out by the owner (see decisions.md).
 # A group not listed here, or a title not in the matrix, goes to the Service Desk Manager, who holds and routes it.
 # A tuple means either role can approve; the output names them joined by "or", in this order.
+# Managers: the General Manager of the ticket's club (business development manager's review, 2026-11-10).
+CLUB_GENERAL_MANAGER = "General Manager of the ticket's club"
 BUSINESS_UNIT_OWNERS = {
-    "Accounting": "Business Development Manager (Fitness)",
-    "Aquatics": "Business Development Manager (Fitness)",
+    "Accounting": "VP of Finance (Fitness)",
+    "Aquatics": "VP of Operations (Fitness)",
     "Cafe": "Food & Beverage Director",
     "Childcare": ("VP Hospitality", "Business Development Manager (Fitness)"),
     "Group Fitness": ("Senior Group Fitness Manager", "Group Fitness Director"),
     "Hospitality": ("VP Hospitality", "Business Development Manager (Fitness)"),
-    "Housekeeping": ("VP Hospitality", "Business Development Manager (Fitness)"),
+    "Housekeeping": "VP of Operations (Fitness)",
     "Human Resources": "HR / People Ops Director",
-    "Maintenance": "Business Development Manager (Fitness)",
-    "Managers": ("VP Hospitality", "Business Development Manager (Fitness)"),
+    "Maintenance": "VP of Operations (Fitness)",
+    "Managers": CLUB_GENERAL_MANAGER,
     "Marketing": "VP Marketing",
     "Massage": ("VP Hospitality", "Business Development Manager (Fitness)"),
     "Member Services": ("VP Hospitality", "Business Development Manager (Fitness)"),
-    "Membership Sales": "VP Sales",
+    "Membership Sales": "VP of Membership Sales (Fitness)",
     "Personal Training": "Director of Personal Training",
-    "Rockwall": "Business Development Manager (Fitness)",
+    "Rockwall": "General Manager (Club A)",  # the only club with a rockwall
     "Special Events": "Events Director",
     "Technology": ("Senior Director IT", "CTO"),
 }
@@ -286,11 +288,18 @@ def _pool_venue_unconfirmed(role, names: list[str], std: dict) -> bool:
                 and any(n in std["venues"] and n not in std["pool_clubs"] for n in names))
 
 
-def _approver(role, desk: bool) -> str:
-    """Who approves an exception: the desk for a re-hire, transfer or promotion, else the business-unit owner."""
+def _approver(role, desk: bool, names=(), std: dict | None = None) -> str:
+    """Who approves an exception: the desk for a re-hire, transfer or promotion, else the business-unit owner.
+
+    A club manager's owner is the General Manager of the ticket's club, so it needs exactly one known club;
+    several clubs or none go to the Service Desk Manager, who holds and routes.
+    """
     if desk:
         return SERVICE_DESK_MANAGER
     owner = BUSINESS_UNIT_OWNERS.get((role or {}).get("group"), SERVICE_DESK_MANAGER)
+    if owner == CLUB_GENERAL_MANAGER:
+        clubs = [std["venues"][n]["name"] for n in names if std and n in std["venues"]]
+        return f"General Manager ({clubs[0]})" if len(names) == 1 and len(clubs) == 1 else SERVICE_DESK_MANAGER
     return " or ".join(owner) if isinstance(owner, tuple) else owner
 
 
@@ -369,7 +378,7 @@ def decide(request: Request, facts, std: dict) -> Response:
         text += (" Assign the standard tier, never a mirror." if baseline else
                  " No standard tier can be proposed yet; never mirror another user's access.")
         # A transfer or promotion the intake names counts too, even when extraction did not flag it.
-        approver = _approver(role, rehire or "transfer or promotion" in triggers)
+        approver = _approver(role, rehire or "transfer or promotion" in triggers, names, std)
         text += f" Approver: {approver}."
         return _out(request, Status.HUMAN_REVIEW, text, review_reason="exception",
                     exception_difference=differences, approval_owner_role=approver, standard_proposal=baseline,
