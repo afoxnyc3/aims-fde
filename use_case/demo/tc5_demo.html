@@ -270,87 +270,23 @@ h3{font:500 17px/1.3 var(--sans);margin:0 0 6px}
   </div>
 </section>
 
-<!-- 2 PROBLEM -->
-<section class="seg" id="s-problem">
-  <p class="eyebrow">The problem</p>
-  <h2>Every new hire is a free-text ticket someone has to interpret.</h2>
-  <p class="lead">For each one the desk reads the form, works out the role, decides on a system login, then picks the club and level.</p>
-  <div class="stats">
-    <div class="card stat"><p class="v">~220</p><p class="k">onboarding tickets in six months</p></div>
-    <div class="card stat"><p class="v">4</p><p class="k">decisions made by hand on every one: role, login, club, level</p></div>
-    <div class="card stat"><p class="v">7</p><p class="k">asked for a system login the matrix says the role shouldn’t have</p></div>
-  </div>
-  <p class="foot">The pattern behind the inconsistency: “set her up like the person she’s shadowing.” Mirrored access copies whatever that person has accumulated.</p>
-</section>
 
-<!-- 3 AGENT -->
-<section class="seg" id="s-agent">
-  <p class="eyebrow">What the agent does</p>
-  <h2>The model reads. Coded rules decide.</h2>
-  <div class="flow">
-    <div class="node"><h3>Onboarding ticket</h3><p class="k">Intake form and description at creation. Not later comments.</p></div>
-    <div class="arrow" aria-hidden="true">→</div>
-    <div class="node model"><span class="tag">Model · Sonnet 5.5</span><h3>Extract the facts</h3><p class="k">Title, club, start date, login asked for, anything extra requested.</p></div>
-    <div class="arrow" aria-hidden="true">→</div>
-    <div class="node code"><span class="tag">Code · role matrix</span><h3>Pick one outcome</h3>
-      <div class="outs" style="margin-top:10px">
-        <div class="out o-rec"><b>Recommend</b><span>role, login y/n, system role, club, level</span></div>
-        <div class="out o-need"><b>Ask</b><span>for the missing fields</span></div>
-        <div class="out o-rev"><b>Send to a person</b><span>with the reason</span></div>
-        <div class="out o-ign"><b>Ignore</b><span>not an onboarding</span></div>
-      </div>
-    </div>
-  </div>
-  <div class="guard">
-    <span>Recommends only</span><span>Never writes to Jira or the club-management system</span><span>Mirror requests always go to a person</span><span>Every decision traces to a matrix row</span>
-  </div>
-</section>
 
-<!-- 4 STANDARD -->
-<section class="seg" id="s-standard">
-  <div class="grid2" style="align-items:start">
-    <div>
-      <p class="eyebrow">The rules come from us</p>
-      <h2>The role matrix, made machine-readable.</h2>
-      <p class="lead">The Business Development Manager’s matrix (7 Oct 2026) became the standard, now v0.5: every login role maps to a role that exists in the club-management system, with its source. Labels and the agent follow the same file, so every call can be audited.</p>
-      <div class="bignums">
-        <div class="card stat"><p class="v">73</p><p class="k">roles</p></div>
-        <div class="card stat"><p class="v">5</p><p class="k">in-club venues</p></div>
-        <div class="card stat"><p class="v">4</p><p class="k">outcomes</p></div>
-        <div class="card stat"><p class="v">6</p><p class="k">role decisions closed this week</p></div>
-      </div>
-    </div>
-    <div class="card">
-      <p class="eyebrow">Five rows the tickets exercise</p>
-      <table class="std">
-        <thead><tr><th>Role</th><th>System login</th><th>System role</th></tr></thead>
-        <tbody>
-          <tr><td>Hospitality Associate</td><td class="yes">Yes</td><td>Hospitality Associate</td></tr>
-          <tr><td>Personal Trainer</td><td class="yes">Yes</td><td>Personal Trainer/Pro New + level group</td></tr>
-          <tr><td>Lifeguard</td><td class="yes">Yes</td><td>Hospitality Associate, Fitness unit</td></tr>
-          <tr><td>Cafe Associate</td><td class="no">No</td><td class="small">member record only</td></tr>
-          <tr><td>Maintenance Technician</td><td class="no">No</td><td class="small">member record only</td></tr>
-        </tbody>
-      </table>
-      <p class="foot" style="margin-top:14px">“No login” is an output, not a gap. Without it the agent could only over-provision those roles.</p>
-    </div>
-  </div>
-</section>
 
-<!-- 5 METHOD -->
-<section class="seg" id="s-method">
-  <p class="eyebrow">How I tested it</p>
-  <h2>Labelled by IT against the matrix. Tested once.</h2>
-  <div class="funnel">
-    <div class="fbar"><div class="b" style="width:100%">487 real tickets, anonymized</div></div>
-    <div class="fbar"><div class="b" style="width:34%">58 labelled by IT</div><span class="d">graded against the standard, not against what the desk did</span></div>
-    <div class="fbar"><div class="split" style="width:34%"><div class="b">29 dev</div><div class="b hl">29 test</div></div><span class="d">TC4: test run once · TC5: same tickets re-run, so not held out</span></div>
-  </div>
-  <div class="checks">
-    <div class="card"><h3>No model grades the model</h3><p>Outputs are categories and names, so every metric is an exact match against human labels.</p></div>
-    <div class="card"><h3>Harness checked first</h3><p>A perfect predictor scores 1.0 everywhere; a deliberately broken one is caught on every planted error.</p></div>
-    <div class="card"><h3>Headline metric: over-privilege</h3><p>A wrong “recommend” grants access. That is the failure that costs us.</p></div>
-  </div>
+
+<!-- 2 ADVISORS -->
+<section class="seg" id="s-advisors">
+  <p class="eyebrow">What the advisors said, and what we did</p>
+  <h2>Four pieces of feedback. Each one changed the product.</h2>
+  <table class="dt">
+    <thead><tr><th>Feedback (by role)</th><th>What we did</th></tr></thead>
+    <tbody>
+      <tr><td>Peer reviewer: the agent asks for things it doesn’t need</td><td>The owner made a legal surname policy. Unnecessary asks went from <b>8 to 0</b>.</td></tr>
+      <tr class="hot"><td>Course reviewers: the role-to-permissions mapping is the product, not the model</td><td>Standard v0.5. <b>Six role and routing rulings</b> closed by their owners: Hospitality Associate; Membership Consultant → Sales Associate per club; Lifeguard → Hospitality Associate at the Fitness unit; Massage Therapist → the leanest trainer role plus its staff group; exceptions skip the ask; NY instructors → Senior Group Fitness Instructor as current practice, with a warning. The model reads; code decides.</td></tr>
+      <tr><td>Course reviewer: put middleware in front of the system of record</td><td>A gated, read-only tools service with per-caller scoping. <b>In test now.</b></td></tr>
+      <tr><td>Course reviewers: why do roles matter?</td><td>The demo opens on one ticket, end to end.</td></tr>
+    </tbody>
+  </table>
 </section>
 
 <!-- 6 RESULTS -->
@@ -375,21 +311,6 @@ h3{font:500 17px/1.3 var(--sans);margin:0 0 6px}
   </div>
 </section>
 
-<!-- 7 REPLAY -->
-<section class="seg" id="s-replay">
-  <div class="rhead">
-    <div>
-      <p class="eyebrow">Decision replay · recorded results, no live calls</p>
-      <h2 style="margin:0">Click a ticket. Agent first, then the human answer.</h2>
-    </div>
-    <div style="display:flex;gap:14px;align-items:center">
-      <span class="tally" id="tally"></span>
-      <button type="button" class="rbtn" id="revealAll">Reveal all</button>
-      <button type="button" class="rbtn" id="resetAll">Reset</button>
-    </div>
-  </div>
-  <div class="cards" id="cards"></div>
-</section>
 
 <!-- 8 CAUGHT -->
 <section class="seg" id="s-misses">
@@ -397,10 +318,10 @@ h3{font:500 17px/1.3 var(--sans);margin:0 0 6px}
   <h2>Our first zero was luck. We found it in our own numbers.</h2>
   <div class="grid2" style="align-items:start">
     <div class="miss-rows">
-      <div class="card mr r"><span class="n">2</span><div><h3>Safe for the wrong reason</h3><p>Earlier today test showed 0 over-access. Two tickets were safe only because their roles had no mapping yet. Once mapped, the agent recommended them, and both ask for systems beyond the role bundle.</p></div><span class="chip c-bad">over-access</span></div>
-      <div class="card mr a"><span class="n">✓</span><div><h3>Fixed in code, not in the prompt</h3><p>A deterministic check: if the intake names a system the standard lists as outside every bundle, the ticket goes to a person. Checked on dev and the synthetic grid so it doesn’t over-fire.</p></div><span class="chip c-rev">to a person</span></div>
-      <div class="card mr a"><span class="n">3</span><div><h3>Remaining misses on real tickets</h3><p>All three: the model saw conflicting identities and sent the ticket to a person. Cautious, not wrong-way.</p></div><span class="chip c-rev">to a person</span></div>
-      <div class="card mr a"><span class="n">2</span><div><h3>Grid: next fix</h3><p>Two synthetic over-access cases where the intake corrects the club. The rule to add: a venue correction goes to a person.</p></div><span class="chip c-need">open</span></div>
+      <div class="card mr r"><span class="n">2</span><div><h3>Safe for the wrong reason</h3><p>Two tickets were safe only because their roles were unmapped. Once mapped, the agent recommended them; both ask for systems outside the bundle.</p></div><span class="chip c-bad">over-access</span></div>
+      <div class="card mr a"><span class="n">✓</span><div><h3>Fixed in code, not in the prompt</h3><p>If the intake names a system outside every bundle, a person reviews it. Verified on dev and the grid.</p></div><span class="chip c-rev">to a person</span></div>
+      <div class="card mr a"><span class="n">3</span><div><h3>Remaining misses on real tickets</h3><p>All three: conflicting identities, sent to a person. Cautious, not wrong-way.</p></div><span class="chip c-rev">to a person</span></div>
+      <div class="card mr a"><span class="n">2</span><div><h3>Grid: next fix</h3><p>Two cases where the intake corrects the club. Next rule: a venue correction goes to a person.</p></div><span class="chip c-need">open</span></div>
     </div>
     <div class="card side">
       <h3>Known risk, accepted by the owner</h3>
@@ -410,38 +331,7 @@ h3{font:500 17px/1.3 var(--sans);margin:0 0 6px}
   </div>
 </section>
 
-<!-- DECIDED -->
-<section class="seg" id="s-decided">
-  <p class="eyebrow">Decisions closed this week</p>
-  <h2>Six role rulings, each with an owner, each now in the standard.</h2>
-  <table class="dt">
-    <thead><tr><th>Title</th><th>Gets</th><th>Decided by</th></tr></thead>
-    <tbody>
-      <tr><td>Hospitality Associate</td><td>Hospitality Associate role, per club</td><td>Project owner</td></tr>
-      <tr><td>Membership Consultant</td><td>Sales Associate, per club</td><td>Technology Support Associate (desk practice)</td></tr>
-      <tr><td>Lifeguard</td><td>Hospitality Associate, at the Fitness unit</td><td>Technology Support Associate</td></tr>
-      <tr><td>Massage Therapist</td><td>Personal Trainer/Pro New + Massage Therapist group, per club. Leanest trainer role: 14 actions vs 102</td><td>Project owner</td></tr>
-      <tr><td>Any exception</td><td>Skips the ask; goes to a person with the gaps listed</td><td>Project owner</td></tr>
-      <tr class="hot"><td>NY Group Fitness Instructor</td><td>Senior Group Fitness Instructor (current practice), with a staff-admin warning, until the cleanup</td><td>Project owner, exception to the hard stop</td></tr>
-    </tbody>
-  </table>
-</section>
 
-<!-- 9 DECISIONS -->
-<section class="seg" id="s-decisions">
-  <p class="eyebrow">Still open</p>
-  <h2>What moves the remaining tickets.</h2>
-  <table class="dt">
-    <thead><tr><th>Item</th><th>Owner</th><th>Effect</th></tr></thead>
-    <tbody>
-      <tr class="hot"><td>Remove staff admin from Senior Group Fitness Instructor</td><td>CTO with stakeholders</td><td>Ends the owner exception; instructors stay automatic</td></tr>
-      <tr><td>Venue correction in the intake goes to a person</td><td>Us (code)</td><td>Closes the last 2 grid over-access cases</td></tr>
-      <tr><td>Roles for leaders and remaining login titles</td><td>BDM / Group Fitness leads</td><td>Moves “no grantable role” tickets to recommend</td></tr>
-      <tr><td>Seasonal hires: same access with an end date, or different?</td><td>BDM</td><td>Decides whether seasonal starts go to a person</td></tr>
-      <tr><td>Fresh held-out tickets</td><td>Us + IT</td><td>The real gate before production</td></tr>
-    </tbody>
-  </table>
-</section>
 
 <!-- TOOLS -->
 <section class="seg" id="s-tools">
@@ -462,17 +352,17 @@ h3{font:500 17px/1.3 var(--sans);margin:0 0 6px}
 <!-- 10 NEXT -->
 <section class="seg" id="s-next">
   <p class="eyebrow">Next</p>
-  <h2>Production target end of month, shadow mode first.</h2>
+  <h2>Next: production by end of month.</h2>
   <div class="next">
-    <div class="card"><p class="s">1 · Standard</p><h3>Close what’s left</h3><p>Leader roles and seasonal hires with the Business Development Manager; the Senior Group Fitness Instructor cleanup with the CTO.</p></div>
-    <div class="card"><p class="s">2 · Review</p><h3>Desk reviews at scale</h3><p>The Technology Support Associate reviews edge-case scenarios and the agent’s calls on all 487 tickets.</p></div>
-    <div class="card"><p class="s">3 · Shadow</p><h3>Comment, don’t act</h3><p>The agent comments its recommendation on live tickets; the desk applies it. We measure agreement before automating anything.</p><p class="small" style="margin-top:10px">Repeatability: across three runs, one ticket requesting extra systems was escalated twice and recommended once. That’s why shadow mode comes before any automation.</p></div>
+    <div class="card"><p class="s">1 · Host</p><h3>Cloud for the app</h3><p>The onboarding app container on the same private Azure route: Entra sign-in, one group, secrets in Key Vault.</p></div>
+    <div class="card"><p class="s">2 · Credentials</p><h3>Read-only API users</h3><p>Scope read-only API users for production, then deploy the MCP server to production.</p></div>
+    <div class="card"><p class="s">3 · Writes</p><h3>Prove on TEST first</h3><p>Onboarding writes run on the TEST environment before any production write.</p></div>
   </div>
-  <div class="found">
-    <span class="v">7 of 220</span>
-    <p>Found along the way: onboardings that requested a system login the matrix doesn’t allow. The agent would have said no.</p>
+  <div class="next">
+    <div class="card"><p class="s">4 · Rollout</p><h3>Monitored, role by role</h3><p>Every action logged to a Teams channel via webhook, plus a weekly email report.</p></div>
+    <div class="card"><p class="s">5 · Cleanup</p><h3>Senior GFI staff admin</h3><p>Remove staff admin from Senior Group Fitness Instructor with stakeholders.</p></div>
+    <div class="card"><p class="s">6 · Gate</p><h3>Sign-off and a fresh set</h3><p>Security sign-off before go-live, and a fresh held-out ticket set.</p></div>
   </div>
-  <p class="foot">From the TC4 full-corpus run (487 tickets, standard v0.3): 70% of onboardings recommendable, 0 run failures. Not re-run on v0.5.</p>
 </section>
 
 </main>
@@ -497,18 +387,12 @@ const DEMO=[
  {t:"Membership Consultant",c:"Club E",a:"Send to a person · conflicting identities",e:"Recommend · Sales Associate",n:"The model saw two identities in the intake and stopped. Cautious miss.",k:"miss",src:"test"}
 ];
 const SEGS=[
- {tok:"opening",name:"Opening",t:0,notes:["Same 29 real test tickets as TC4. TC4: 14 right, 2 granted too much. Now: 27 right, none granted too much.","Same tickets re-run, so not a held-out score. And the zero has a story I’ll show."]},
- {tok:"problem",name:"Problem",t:25,notes:["About 220 onboardings in six months. Each one, the desk interprets a free-text form and makes four decisions by hand.","Mirrored access is the root of the inconsistency. And 7 tickets asked for a login the matrix says that role shouldn’t have."]},
- {tok:"agent",name:"Agent",t:50,notes:["The split that matters: the model only reads and extracts. Code applies the matrix and picks one of four outcomes.","It recommends only. It never writes to Jira or the club-management system."]},
- {tok:"standard",name:"Standard",t:80,notes:["The rules aren’t mine. The BDM’s matrix, now v0.5: every login role maps to a role that exists in the system, with who decided it.","Six of those decisions closed this week."]},
- {tok:"method",name:"Method",t:105,notes:["487 real tickets, anonymized. 58 labelled by IT, split 29 and 29. No LLM judge: exact match against human labels.","TC4 ran test once. TC5 re-ran the same tickets, so I call it current agent, same tickets."]},
- {tok:"results",name:"Results",t:130,notes:["Test 14 to 27 of 29, over-access 2 to 0. Dev 25 to 28. Synthetic grid 168 to 174 of 180, over-access 11 to 2.","Click the amber cell: the two misses both went to a person."]},
- {tok:"replay",name:"Replay",t:170,notes:["Recorded results from today’s run, no live calls. Click once for the agent, again for the human answer.","Save the lifeguard for last: TC4 got that one wrong."]},
- {tok:"misses",name:"Caught",t:205,notes:["This morning test showed zero over-access, and it was luck: two tickets were safe only because their roles weren’t mapped yet.","Once mapped, the agent recommended them, and both ask for systems outside the bundle. The fix is a code check, verified on dev and the grid.","Known risk: NY instructors get Senior Group Fitness Instructor, which carries staff admin. Owner-approved with a warning until the cleanup."]},
- {tok:"decided",name:"Decided",t:230,notes:["Six rulings this week, each with an owner, each now in the standard and tested.","Massage therapists get the leanest trainer role: 14 actions instead of 102."]},
- {tok:"decisions",name:"Open",t:245,notes:["What’s left: the Senior Group Fitness Instructor cleanup, the venue-correction rule, leader roles, seasonal hires, and a fresh held-out set before production."]},
- {tok:"tools",name:"Tools",t:255,notes:["This is already running in test against the member system. Thirteen tools, every one a read: find, get, list. There is no write tool to approve because none exists.","Every tool is set to Ask, so a person approves each call, and tools added later default to Ask or Block. Entra sign-in, one security group, secrets in Key Vault.","The CTO and I are testing it now. Hardening comes next, then the onboarding server goes on this same route."]},
- {tok:"next",name:"Next",t:275,notes:["Production target end of month. Shadow mode first: the agent comments, the desk applies, we measure agreement."]}
+ {tok:"opening",name:"Opening",t:0,notes:["Same 29 real test tickets as TC4: 14 right then, 27 now, and over-access from 2 to 0.","Same tickets re-run, so not a held-out score."]},
+ {tok:"advisors",name:"Feedback",t:35,notes:["Four pieces of feedback, each changed the product. The big one: the mapping is the product, so six rulings closed with their owners.","The model reads; code decides."]},
+ {tok:"results",name:"Results",t:80,notes:["Test 14 to 27, over-access 2 to 0. Dev 25 to 28. Grid 168 to 174, over-access 11 to 2."]},
+ {tok:"misses",name:"Caught",t:115,notes:["Our first zero was luck: two tickets were safe only because their roles weren’t mapped. Fixed in code.","Known risk: NY instructors get Senior Group Fitness Instructor, which carries staff admin, with a warning until the cleanup."]},
+ {tok:"tools",name:"Tools",t:160,notes:["Already running in test: thirteen read-only tools, every one set to Ask. MCP keeps the rules and credentials on our side, where the desk already works."]},
+ {tok:"next",name:"Next",t:195,notes:["Cloud hosting, read-only prod API users, MCP in prod, writes proven on TEST, monitored rollout logged to Teams, the staff-admin cleanup."]}
 ];
 
 /* ---------- opening scoreboard ---------- */
@@ -545,25 +429,6 @@ function showCell(r,c,b){
 }
 showCell("rec","rev",cmBtns.find(b=>b.classList.contains("safe"))||cmBtns[0]);
 
-/* ---------- replay ---------- */
-const cards=document.getElementById("cards"), tally=document.getElementById("tally");
-const rcs=DEMO.map(d=>{
-  const b=el("button",{type:"button",class:"rc "+d.k,"data-step":"0"});
-  b.append(el("p",{class:"ti",text:d.t}),el("p",{class:"cl",text:d.c}));
-  b.append(el("div",{class:"st ag"},el("span",{class:"l",text:"Agent"}),document.createTextNode(d.a)));
-  b.append(el("div",{class:"st ex"},el("span",{class:"l",text:"Human-confirmed"}),document.createTextNode(d.e)));
-  if(d.n) b.append(el("p",{class:"nt",text:d.n}));
-  b.append(el("span",{class:"hint",text:"Click to reveal the agent"}));
-  const ico=d.k==="match"?"✓":"✕", lab=d.k==="match"?"Match":(d.k==="over"?"Over-access: a login a person should review":"Miss: safe, a person still sees it");
-  b.append(el("span",{class:"verdict"},el("span",{class:"ico",text:ico}),el("span",{text:lab})));
-  b.addEventListener("click",()=>{const s=+b.dataset.step; if(s<2){b.dataset.step=String(s+1); b.querySelector(".hint").textContent="Click for the human answer";} upd();});
-  cards.append(b); return b;
-});
-function upd(){const done=rcs.filter(b=>b.dataset.step==="2"); const m=done.filter(b=>b.classList.contains("match")).length;
-  tally.innerHTML=""; tally.append(el("b",{text:`${m}/${done.length}`}),document.createTextNode(" matched so far"));}
-document.getElementById("revealAll").addEventListener("click",()=>{rcs.forEach(b=>b.dataset.step="2");upd();});
-document.getElementById("resetAll").addEventListener("click",()=>{rcs.forEach(b=>{b.dataset.step="0";b.querySelector(".hint").textContent="Click to reveal the agent";});upd();});
-upd();
 
 /* ---------- nav ---------- */
 const rail=document.getElementById("rail"), secs=[...document.querySelectorAll("section.seg")];
@@ -580,12 +445,12 @@ document.getElementById("prev").addEventListener("click",()=>go(at-1));
 document.getElementById("next").addEventListener("click",()=>go(at+1));
 const notes=document.getElementById("notes"), nb=document.getElementById("notesBtn");
 function renderNotes(){const s=SEGS[at],nx=SEGS[at+1];
-  document.getElementById("notesHead").textContent=`${fmt(s.t)} ${s.name}`+(nx?` · next: ${nx.name} at ${fmt(nx.t)}`:" · target end 5:00");
+  document.getElementById("notesHead").textContent=`${fmt(s.t)} ${s.name}`+(nx?` · next: ${nx.name} at ${fmt(nx.t)}`:" · target end 4:00");
   const body=document.getElementById("notesBody"); body.innerHTML=""; s.notes.forEach(p=>body.append(el("p",{text:p})));}
 function toggleNotes(){notes.hidden=!notes.hidden;nb.setAttribute("aria-pressed",String(!notes.hidden));}
 nb.addEventListener("click",toggleNotes);
 let t0=null,timer=null; const clock=document.getElementById("clock"), tbtn=document.getElementById("timerBtn");
-function tick(){const s=(Date.now()-t0)/1000;clock.textContent=fmt(s);clock.classList.toggle("over",s>300);}
+function tick(){const s=(Date.now()-t0)/1000;clock.textContent=fmt(s);clock.classList.toggle("over",s>240);}
 tbtn.addEventListener("click",()=>{if(timer){clearInterval(timer);timer=null;tbtn.textContent="Start timer";}else{t0=Date.now();tick();timer=setInterval(tick,500);tbtn.textContent="Stop timer";}});
 document.addEventListener("keydown",e=>{if(e.target.closest&&e.target.closest("input,textarea"))return;
   if(e.key==="ArrowRight"||e.key==="PageDown"){go(at+1);e.preventDefault()}
