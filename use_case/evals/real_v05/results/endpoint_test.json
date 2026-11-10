@@ -1,0 +1,478 @@
+{
+  "name": "endpoint_test",
+  "fingerprint": "1128c0163825407c",
+  "n": 29,
+  "means": {
+    "status_accuracy": 0.9310344827586207,
+    "no_over_privilege": 1.0
+  },
+  "errors": 0,
+  "seconds": 0.0004031667485833168,
+  "meta": {
+    "scorers": [
+      "no_over_privilege",
+      "status_accuracy"
+    ],
+    "labels": "use_case/evals/real_v03",
+    "standard": "v0.5 (private path)",
+    "repo_commit": "59d4184",
+    "run_at": "2026-11-10T15:44:23",
+    "intake_only": true,
+    "system": "endpoint",
+    "split": "test",
+    "model": "anthropic/claude-sonnet-5-5",
+    "failed": 0,
+    "metrics": {
+      "status_accuracy": {
+        "mean": 0.931,
+        "ci95": [
+          0.828,
+          1.0
+        ],
+        "n": 29
+      },
+      "over_privilege": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n": 29,
+        "count": 0
+      },
+      "unnecessary_asks": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n": 29,
+        "count": 0
+      },
+      "review_reason": {
+        "mean": 0.8,
+        "ci95": [
+          0.5,
+          1.0
+        ],
+        "n": 10
+      },
+      "missing_fields_recall": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 8
+      },
+      "role": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 3
+      },
+      "system_role": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 3
+      },
+      "system_login": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 3
+      },
+      "venue": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 3
+      },
+      "trainer_level": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 1
+      },
+      "recommended_precision": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 3
+      }
+    },
+    "ci95": {
+      "status_accuracy": [
+        0.828,
+        1.0
+      ],
+      "no_over_privilege": [
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "results": [
+    {
+      "index": 0,
+      "input": "TKT-119",
+      "expected": "{\"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Hospitality Associate\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": null, \"role\": \"hospitality-associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Hospitality Associate\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 2.3758038878440857e-06
+    },
+    {
+      "index": 1,
+      "input": "TKT-14",
+      "expected": "{\"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"role\": \"Hospitality Lead\", \"status\": \"human_review\", \"system_login\": \"yes\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club C\"}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": \"role_unmapped\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 1.4575198292732239e-06
+    },
+    {
+      "index": 2,
+      "input": "TKT-164",
+      "expected": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": \"Aquatics Lead\", \"status\": \"needs_information\", \"system_login\": \"yes\", \"system_role\": \"Aquatics Lead\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": null, \"status\": \"needs_information\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 7.925555109977722e-07
+    },
+    {
+      "index": 3,
+      "input": "TKT-206",
+      "expected": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": \"Lifeguard\", \"status\": \"needs_information\", \"system_login\": \"yes\", \"system_role\": \"Hospitality Associate\", \"trainer_level\": null, \"venue\": \"Club A\"}",
+      "actual": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": null, \"status\": \"needs_information\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 5.00120222568512e-07
+    },
+    {
+      "index": 4,
+      "input": "TKT-221",
+      "expected": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"needs_information\", \"system_login\": \"yes\", \"system_role\": \"Hospitality Associate\", \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": null, \"status\": \"needs_information\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 5.00120222568512e-07
+    },
+    {
+      "index": 5,
+      "input": "TKT-265",
+      "expected": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": \"Cafe Associate\", \"status\": \"needs_information\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "actual": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": null, \"status\": \"needs_information\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 6.249174475669861e-07
+    },
+    {
+      "index": 6,
+      "input": "TKT-334",
+      "expected": "{\"missing_fields\": [], \"review_reason\": null, \"role\": \"Membership Consultant\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Sales Associate\", \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": \"ambiguous_identity\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 0.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.591420292854309e-07
+    },
+    {
+      "index": 7,
+      "input": "TKT-478",
+      "expected": "{\"missing_fields\": [], \"review_reason\": null, \"role\": \"Hospitality Associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Hospitality Associate\", \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": null, \"role\": \"hospitality-associate\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Hospitality Associate\", \"trainer_level\": null, \"venue\": \"Club B\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.172325134277344e-07
+    },
+    {
+      "index": 8,
+      "input": "TKT-485",
+      "expected": "{\"missing_fields\": [], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer/Pro New\", \"trainer_level\": \"1\", \"venue\": \"Club E\"}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": null, \"role\": \"personal-trainer\", \"status\": \"recommended\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer/Pro New\", \"trainer_level\": \"1\", \"venue\": \"Club E\"}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 5.00120222568512e-07
+    },
+    {
+      "index": 9,
+      "input": "TKT-502",
+      "expected": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": \"Cafe Associate\", \"status\": \"needs_information\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": null, \"status\": \"needs_information\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.5821070671081543e-07
+    },
+    {
+      "index": 10,
+      "input": "TKT-83",
+      "expected": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": \"Cafe Associate\", \"status\": \"needs_information\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "actual": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": null, \"status\": \"needs_information\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.5821070671081543e-07
+    },
+    {
+      "index": 11,
+      "input": "TKT-155",
+      "expected": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": \"ambiguous_identity\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.5821070671081543e-07
+    },
+    {
+      "index": 12,
+      "input": "TKT-197",
+      "expected": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": \"ambiguous_identity\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 5.83939254283905e-07
+    },
+    {
+      "index": 13,
+      "input": "TKT-231",
+      "expected": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.5821070671081543e-07
+    },
+    {
+      "index": 14,
+      "input": "TKT-263",
+      "expected": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": \"Cafe Supervisor\", \"status\": \"needs_information\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club E\"}",
+      "actual": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": null, \"status\": \"needs_information\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.163011908531189e-07
+    },
+    {
+      "index": 15,
+      "input": "TKT-390",
+      "expected": "{\"missing_fields\": [], \"review_reason\": null, \"role\": \"Maintenance Technician\", \"status\": \"recommended\", \"system_login\": \"no\", \"system_role\": null, \"trainer_level\": null, \"venue\": \"Club D\"}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": \"ambiguous_identity\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 0.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 5.00120222568512e-07
+    },
+    {
+      "index": 16,
+      "input": "TKT-414",
+      "expected": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.172325134277344e-07
+    },
+    {
+      "index": 17,
+      "input": "TKT-421",
+      "expected": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.591420292854309e-07
+    },
+    {
+      "index": 18,
+      "input": "TKT-63",
+      "expected": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.172325134277344e-07
+    },
+    {
+      "index": 19,
+      "input": "TKT-408",
+      "expected": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 5.41098415851593e-07
+    },
+    {
+      "index": 20,
+      "input": "TKT-424",
+      "expected": "{\"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": \"ambiguous_mapping\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.5821070671081543e-07
+    },
+    {
+      "index": 21,
+      "input": "TKT-451",
+      "expected": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": \"Personal Trainer\", \"status\": \"needs_information\", \"system_login\": \"yes\", \"system_role\": \"Personal Trainer/Pro New\", \"trainer_level\": \"1\", \"venue\": \"Club E\"}",
+      "actual": "{\"missing_fields\": [\"person_name\"], \"review_reason\": null, \"role\": null, \"status\": \"needs_information\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.153698682785034e-07
+    },
+    {
+      "index": 22,
+      "input": "TKT-475",
+      "expected": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": \"exception\", \"role\": null, \"status\": \"human_review\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.5727938413619995e-07
+    },
+    {
+      "index": 23,
+      "input": "TKT-109",
+      "expected": "{\"missing_fields\": [], \"review_reason\": null, \"role\": null, \"status\": \"ignored\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": null, \"role\": null, \"status\": \"ignored\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.5821070671081543e-07
+    },
+    {
+      "index": 24,
+      "input": "TKT-166",
+      "expected": "{\"missing_fields\": [], \"review_reason\": null, \"role\": null, \"status\": \"ignored\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": null, \"role\": null, \"status\": \"ignored\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.5821070671081543e-07
+    },
+    {
+      "index": 25,
+      "input": "TKT-400",
+      "expected": "{\"missing_fields\": [], \"review_reason\": null, \"role\": null, \"status\": \"ignored\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": null, \"role\": null, \"status\": \"ignored\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.163011908531189e-07
+    },
+    {
+      "index": 26,
+      "input": "TKT-472",
+      "expected": "{\"missing_fields\": [], \"review_reason\": null, \"role\": null, \"status\": \"ignored\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": null, \"role\": null, \"status\": \"ignored\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 5.00120222568512e-07
+    },
+    {
+      "index": 27,
+      "input": "TKT-497",
+      "expected": "{\"missing_fields\": [], \"review_reason\": null, \"role\": null, \"status\": \"ignored\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": null, \"role\": null, \"status\": \"ignored\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 5.00120222568512e-07
+    },
+    {
+      "index": 28,
+      "input": "TKT-504",
+      "expected": "{\"missing_fields\": [], \"review_reason\": null, \"role\": null, \"status\": \"ignored\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "actual": "{\"missing_fields\": [], \"review_reason\": null, \"role\": null, \"status\": \"ignored\", \"system_login\": null, \"system_role\": null, \"trainer_level\": null, \"venue\": null}",
+      "scores": {
+        "status_accuracy": 1.0,
+        "no_over_privilege": 1.0
+      },
+      "error": null,
+      "seconds": 4.172325134277344e-07
+    }
+  ]
+}
