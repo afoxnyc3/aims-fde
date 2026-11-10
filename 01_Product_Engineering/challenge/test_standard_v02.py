@@ -530,10 +530,38 @@ class StandardV04Tests(unittest.TestCase):
         r = self.run_with(v04_facts(venue_names=["Club B"], rehire_transfer_or_promotion=True))  # with a gap
         self.assertEqual(r.approval_owner_role, "Service Desk Manager")
 
+    def test_every_group_has_the_owner_the_project_owner_assigned(self):
+        # The project owner's assignment (2026-11-10), one line per group: a changed owner must change here too.
+        expected = {
+            "Accounting": "Business Development Manager (Fitness)",
+            "Aquatics": "Business Development Manager (Fitness)",
+            "Cafe": "Food & Beverage Director",
+            "Childcare": "VP Hospitality or Business Development Manager (Fitness)",
+            "Group Fitness": "Group Fitness Senior Manager or Group Fitness Director",
+            "Hospitality": "VP Hospitality or Business Development Manager (Fitness)",
+            "Housekeeping": "VP Hospitality or Business Development Manager (Fitness)",
+            "Human Resources": "HR / People Ops Director",
+            "Maintenance": "Business Development Manager (Fitness)",
+            "Managers": "VP Hospitality or Business Development Manager (Fitness)",
+            "Marketing": "VP Marketing",
+            "Massage": "VP Hospitality or Business Development Manager (Fitness)",
+            "Member Services": "VP Hospitality or Business Development Manager (Fitness)",
+            "Membership Sales": "VP Sales",
+            "Personal Training": "Director of Personal Training",
+            "Rockwall": "Business Development Manager (Fitness)",
+            "Special Events": "Events Director",
+            "Technology": "Senior Director IT or CTO",
+        }
+        self.assertEqual(set(expected), set(standard_v02.BUSINESS_UNIT_OWNERS))
+        for group, owner in expected.items():
+            with self.subTest(group=group):
+                self.assertEqual(standard_v02._approver({"group": group}, desk=False), owner)
+        self.assertEqual(standard_v02._approver({"group": "Technology"}, desk=True), "Service Desk Manager")
+
     def test_other_exceptions_go_to_the_roles_business_unit_owner(self):
         for title, owner in (("Lifeguard", "Business Development Manager (Fitness)"),
-                             ("Desk Associate", "Business Development Manager (Fitness)"),
-                             ("Coach", "Group Fitness lead"),
+                             ("Desk Associate", "VP Hospitality or Business Development Manager (Fitness)"),
+                             ("Coach", "Group Fitness Senior Manager or Group Fitness Director"),  # either approves
                              ("Trainer", "Director of Personal Training"),
                              ("Odd Job", "Service Desk Manager"),       # group with no owner yet: the desk
                              ("Not In Matrix", "Service Desk Manager")):  # no role at all

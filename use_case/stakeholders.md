@@ -55,7 +55,7 @@ gap is more useful than a silent one.
 - Role-standard owners, named by the CTO (2026-10-15); agree a review date with Product:
   - VP Sales: sales roles.
   - VP Hospitality: Member Services, Concierge, and Front Desk; has drafted SOPs for several roles. On leave as of 2026-11-02; work through the BDM until they return.
-  - Fitness leads (three): fitness roles. Personal Training met 2026-11-02. **Group Fitness lead not met yet**, and Group Fitness is the highest-volume role (32% of 90-day tickets). Use the contact the PT Director named. Ask: "Group Fitness Instructor" or "Senior" in the system, and when is Senior used? Does a specialty change system access, or only scheduling? Multi-club: per-club grants, or all clubs? Group Fitness Manager and Lead roles? An instructor who also trains: both roles?
+  - Fitness leads (three): fitness roles. Personal Training met 2026-11-02. **Group Fitness not met yet** (exception approvers since 2026-11-10: the Group Fitness Senior Manager or Director), and Group Fitness is the highest-volume role (32% of 90-day tickets). Use the contact the PT Director named. Ask: "Group Fitness Instructor" or "Senior" in the system, and when is Senior used? Does a specialty change system access, or only scheduling? Multi-club: per-club grants, or all clubs? Group Fitness Manager and Lead roles? An instructor who also trains: both roles?
 - Talk with the VP Finance about prior consulting on the second region.
 - HR system owner: whether new-hire names can be validated against the HR system.
 - Service Desk Manager (manages the Technology Support Associates): ownership of post-automation audits, verification sampling, and revert decisions.
