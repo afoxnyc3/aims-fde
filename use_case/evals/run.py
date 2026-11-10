@@ -33,6 +33,7 @@ import copy
 import hashlib
 import json
 import os
+import re
 import sys
 import urllib.request
 from datetime import datetime
@@ -88,8 +89,13 @@ def make_endpoint(url: str):
     return call
 
 
+# TC4 is pinned to standard v0.3 (owner decision 2026-11-07); mirrors standard_v02.TC4_VERSION, which a test checks.
+# Kept here as a literal so --committed runs on plain python3, without the challenge env.
+TC4_STANDARD_VERSION = "0.3"
+
 SCENARIOS_NEED_V02 = (
-    "--scenarios needs the v0.2 standard: set ONBOARDING_STANDARD to its path here, and start the endpoint with "
+    "--scenarios needs the v0.2 standard: set ONBOARDING_STANDARD to its path (or ONBOARDING_STANDARD_DIR to its "
+    "folder) here, and start the endpoint with "
     "the same setting. SYN-ASK-002 expects a re-hire to reach review before any ask, and only the v0.2 decision "
     "code (standard_v02.py) has that order; the demo path asks first, so it would fail for a reason that is not "
     "the model's. /health does not report the standard, so this checks this shell only."
@@ -97,8 +103,27 @@ SCENARIOS_NEED_V02 = (
 
 
 def scenarios_preflight() -> None:
-    if not os.getenv("ONBOARDING_STANDARD"):
+    if not (os.getenv("ONBOARDING_STANDARD") or os.getenv("ONBOARDING_STANDARD_DIR")):
         raise SystemExit(SCENARIOS_NEED_V02)
+    # The scenarios are TC4 Step 5, pinned to v0.3, whichever way the standard is chosen: a folder alone would load
+    # the v0.4 default, and an explicit path could be any version. The pin is required in both cases (the endpoint
+    # then checks the file against it), and an explicit file must also declare it.
+    pin = f"--scenarios is TC4 work, pinned to standard v{TC4_STANDARD_VERSION}: "
+    if os.getenv("ONBOARDING_STANDARD_VERSION") != TC4_STANDARD_VERSION:
+        raise SystemExit(pin + f"set ONBOARDING_STANDARD_VERSION={TC4_STANDARD_VERSION} here and on the endpoint.")
+    path = os.getenv("ONBOARDING_STANDARD")
+    if path and declared_version(path) != TC4_STANDARD_VERSION:
+        raise SystemExit(pin + f"ONBOARDING_STANDARD declares v{declared_version(path)}.")
+
+
+def declared_version(path: str) -> str | None:
+    """The top-level `version:` of a standard file, read without a YAML parser (this script runs on plain python3)."""
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except OSError:
+        return None
+    match = re.search(r"""^version:\s*['"]?([^'"\s#]+)""", text, re.M)
+    return match.group(1) if match else None
 
 
 def of(k: int, n: int) -> str:
@@ -205,9 +230,11 @@ def committed_report(results_dir: Path = COMMITTED, baseline_path: Path = BASELI
     print(f"\nbaseline.json is {'the' if same else 'NOT the'} committed endpoint test run ({baseline.name}, {baseline.fingerprint}, n={baseline.n})")
     meta = baseline.meta
     print(f"model {meta.get('model')}, standard {meta.get('standard')}, public repo commit {meta.get('repo_commit')} (runner private), run {meta.get('run_at')}")
+    pinned = str(meta.get("standard", "")).split(" ")[0] == f"v{TC4_STANDARD_VERSION}"
+    print(f"baseline standard is {'the' if pinned else 'NOT the'} TC4 pin (v{TC4_STANDARD_VERSION}; TC4 is never rescored on a later standard)")
     comparison = evals.harness.compare(baseline, test_run)
     print(comparison)
-    return same and comparison.passed
+    return same and pinned and comparison.passed
 
 
 def main() -> None:

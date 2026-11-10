@@ -1,7 +1,12 @@
 """Triage against a role-matrix standard (the v0.2 YAML format), loaded from a private path.
 
-The standard file is never part of this repository: set ONBOARDING_STANDARD to its path.
-When the variable is unset, the endpoint keeps using demo_standard.json (onboarding.py).
+The standard file is never part of this repository. Point the endpoint at it one of two ways:
+  ONBOARDING_STANDARD=<path>        one file, used as is (wins over the two below)
+  ONBOARDING_STANDARD_DIR=<dir>     the private folder holding onboarding_standard_v<N>_scrubbed_loader.yaml,
+  ONBOARDING_STANDARD_VERSION=<N>   with the version to load: 0.4 by default from TC5 on. TC4 stays pinned
+                                    to 0.3 (TC4_VERSION; owner decision 2026-11-07) and is never rescored on 0.4.
+A file chosen by version must say that version, or the endpoint fails safely rather than mislabel a run.
+When none is set, the endpoint keeps using demo_standard.json (onboarding.py).
 
 The file supplies everything specific to the organisation: version, business_unit {id, name},
 venues.in_club, out_of_scope_business_units, out_of_scope_venue_prefixes, aliases, and roles,
@@ -11,7 +16,10 @@ Decision order, first match wins (the standard's decision_rules, except the re-h
 confirmed by the owner 2026-11-07; transfers and promotions follow the same rule. The private v0.3
 runner behind the saved TC4 runs predates it and still asks first):
   ignored            -> not an onboarding request
-  needs_information  -> person name without a surname (has_surname), job title or venue missing; personal email missing or unusable
+  needs_information  -> person name without a surname (has_surname), job title or venue missing; a pool role
+                        (Lifeguard, Aquatics Lead) at a club not in pool_clubs (venue_confirmation; once the
+                        requester confirms the club, it becomes an exception review instead);
+                        personal email missing or unusable
                         for a role with no company mailbox; trainer level missing; the intake
                         contradicts itself. Not for a re-hire, transfer or promotion: see exception
   human_review       -> out-of-scope unit, ambiguous identity, duplicate; then exception, which a
@@ -22,6 +30,8 @@ runner behind the saved TC4 runs predates it and still asks first):
                         trip); then unmapped title, blank matrix cell (standard_gap), login but
                         no mapped account-system role (role_unmapped)
   recommended        -> role, login yes/no, account-system role, venue, trainer level
+An exception review names its approver (approval_owner_role): the Service Desk Manager for a re-hire,
+transfer or promotion, otherwise the role's business-unit owner (BUSINESS_UNIT_OWNERS).
 Comments go to extraction, as on the demo path. An evaluator grading on intake alone sends
 comments=[] itself; that choice belongs to the evaluation, not to the endpoint.
 """
@@ -36,11 +46,56 @@ from pathlib import Path
 from schema import Recommendation, Request, Response, Status
 
 ENV = "ONBOARDING_STANDARD"
+DIR_ENV = "ONBOARDING_STANDARD_DIR"
+VERSION_ENV = "ONBOARDING_STANDARD_VERSION"
+FILENAME = "onboarding_standard_v{version}_scrubbed_loader.yaml"
+DEFAULT_VERSION = "0.4"  # from TC5 on
+TC4_VERSION = "0.3"  # frozen for TC4 (owner decision 2026-11-07): its evals and baseline load 0.3 explicitly
 LEVELLED_ROLE = "Personal Trainer"
+POOL_ROLES = ("Lifeguard", "Aquatics Lead")  # the standard's pool_roles list wins when it has one
+SERVICE_DESK_MANAGER = "Service Desk Manager"
+# Exception approver = the role's business-unit owner (owner decision 2026-11-07), keyed by the matrix's role group.
+# The routing (exceptions -> business-unit owner; re-hire, transfer, promotion -> Service Desk Manager) was confirmed
+# by the service desk on 2026-11-09. The owner per group is the project owner's assignment, open to correction.
+# A group not listed here, or a title not in the matrix, goes to the Service Desk Manager.
+BUSINESS_UNIT_OWNERS = {
+    **dict.fromkeys((
+        "Accounting",
+        "Aquatics",
+        "Cafe",
+        "Childcare",
+        "Hospitality",
+        "Housekeeping",
+        "Human Resources",
+        "Maintenance",
+        "Managers",
+        "Marketing",
+        "Massage",
+        "Member Services",
+        "Membership Sales",
+        "Rockwall",
+        "Special Events",
+        "Technology",
+    ), "Business Development Manager (Fitness)"),
+    "Group Fitness": "Group Fitness lead",
+    "Personal Training": "Director of Personal Training",
+}
 
 
 def configured() -> bool:
-    return bool(os.getenv(ENV))
+    return bool(os.getenv(ENV) or os.getenv(DIR_ENV))
+
+
+def standard_path(version: str | None = None) -> str:
+    """The file to load: the explicit path, else the requested (or configured, or default) version in the directory."""
+    if version is None and os.getenv(ENV):
+        return os.environ[ENV]
+    version = version or os.getenv(VERSION_ENV) or DEFAULT_VERSION
+    if not re.fullmatch(r"\d+\.\d+", version):
+        raise ValueError(f"{VERSION_ENV} must look like 0.4, not {version!r}")
+    if not os.getenv(DIR_ENV):
+        raise ValueError(f"standard v{version} was asked for by version, but {DIR_ENV} is not set")
+    return str(Path(os.environ[DIR_ENV]) / FILENAME.format(version=version))
 
 
 def _slug(s: str) -> str:
@@ -75,9 +130,23 @@ def _check(std) -> None:
                 raise ValueError(f"{r['title']}: {k} must be true, false or null")
         if r.get("account_role") is not None and not (isinstance(r["account_role"], str) and r["account_role"].strip()):
             raise ValueError(f"{r['title']}: account_role must be a name or null")
+        if r.get("group") is not None and not isinstance(r["group"], str):
+            raise ValueError(f"{r['title']}: group must be a name or null")  # the approver lookup keys on it
     for k, v in (std.get("aliases") or {}).items():
         if not (isinstance(k, str) and isinstance(v, str)):
             raise ValueError("aliases must map title to title")
+    if not isinstance(std.get("version"), str):
+        # Unquoted YAML turns 0.10 into 0.1, and the version check against the file name would then fail every ticket.
+        raise ValueError("version must be a quoted string")
+    pool = std.get("pool_clubs") or []
+    if not (isinstance(pool, list) and all(isinstance(v, str) and v in std["venues"].get("in_club", []) for v in pool)):
+        raise ValueError("pool_clubs must be a list of clubs from venues.in_club")
+    pool_roles = std.get("pool_roles", POOL_ROLES)
+    if not (isinstance(pool_roles, (list, tuple)) and all(isinstance(t, str) and t.strip() for t in pool_roles)):
+        raise ValueError("pool_roles must be a list of titles")
+    # A misspelt rule would switch the pool rule off silently, and the missed asks it clears would come back.
+    if pool and std.get("pool_roles_outside_pool_club") != "needs_information":
+        raise ValueError("pool_roles_outside_pool_club must be needs_information when pool_clubs is set")
 
 
 @lru_cache(maxsize=4)
@@ -92,7 +161,9 @@ def _parse(path: str, mtime_ns: int, size: int) -> dict:  # key includes the fil
             "unit": {"id": std["business_unit"]["id"], "name": std["business_unit"]["name"]},
             "venues": {_norm(v): {"id": "venue-" + _slug(v), "name": v} for v in venues},
             "out_of_scope": {_norm(u) for u in std.get("out_of_scope_business_units", [])},
-            "out_of_scope_prefixes": [_norm(p) for p in std.get("out_of_scope_venue_prefixes", [])]}
+            "out_of_scope_prefixes": [_norm(p) for p in std.get("out_of_scope_venue_prefixes", [])],
+            "pool_clubs": {_norm(v) for v in std.get("pool_clubs") or []},
+            "pool_roles": {_norm(t) for t in std.get("pool_roles", POOL_ROLES)}}
 
 
 def _load(path: str) -> dict:
@@ -103,8 +174,17 @@ def _load(path: str) -> dict:
 _load.cache_clear = _parse.cache_clear  # tests reset the cache through _load
 
 
-def load_standard() -> dict:
-    return _load(os.environ[ENV])
+def load_standard(version: str | None = None) -> dict:
+    """The configured standard, or a named version. A chosen version must match the file.
+
+    The TC4 runner (private, outside this repo) passes TC4_VERSION; run.py --committed checks the saved baseline's pin.
+    """
+    std = _load(standard_path(version))
+    # An explicit path is checked only when a version is also given; otherwise the version in force is checked.
+    wanted = version or os.getenv(VERSION_ENV) or (None if os.getenv(ENV) else DEFAULT_VERSION)
+    if wanted and std["version"] != wanted:
+        raise ValueError(f"asked for standard v{wanted}, the file says v{std['version']}")
+    return std
 
 
 def resolve_role(title: str | None, std: dict):
@@ -195,10 +275,25 @@ def _field_label(field: str, facts) -> str:
     """The field name the requester and the reviewer read: a given name without a surname says so."""
     if field == "person_name" and facts.person_name and facts.person_name.strip():
         return "person_name (a name was given without a legal surname)"
+    if field == "venue_confirmation":
+        return "venue_confirmation (a pool role at a club with no pool; confirm the club)"
     return field
 
 
-def _missing_fields(facts, role) -> list[str]:
+def _pool_venue_unconfirmed(role, names: list[str], std: dict) -> bool:
+    """A pool role at an in-scope club with no pool: the requester confirms the venue (v0.4 pool rule)."""
+    return bool(role and _norm(role["title"]) in std.get("pool_roles", ()) and std.get("pool_clubs")
+                and any(n in std["venues"] and n not in std["pool_clubs"] for n in names))
+
+
+def _approver(role, desk: bool) -> str:
+    """Who approves an exception: the desk for a re-hire, transfer or promotion, else the business-unit owner."""
+    if desk:
+        return SERVICE_DESK_MANAGER
+    return BUSINESS_UNIT_OWNERS.get((role or {}).get("group"), SERVICE_DESK_MANAGER)
+
+
+def _missing_fields(facts, role, std, names) -> list[str]:
     missing = []
     if not has_surname(facts.person_name):  # empty, first name only, initials or a handle: ask for the legal name
         missing.append("person_name")
@@ -206,6 +301,8 @@ def _missing_fields(facts, role) -> list[str]:
         missing.append("job_title")
     if not facts.venue_names or facts.intake_contradiction == "venue":
         missing.append("venue")
+    elif _pool_venue_unconfirmed(role, names, std) and not getattr(facts, "venue_confirmed", False):
+        missing.append("venue_confirmation")
     if role and role.get("company_mailbox") is False and (
         not _usable_email(facts.employee_email) or facts.intake_contradiction == "employee_email"
     ):
@@ -223,7 +320,8 @@ def decide(request: Request, facts, std: dict) -> Response:
     if facts.request_kind == "other":
         return _out(request, Status.IGNORED, "Not a new-hire onboarding request.")
     role = resolve_role(facts.job_title, std)
-    missing = _missing_fields(facts, role)
+    names = list(dict.fromkeys(_norm(v) for v in facts.venue_names))  # one club named twice is one club
+    missing = _missing_fields(facts, role, std, names)
     triggers = intake_triggers(request.ticket_text)
     trigger = triggers[0] if triggers else None
     # A re-hire needs a person whatever the requester answers, so asking first only adds a round trip: it skips
@@ -242,7 +340,6 @@ def decide(request: Request, facts, std: dict) -> Response:
     def review(reason, text):
         return _out(request, Status.HUMAN_REVIEW, text + gaps_text, review_reason=reason)
 
-    names = list(dict.fromkeys(_norm(v) for v in facts.venue_names))  # one club named twice is one club
     unit = _norm(facts.business_unit)
     if unit in std["out_of_scope"] or any(_out_of_scope_venue(n, std) for n in names):
         return review("out_of_scope_business_unit", "The venue is outside this standard's scope; route to its owner.")
@@ -252,10 +349,14 @@ def decide(request: Request, facts, std: dict) -> Response:
         return review("duplicate", "The ticket marks itself a duplicate; confirm before acting.")
     # A re-hire with gaps always reaches this branch (rehire implies the condition), after the three checks above,
     # so one that is also out of scope or a duplicate keeps that reason.
-    if facts.rehire_transfer_or_promotion or facts.additional_access_request or trigger:
+    # Service desk, 2026-11-09: a pool role at a club with no pool, once the requester confirms the club,
+    # goes to a person (the business-unit owner) rather than being asked again or refused.
+    pool_confirmed = getattr(facts, "venue_confirmed", False) and _pool_venue_unconfirmed(role, names, std)
+    if facts.rehire_transfer_or_promotion or facts.additional_access_request or trigger or pool_confirmed:
         # Every reason, not the first found: a re-hire that also asks for extra access, or whose intake also
         # asks to mirror a colleague, must say both.
         reasons = [facts.additional_access_request, *triggers,
+                   "pool role at a club with no pool (requester confirmed the club)" if pool_confirmed else None,
                    # The flag names its own reason unless "Re-hire: YES" already did. Another trigger, even the broad
                    # transfer/promotion one, does not say why the ask was skipped.
                    "re-hire, transfer, promotion or title change"
@@ -266,8 +367,11 @@ def decide(request: Request, facts, std: dict) -> Response:
         text = "Requested outside the standard: " + "; ".join(differences) + "." + gaps_text
         text += (" Assign the standard tier, never a mirror." if baseline else
                  " No standard tier can be proposed yet; never mirror another user's access.")
+        # A transfer or promotion the intake names counts too, even when extraction did not flag it.
+        approver = _approver(role, rehire or "transfer or promotion" in triggers)
+        text += f" Approver: {approver}."
         return _out(request, Status.HUMAN_REVIEW, text, review_reason="exception",
-                    exception_difference=differences, approval_owner_role=None, standard_proposal=baseline,
+                    exception_difference=differences, approval_owner_role=approver, standard_proposal=baseline,
                     review_missing_fields=absent, contradictory_fields=contradictory)
     if role is None:
         return review("ambiguous_mapping", f"The title '{facts.job_title}' is not in the role matrix.")

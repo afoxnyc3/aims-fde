@@ -100,8 +100,14 @@ For v1 `solve()`, the answers are **no, yes, no, no**:
 
 ## Week 5 — what the room asked
 
-*Pending: the project owner confirms the Step 1 marks (Fair / Open / Confusion) for each question the room
-asked, by role. Draft marks are held privately until then.*
+Marks confirmed by the project owner, 2026-11-09. Reviewers are named by role.
+
+| Question (by role) | Mark | What changed |
+|---|---|---|
+| Peer reviewer: the agent asks for things it does not need; is a preferred first name and email enough? | **Fair** | Owner policy: a legal surname is required, and without one the ticket goes back to the manager (service desk agreed, 2026-11-09). Relabelled; unnecessary asks fell from 8 to 0. The demo shows one clear ask. |
+| Course reviewers: the role-to-permissions mapping is the product, not the model | **Fair** | Standard v0.4, versioned, with the pool rule, the exception approver map and the service desk answers. The model extracts facts; code builds access from the standard. |
+| Course reviewer: put middleware in front of the system of record instead of waiting for the admin cleanup | **Open** | Answered in the architecture row below (Step 6.2): a gated, read-only tools service with per-caller scoping. The admin cleanup itself (the nested Hospitality Lead role) waits on the CTO. |
+| Course reviewers: why do roles matter? | Confusion | The demo opens on one ticket and the admin over-grant. |
 
 ## Week 5 — architecture row (TC5)
 
@@ -117,11 +123,32 @@ Decided by the project owner, 2026-11-07. Roles only; the full row, with the mea
 - **Re-hire order: confirmed by the owner 2026-11-07.** A re-hire goes straight to `human_review` (exception) with its gaps in `review_missing_fields`, not an ask, because it needs a person whatever the requester answers.
 - **Transfers and promotions follow the same rule:** straight to review, gaps listed, no ask. In the v0.2 code that is the extracted re-hire/transfer/promotion flag; the broad transfer/promotion regex alone does not skip an ask, so a stray "promotion" in the notes cannot suppress a needed one. Pinned by `test_flagged_transfer_and_promotion_with_a_gap_go_to_review_not_an_ask` in `test_standard_v02.py`.
 - **Missed asks gate promotion, like over-access. Unnecessary asks are reported only.** A missed ask sends out a proposal on an intake missing a fact the standard requires; an unnecessary ask costs a round trip. The grid's 7 missed asks (the pool venue rule, `failures.md` R5 and R7) therefore block promotion of the pool roles until that rule is implemented. Read from the `--committed` table for now: missed asks are not a scorer, so `compare()` does not enforce the gate. Add one with the next baseline, since it changes the fingerprint.
+- **v0.3 is frozen for TC4; v0.4 is the default from TC5 on.** TC4's evals and `baseline.json` stay on v0.3 and are not rescored on v0.4 (`standard_v02.TC4_VERSION`, checked by `run.py --committed`). v0.4 changes 17 labels, because 5 account-system roles that v0.3 assigns do not exist in the club-management system. Both files stay private: the endpoint picks one with `ONBOARDING_STANDARD_DIR` and `ONBOARDING_STANDARD_VERSION`, and fails safely if the file's version disagrees.
+- **Pool rule (`pool_clubs` Club A and Club D, `pool_roles_outside_pool_club: needs_information`; the same keys in v0.3 and v0.4, so it applies to both).** A Lifeguard or Aquatics Lead at another club gets `needs_information` with `venue_confirmation`. A flagged re-hire, transfer or promotion keeps its order: straight to review, the gap listed. Replayed offline over the saved grid outputs, this one rule moves the grid's missed asks from 7 to 0 of 180 (unnecessary asks still 0), which clears the gate above for the pool roles on the saved runs; it was not re-run.
+- **Exception approver: the role's business-unit owner.** A re-hire, transfer or promotion goes to the Service Desk Manager instead, including a transfer or promotion the intake names that extraction did not flag (the approver only; that alone still does not skip an ask). Surfaced as `approval_owner_role` on exception reviews and named in the comment. The group-to-owner map in `standard_v02.py` is **provisional** (read from the owners of the standard's open questions), to be confirmed with the CTO on 2026-11-09; an unlisted group or an unmapped title goes to the Service Desk Manager.
+
+## Service desk answers (2026-11-09)
+
+- Volume: about 5 onboarding or access requests a day; the TC5 real-size line uses it (10x = 50 a day).
+- Exception routing confirmed by the desk (business-unit owner; re-hire, transfer and promotion to the Service Desk Manager). The owner per role group is the project owner's assignment, open to correction.
+- A pool role at a club with no pool: once the requester confirms the club, the ticket goes to an exception review by the business-unit owner instead of a second ask. Implemented in `standard_v02.py` (`venue_confirmed`).
+- Surname rule: no problem for the desk.
+- **From the demo (2026-11-09), open for the role-standard owners:**
+  - Front-desk selling for Hospitality Associates: the desk treats it as normal, but the VP Hospitality tiers (2026-11-02) do not list selling for Associates. If the VP confirms, selling joins the Associate tier and DEMO-004's ask stops being an exception.
+  - Unclear title: the desk would ask the manager for the role (needs_information) rather than route it to a reviewer (human_review / ambiguous_mapping, today's behaviour). Candidate change for v0.5; a mirror request still never sets the role.
+  - Levels: the desk confirms in practice nothing is ever removed, so lower levels accumulate. That is the over-access the Director of Personal Training's 30-day removal rule was meant to stop; the conflict stays with that owner.
+- **Conflict, open:** the desk says levelled staff groups are cumulative (a PT Level 3 keeps Levels 1 and 2 unless the manager asks), while the Director of Personal Training ruled on 2026-11-02 that the old level stays 30 days and is then removed. Promotions already go to human review, so nothing ships on either rule; the role-standard owner decides which one the standard keeps.
 
 ## Week 5 — what the stakeholder changed (Step 7.2)
 
-*Pending the Service Desk Manager session (Monday). One line, in the stakeholder's words where possible, on
-what the demo changed; not filled before the session.*
+Technology Support Associate, 2026-11-09, after the demo (relayed by the project owner, close to their words):
+"Nothing changed, other than understanding that some are black and white and some are gray, and we need better
+defined and established rules and policy."
+
+What it changed for us: the demo did not move the desk's view of the tool, it moved the work. Three of four tickets
+drew a policy answer, not a model correction (front-desk selling, unclear title back to the manager, levels never
+removed). That confirms the confirmed fair mark: the role-to-permissions standard is the product, and the next
+iteration is policy ratification with the owners, not model tuning.
 
 ## Decisions still required
 

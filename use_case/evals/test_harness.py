@@ -7,6 +7,7 @@ import copy
 import json
 import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -127,6 +128,49 @@ class CommittedBaseline(unittest.TestCase):
         # oracle_test shares the baseline's fingerprint, so only the means tell them apart.
         with mock.patch("builtins.print"):
             self.assertFalse(run.committed_report(baseline_path=run.COMMITTED / "oracle_test.json"))
+
+    def test_a_baseline_not_on_the_tc4_standard_fails(self):
+        # TC4 is pinned to v0.3 (owner, 2026-11-07): a baseline recorded on a later standard must not pass.
+        with tempfile.TemporaryDirectory() as d:
+            data = json.loads(run.BASELINE.read_text())
+            data["meta"]["standard"] = "v0.4 (private path)"
+            p = Path(d) / "baseline.json"
+            p.write_text(json.dumps(data))
+            with mock.patch("builtins.print"):
+                self.assertFalse(run.committed_report(baseline_path=p))
+
+
+class ScenariosPin(unittest.TestCase):
+    """--scenarios is TC4 Step 5: it must run on standard v0.3 however the standard is chosen."""
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.dir.cleanup)
+        self.v03, self.v04 = (Path(self.dir.name) / f"v{v}.yaml" for v in ("0.3", "0.4"))
+        self.v03.write_text("# private\nversion: '0.3'\nroles: []\n")
+        self.v04.write_text('version: "0.4"\n')
+
+    def preflight(self, **env):
+        base = {"ONBOARDING_STANDARD": "", "ONBOARDING_STANDARD_DIR": "", "ONBOARDING_STANDARD_VERSION": ""}
+        with mock.patch.dict(os.environ, {**base, **env}):
+            run.scenarios_preflight()
+
+    def test_an_explicit_v04_path_is_refused_even_with_a_matching_version(self):
+        with self.assertRaises(SystemExit):
+            self.preflight(ONBOARDING_STANDARD=str(self.v04), ONBOARDING_STANDARD_VERSION="0.4")
+        with self.assertRaises(SystemExit):
+            self.preflight(ONBOARDING_STANDARD=str(self.v04), ONBOARDING_STANDARD_VERSION="0.3")
+        with self.assertRaises(SystemExit):
+            self.preflight(ONBOARDING_STANDARD=str(self.v03))  # no pin set
+
+    def test_a_folder_needs_the_pin(self):
+        with self.assertRaises(SystemExit):
+            self.preflight(ONBOARDING_STANDARD_DIR=self.dir.name)
+        self.preflight(ONBOARDING_STANDARD_DIR=self.dir.name, ONBOARDING_STANDARD_VERSION="0.3")
+
+    def test_an_explicit_v03_path_with_the_pin_passes(self):
+        self.preflight(ONBOARDING_STANDARD=str(self.v03), ONBOARDING_STANDARD_VERSION="0.3")
+        self.assertEqual(run.declared_version(str(self.v04)), "0.4")
 
 
 class UnnecessaryAsks(unittest.TestCase):
@@ -265,8 +309,11 @@ class ScenariosPreflight(unittest.TestCase):
         endpoint.assert_not_called()  # no client, no model call
 
     def test_set_standard_passes_the_check(self):
-        with mock.patch.dict(os.environ, {"ONBOARDING_STANDARD": "/private/std.yaml"}):
-            run.scenarios_preflight()
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "std.yaml"
+            p.write_text("version: '0.3'\n")  # the TC4 pin: see ScenariosPin
+            with mock.patch.dict(os.environ, {"ONBOARDING_STANDARD": str(p), "ONBOARDING_STANDARD_VERSION": "0.3"}):
+                run.scenarios_preflight()
 
 
 class SavedRun(unittest.TestCase):

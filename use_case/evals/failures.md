@@ -88,3 +88,9 @@ GRID-010, GRID-118). By cause:
 R5 and R7's lifeguard case are the same pool rule seen from two directions,
 so a fix for one should be checked against the other.
 
+**Pool rule implemented (2026-11-08; the `pool_clubs` keys are in v0.3 and v0.4 alike).** The v0.2 decision code now asks for
+`venue_confirmation` when a Lifeguard or Aquatics Lead is at a club not in `pool_clubs`; a flagged re-hire,
+transfer or promotion goes to review with the gap listed instead. Replaying only that rule over the saved
+grid outputs (offline, no model calls) moves the 7 R5/R7 missed asks to 0 of 180, with unnecessary asks
+still 0. That is a replay of saved outputs, not a re-run, and the committed TC4 numbers are unchanged.
+

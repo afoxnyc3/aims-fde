@@ -1,8 +1,7 @@
 # TC5: the question endpoint built a second way, and measured (DRAFT)
 
 > Draft 2026-11-07, updated 2026-11-08. Steps 3 to 5 are measured below, and the Step 6 architecture row is
-> decided (owner, 2026-11-07). The Step 1 marks and the stakeholder row are pending Alex's confirmation and
-> the Service Desk Manager session (Monday).
+> decided (owner, 2026-11-07). The Step 1 marks are confirmed and the service desk session was held 2026-11-09; the Step 7.2 line is recorded.
 
 ## Step 2: the second way, and why
 
@@ -10,9 +9,9 @@ Walking Session 10's ordering for the question endpoint (`search_hybrid` in a to
 
 1. **Already an HTTP API at work?** No. The retrieval over the standard and past tickets exists only here.
 2. **Does anything outside the codebase need to discover it?** **Yes.** Each stakeholder role in `stakeholders.md` has a seat in the organisation's Claude workspace (`ecosystem.md`, Week 5; project
-   owner's statement). How much those roles use Desktop and similar clients day to day is to be confirmed with
-   the Service Desk Manager, so this "yes" is conditional on that answer. They should reach the capability from Claude without importing our code.
-   **Second way: an MCP server.** Confirmation with the Service Desk Manager is pending (Step 7).
+   owner's statement). Confirmed with the service desk on 2026-11-09: the Technology Support Associate uses Claude Desktop every day, so
+   the "yes" holds. They should reach the capability from Claude without importing our code.
+   **Second way: an MCP server.**
 3. Several calls, or calls that return a lot? Also yes (whole records, several searches): this is why
    **Code Mode is the closest alternative not built.** It would keep the 4 to 8 KB of records per search out of
    every model's context, but the guarded tool already keeps them out of the caller's, and Code Mode means
@@ -150,10 +149,7 @@ capability calls usually exceed model calls and the round-trip argument does not
 **At 10x volume** (derived from the measured rows, not measured at 10x): cost per question follows **model
 turns**, not searches. Each turn re-reads everything gathered so far: in the tool rows 5 searches in 3 turns cost
 about 23 to 26K tokens (raw-search MCP's cost 19.4K, with smaller records), while the 7-search runs that needed a 4th turn cost 42 to 44K. On the shipped guarded path a
-question costs about 11K tokens (one lookup) to 71K (several), all chat-model tokens included (embedding the question adds a few tokens and is not counted). At [N] onboarding
-questions a day (Service Desk volume, to be confirmed Monday), 10x is [10N] a day, or about [10N × 11K to
-71K] tokens a day, against the tokens-per-question budget reviewed monthly (Step 6). For illustration only, at 20 a day, 10x is 200 questions and 2.2M to
-14M tokens a day. What changes the slope is per-question cost: doubling the record size would roughly double
+question costs about 11K tokens (one lookup) to 71K (several), all chat-model tokens included (embedding the question adds a few tokens and is not counted). At the Service Desk's volume of about 5 onboarding or access requests a day (Technology Support Associate, 2026-11-09), 10x is 50 a day, or about 0.55M to 3.6M tokens a day, against the tokens-per-question budget reviewed monthly (Step 6). What changes the slope is per-question cost: doubling the record size would roughly double
 the accumulated context, and so the per-turn cost, for the tool and for raw-search MCP; the guarded tool
 keeps the records out of the caller's context, and Code Mode would keep them out of every model's context.
 
@@ -205,9 +201,19 @@ time. Starting the stdio server costs about 2 s per session; the hosted service'
 *Open:* the ingress route to the privately hosted service, and the data sign-off for real tickets (the same
 open items as in `ecosystem.md`).
 
-## Steps 1, 7, 8: pending
+### What the room raised, answered by the row
 
-- Step 1 marks: proposed in the private feedback doc; Alex to confirm, then record under
-  `## Week 5 — what the room asked` in `decisions.md`. Step 6.2 (the Step 1 open question, answered or
-  explained in the row) is filled once the marks are confirmed.
-- Step 7 stakeholder row: Service Desk Manager, Monday.
+A reviewer pointed out that putting Claude in front of the system of record needs a middleware layer, not a
+direct connection. The row is that layer: a **gated, read-only tools service between Claude and the system of
+record**, with **per-caller scoping**. SSO identity maps each caller to a role, a versioned policy table decides
+which tools and which business-unit rows that role can reach (default deny), and the service reaches the system
+of record through its own least-privilege, read-only service account. So no model holds a credential, and no
+caller sees rows outside its scope. Another reviewer's advice to **lead with one ticket** shapes the Loom: it
+opens on a single real-shaped ticket end to end, then shows the measured numbers.
+
+## Steps 1, 7, 8: status
+
+- Step 1 marks: confirmed 2026-11-09 and recorded in `decisions.md` (two fair, one open). Step 6.2: the open question (middleware) is answered by the architecture row above.
+- Step 7: service desk session held 2026-11-09 (Technology Support Associate); answers in `stakeholders.md` and `decisions.md`. The Step 7.2 line is recorded in `decisions.md`.
+- Step 8: `README.md` "Bring it to work" / TC5 updated 2026-11-09 (Desktop use confirmed, hosting route settled and CTO-approved, real volume).
+- Docker: image rebuilt 2026-11-09 after the pool-confirmation change; non-root (UID 1000), no `.env` in the image, `/health` ok, the new field imports. Model calls not re-run in the container (no key supplied to this check).
