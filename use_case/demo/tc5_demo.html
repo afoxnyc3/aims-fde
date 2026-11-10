@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TC5 demo: real tickets, our standard</title>
+<style>
+:root{
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --bg:#FAFAFA; --surface:#FFFFFF; --soft:#F0F0F2; --line:#DBDBE0;
+  --ink:#18181B; --ink-2:#3F3F46; --muted:#71717A;
+  --brand:#0061E9; --brand-t:#E9F1FE;
+  --bar:#0F0F12; --bar-ink:#F4F4F5; --bar-muted:#A1A1AA;
+  --rec:#059669; --rec-t:#ECFDF5;
+  --need:#B45309; --need-t:#FEFCE8;
+  --rev:#7C3AED; --rev-t:#F5F3FF;
+  --ign:#71717A; --ign-t:#F4F4F5;
+  --bad:#DC2626; --bad-t:#FEF2F2;
+  --shadow:0 3px 1px -1px rgba(26,26,26,.07),0 1px 0 0 rgba(26,26,26,.05);
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#09090B; --surface:#141417; --soft:#1C1C20; --line:#2E2E34;
+    --ink:#F4F4F5; --ink-2:#D4D4D8; --muted:#A1A1AA;
+    --brand:#6BA1F8; --brand-t:#00213F;
+    --rec:#34D399; --rec-t:#06281E; --need:#FACC15; --need-t:#2A2206;
+    --rev:#A78BFA; --rev-t:#21173D; --ign:#A1A1AA; --ign-t:#1C1C20;
+    --bad:#F87171; --bad-t:#2D1212; --shadow:none; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#09090B; --surface:#141417; --soft:#1C1C20; --line:#2E2E34;
+  --ink:#F4F4F5; --ink-2:#D4D4D8; --muted:#A1A1AA;
+  --brand:#6BA1F8; --brand-t:#00213F;
+  --rec:#34D399; --rec-t:#06281E; --need:#FACC15; --need-t:#2A2206;
+  --rev:#A78BFA; --rev-t:#21173D; --ign:#A1A1AA; --ign-t:#1C1C20;
+  --bad:#F87171; --bad-t:#2D1212; --shadow:none; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bar)}
+button{font:inherit;color:inherit;cursor:pointer}
+/* top bar */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bar);color:var(--bar-ink)}
+.bar{display:flex;align-items:center;gap:14px;padding:10px 20px;max-width:1440px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:12px;white-space:nowrap}
+.brand svg{height:12px;width:auto;color:var(--bar-ink)}
+.brand span{font:500 12px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--bar-muted)}
+.rail{display:flex;gap:2px;list-style:none;margin:0 auto;padding:0;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1;justify-content:center}
+.rail button{background:none;border:0;border-radius:8px;padding:6px 9px;color:var(--bar-muted);display:flex;gap:6px;align-items:baseline;white-space:nowrap}
+.rail .t{font:400 11px/1 var(--mono);opacity:.7}
+@media (max-width:1560px){.rail .t{display:none}}
+.rail .n{font:500 13px/1 var(--sans)}
+.rail button:hover{color:var(--bar-ink)}
+.rail button.done{color:#71717A}
+.rail button[aria-current]{background:#27272A;color:#fff}
+.ctl{display:flex;gap:6px;align-items:center}
+.ctl button{white-space:nowrap;background:#27272A;border:0;border-radius:8px;padding:6px 10px;font:500 13px/1 var(--sans);color:var(--bar-ink)}
+.ctl button[aria-pressed="true"]{background:#0061E9}
+#clock{font:500 13px/1 var(--mono);color:var(--bar-muted);min-width:38px;text-align:right}
+#clock.over{color:#F87171}
+/* slides */
+main{max-width:1180px;margin:0 auto;padding:44px 32px 120px}
+section.seg{display:none;animation:in .3s ease-out}
+section.seg.on{display:block}
+@media (min-width:900px){.next.four{grid-template-columns:repeat(4,1fr)}}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.eyebrow{font:500 12px/1.2 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+h1{font:500 clamp(36px,5.2vw,60px)/1.06 var(--sans);letter-spacing:-.02em;margin:0 0 20px;max-width:17ch}
+h2{font:400 clamp(30px,3.8vw,44px)/1.15 var(--sans);letter-spacing:-.015em;margin:0 0 14px;max-width:24ch}
+h3{font:500 17px/1.3 var(--sans);margin:0 0 6px}
+.lead{font:500 20px/1.5 var(--sans);color:var(--ink-2);max-width:60ch;margin:0 0 28px}
+.foot{font-size:13px;color:var(--muted);margin:22px 0 0;max-width:80ch}
+.small{font-size:14px;color:var(--muted)}
+.mono{font-family:var(--mono)}
+.grid2{display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:center}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:24px}
+/* outcome chips */
+.chip{display:inline-block;font:500 12px/1 var(--sans);letter-spacing:.04em;text-transform:uppercase;padding:5px 9px;border-radius:9999px;white-space:nowrap}
+.c-rec{background:var(--rec-t);color:var(--rec)}.c-need{background:var(--need-t);color:var(--need)}
+.c-rev{background:var(--rev-t);color:var(--rev)}.c-ign{background:var(--ign-t);color:var(--ign)}
+.c-bad{background:var(--bad-t);color:var(--bad)}
+/* opening */
+.score{display:grid;grid-template-columns:repeat(29,1fr);gap:4px;margin:6px 0 10px}
+.score i{display:block;aspect-ratio:1/2.2;border-radius:3px;background:var(--rec)}
+.score i.m{background:var(--need)}.score i.x{background:var(--bad)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+/* problem */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:8px 0 0}
+.stat .v{font:500 44px/1 var(--sans);letter-spacing:-.02em;margin:0 0 8px}
+.stat .k{font-size:15px;color:var(--ink-2);margin:0}
+.steps{list-style:none;padding:0;margin:0;counter-reset:s}
+.steps li{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
+.steps li:last-child{border:0}
+.steps li::before{counter-increment:s;content:counter(s);font:500 13px/26px var(--sans);min-width:26px;height:26px;text-align:center;border-radius:9999px;background:var(--soft);color:var(--ink-2)}
+/* flow */
+.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1.3fr;gap:14px;align-items:stretch;margin-top:8px}
+.node{border-radius:16px;padding:20px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow)}
+.node .k{font-size:14px;color:var(--muted);margin:0}
+.node.model{border-color:var(--brand)}
+.node.model .tag,.node.code .tag{font:500 11px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;margin-bottom:10px;display:block}
+.node.model .tag{color:var(--brand)}.node.code .tag{color:var(--rec)}
+.arrow{align-self:center;color:var(--muted);font-size:24px}
+.outs{display:grid;gap:8px}
+.out{border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:14px;color:var(--ink-2)}
+.out.o-rec{background:var(--rec-t)}.out.o-need{background:var(--need-t)}.out.o-rev{background:var(--rev-t)}.out.o-ign{background:var(--ign-t)}
+.out b{font-weight:500;color:var(--ink)}
+.guard{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap}
+.guard span{font-size:14px;border:1px solid var(--line);border-radius:9999px;padding:6px 12px;color:var(--ink-2);background:var(--surface)}
+/* standard */
+.std{width:100%;border-collapse:collapse;font-size:15px}
+.std th{font:500 12px/1.2 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+.std td{padding:11px 10px;border-bottom:1px solid var(--line)}
+.std tr:last-child td{border:0}
+.yes{color:var(--rec);font-weight:500}.no{color:var(--ink-2)}
+.prov{font-size:12px;color:var(--need);margin-left:6px}
+.bignums{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+/* method */
+.funnel{display:grid;gap:10px;margin-top:6px}
+.fbar{display:flex;align-items:center;gap:14px}
+.fbar .b{height:46px;border-radius:10px;background:var(--soft);display:flex;align-items:center;padding:0 14px;font:500 16px/1 var(--sans);min-width:max-content}
+.fbar .b.hl{background:var(--brand);color:#fff}
+.fbar .d{font-size:14px;color:var(--muted)}
+.split{display:flex;gap:10px;margin-left:0}
+.split .b{flex:1;justify-content:center}
+.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
+.checks .card{padding:18px}
+.checks p{margin:0;font-size:14px;color:var(--ink-2)}
+/* results */
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:0 0 26px}
+.tile{padding:18px}
+.tile .v{font:500 40px/1 var(--sans);letter-spacing:-.02em;margin:0 0 6px}
+.tile .k{font:500 14px/1.3 var(--sans);margin:0 0 4px}
+.tile .s{font-size:12.5px;color:var(--muted);margin:0}
+.tile.warn{border-color:var(--bad)}.tile.warn .v{color:var(--bad)}
+.tiles2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:-14px 0 26px}
+.tiles2 .s+.s{margin-top:4px}
+@media (max-width:1000px){.tiles2{grid-template-columns:1fr}}
+.res{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start}
+.cm{border-collapse:separate;border-spacing:6px;font-size:14px}
+.cm th{font:500 12px/1.2 var(--sans);color:var(--muted);text-align:center;padding:4px;letter-spacing:.03em}
+.cm th.rh{text-align:right;white-space:nowrap}
+.cm td{padding:0}
+.cm button{width:76px;height:60px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font:500 22px/1 var(--sans)}
+.cm button.z{color:var(--line);cursor:default;font-weight:400}
+.cm button.ok{background:var(--rec-t);color:var(--rec);border-color:transparent}
+.cm button.safe{background:var(--need-t);color:var(--need);border-color:transparent}
+.cm button.over{background:var(--bad-t);color:var(--bad);border-color:var(--bad)}
+.cm button[aria-pressed="true"]{outline:2px solid var(--brand);outline-offset:2px}
+.cmcap{font-size:12.5px;color:var(--muted);margin:6px 0 0 6px}
+#cell h3{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tl{list-style:none;padding:0;margin:10px 0 0;max-height:330px;overflow:auto}
+.tl li{display:grid;grid-template-columns:64px 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.tl li:last-child{border:0}
+.tl .r{font:400 12px/1.6 var(--mono);color:var(--muted)}
+.tl .w{color:var(--muted);font-size:13.5px;display:block}
+/* replay */
+.rhead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.tally{font:500 15px/1 var(--sans);color:var(--ink-2)}
+.tally b{font-size:24px;font-weight:500;color:var(--ink)}
+.rbtn{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font:500 14px/1 var(--sans)}
+.rbtn:hover{border-color:var(--ink-2)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.rc{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px;display:flex;flex-direction:column;gap:10px;min-height:236px;transition:border-color .2s}
+.rc:hover{border-color:var(--ink-2)}
+.rc .ti{font:500 17px/1.3 var(--sans);margin:0}
+.rc .cl{font-size:13px;color:var(--muted);margin:-6px 0 0}
+.rc .st{border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.45;display:none}
+.rc .st .l{display:block;font:500 11px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.rc .ag{background:var(--soft)}
+.rc .ex{background:var(--soft)}
+.rc .nt{display:none;margin:0;font-size:13px;line-height:1.45;color:var(--muted)}
+.rc[data-step="2"] .nt{display:block}
+.rc[data-step="1"] .ag,.rc[data-step="2"] .ag,.rc[data-step="2"] .ex{display:block}
+.rc .hint{margin-top:auto;font-size:13px;color:var(--brand)}
+.rc[data-step="2"] .hint{display:none}
+.rc .verdict{display:none;margin-top:auto;font:500 14px/1.3 var(--sans);align-items:center;gap:8px}
+.rc[data-step="2"] .verdict{display:flex}
+.verdict .ico{width:22px;height:22px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:#fff}
+.rc.match[data-step="2"]{border-color:var(--rec)}
+.rc.match .verdict{color:var(--rec)}.rc.match .ico{background:var(--rec)}
+.rc.miss[data-step="2"]{border-color:var(--need)}
+.rc.miss .verdict{color:var(--need)}.rc.miss .ico{background:var(--need)}
+.rc.over[data-step="2"]{border-color:var(--bad)}
+.rc.over .verdict{color:var(--bad)}.rc.over .ico{background:var(--bad)}
+.rc .src{font:400 11px/1 var(--mono);color:var(--muted)}
+/* misses */
+.miss-rows{display:grid;gap:12px}
+.mr{display:grid;grid-template-columns:70px 1fr auto;gap:18px;align-items:center;padding:18px 22px}
+.mr .n{font:500 40px/1 var(--sans);letter-spacing:-.02em}
+.mr p{margin:2px 0 0;font-size:15px;color:var(--ink-2)}
+.mr.r{border-color:var(--bad)}.mr.r .n{color:var(--bad)}
+.mr.a .n{color:var(--need)}
+.side{font-size:15px;color:var(--ink-2)}
+/* decisions */
+.dt{width:100%;border-collapse:collapse;font-size:16px}
+.dt th{font:500 12px/1.2 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+.dt td{padding:16px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.dt tr:last-child td{border:0}
+.dt td:first-child{font-weight:500;width:42%}
+.dt .q{font:400 12px/1 var(--mono);color:var(--muted);display:block;margin-bottom:5px}
+.dt tr.hot td:first-child{color:var(--bad)}
+/* next */
+.next{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.next .card .s{font:500 12px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--brand);margin:0 0 10px}
+.next p{margin:0;font-size:15px;color:var(--ink-2)}
+.found{display:flex;gap:18px;align-items:center;background:var(--soft);border-radius:16px;padding:20px 24px}
+.found .v{font:500 36px/1 var(--sans);letter-spacing:-.02em}
+.found p{margin:0;color:var(--ink-2)}
+/* pager */
+.pager{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;align-items:center;z-index:4}
+.pager button{width:44px;height:44px;border-radius:9999px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);font-size:18px}
+.pager .ct{font:500 13px/1 var(--mono);color:var(--muted);margin-right:4px}
+/* notes */
+#notes{position:fixed;left:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));width:min(460px,calc(100vw - 140px));background:var(--bar);color:var(--bar-ink);border-radius:14px;padding:16px 18px;z-index:6;font-size:15px;line-height:1.55;box-shadow:0 12px 20px -8px rgba(26,26,26,.3)}
+#notesHead{font:500 12px/1.3 var(--mono);color:var(--bar-muted);margin:0 0 8px}
+#notesBody p{margin:0 0 8px}
+@media (max-width:1000px){
+  .grid2,.res{grid-template-columns:1fr}
+  .tiles{grid-template-columns:repeat(2,1fr)}
+  .flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg);justify-self:center}
+  .stats,.checks,.next{grid-template-columns:1fr}
+  .rail .t{display:none}
+  main{padding:28px 18px 120px}
+}
+@media (max-width:640px){.brand span{display:none}.rail{display:none}.mr{grid-template-columns:50px 1fr}.mr .chip{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand"><span>TC5 · Onboarding agent</span></div>
+    <ol class="rail" id="rail" aria-label="Segments"></ol>
+    <div class="ctl">
+      <span id="clock">0:00</span>
+      <button type="button" id="timerBtn">Start timer</button>
+      <button type="button" id="notesBtn" aria-pressed="false">Notes</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- 1 OPENING -->
+<section class="seg" id="s-opening">
+  <div class="grid2">
+    <div>
+      <p class="eyebrow">TC5 · Real tickets, our standard · Nov 2026</p>
+      <h1>29 real tickets it had never seen. 24 handled right.</h1>
+      <p class="lead">I pointed the onboarding agent at real, anonymized Jira tickets and graded it against our own role matrix. It recommends access; a person still provisions.</p>
+      <p class="foot">Everything on screen is counts, roles and clubs. No names, no ticket text.</p>
+    </div>
+    <div class="card">
+      <p class="eyebrow" style="margin-bottom:10px">Held-out test, run once · each bar is one ticket</p>
+      <div class="score" id="score" aria-label="24 correct, 4 cautious misses, 1 over-access"></div>
+      <div class="legend">
+        <span><b style="background:var(--rec)"></b>24 right outcome</span>
+        <span><b style="background:var(--need)"></b>4 missed, but cautious</span>
+        <span><b style="background:var(--bad)"></b>1 granted too much</span>
+      </div>
+      <p class="small" style="margin:16px 0 0">The one red bar is the slide that matters. I’ll show it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 PROBLEM -->
+<section class="seg" id="s-problem">
+  <p class="eyebrow">The problem</p>
+  <h2>Every new hire is a free-text ticket someone has to interpret.</h2>
+  <p class="lead">For each one the desk reads the form, works out the role, decides on a system login, then picks the club and level.</p>
+  <div class="stats">
+    <div class="card stat"><p class="v">~220</p><p class="k">onboarding tickets in six months</p></div>
+    <div class="card stat"><p class="v">4</p><p class="k">decisions made by hand on every one: role, login, club, level</p></div>
+    <div class="card stat"><p class="v">7</p><p class="k">asked for a system login the matrix says the role shouldn’t have</p></div>
+  </div>
+  <p class="foot">The pattern behind the inconsistency: “set her up like the person she’s shadowing.” Mirrored access copies whatever that person has accumulated.</p>
+</section>
+
+<!-- 3 AGENT -->
+<section class="seg" id="s-agent">
+  <p class="eyebrow">What the agent does</p>
+  <h2>The model reads. Coded rules decide.</h2>
+  <div class="flow">
+    <div class="node"><h3>Onboarding ticket</h3><p class="k">Intake form and description at creation. Not later comments.</p></div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="node model"><span class="tag">Model · Sonnet 5.5</span><h3>Extract the facts</h3><p class="k">Title, club, start date, login asked for, anything extra requested.</p></div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="node code"><span class="tag">Code · role matrix</span><h3>Pick one outcome</h3>
+      <div class="outs" style="margin-top:10px">
+        <div class="out o-rec"><b>Recommend</b><span>role, login y/n, system role, club, level</span></div>
+        <div class="out o-need"><b>Ask</b><span>for the missing fields</span></div>
+        <div class="out o-rev"><b>Send to a person</b><span>with the reason</span></div>
+        <div class="out o-ign"><b>Ignore</b><span>not an onboarding</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="guard">
+    <span>Recommends only</span><span>Never writes to Jira or the club-management system</span><span>Mirror requests always go to a person</span><span>Every decision traces to a matrix row</span>
+  </div>
+</section>
+
+<!-- 4 STANDARD -->
+<section class="seg" id="s-standard">
+  <div class="grid2" style="align-items:start">
+    <div>
+      <p class="eyebrow">The rules come from us</p>
+      <h2>The role matrix, made machine-readable.</h2>
+      <p class="lead">The Business Development Manager’s matrix (7 Oct 2026) became standard v0.2. Labels and the agent follow the same file, so every call can be audited.</p>
+      <div class="bignums">
+        <div class="card stat"><p class="v">73</p><p class="k">roles</p></div>
+        <div class="card stat"><p class="v">5</p><p class="k">in-club venues</p></div>
+        <div class="card stat"><p class="v">4</p><p class="k">outcomes</p></div>
+        <div class="card stat"><p class="v">6</p><p class="k">open questions for the business</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="eyebrow">Five rows the test set exercised</p>
+      <table class="std">
+        <thead><tr><th>Role</th><th>System login</th><th>System role</th></tr></thead>
+        <tbody>
+          <tr><td>Hospitality Associate<span class="prov">L2 provisional</span></td><td class="yes">Yes</td><td>Front Desk Associate</td></tr>
+          <tr><td>Personal Trainer</td><td class="yes">Yes</td><td>Personal Trainer + level</td></tr>
+          <tr><td>Lifeguard</td><td class="yes">Yes</td><td>Lifeguard</td></tr>
+          <tr><td>Cafe Associate</td><td class="no">No</td><td class="small">member record only</td></tr>
+          <tr><td>Maintenance Technician</td><td class="no">No</td><td class="small">member record only</td></tr>
+        </tbody>
+      </table>
+      <p class="foot" style="margin-top:14px">“No login” is an output, not a gap. Without it the agent could only over-provision those roles.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 METHOD -->
+<section class="seg" id="s-method">
+  <p class="eyebrow">How I tested it</p>
+  <h2>Labelled by IT against the matrix. Tested once.</h2>
+  <div class="funnel">
+    <div class="fbar"><div class="b" style="width:100%">487 real tickets, anonymized</div></div>
+    <div class="fbar"><div class="b" style="width:34%">58 labelled by IT</div><span class="d">graded against the standard, not against what the desk did</span></div>
+    <div class="fbar"><div class="split" style="width:34%"><div class="b">29 dev</div><div class="b hl">29 test</div></div><span class="d">dev to fix gaps · test held back and run once</span></div>
+  </div>
+  <div class="checks">
+    <div class="card"><h3>No model grades the model</h3><p>Outputs are categories and names, so every metric is an exact match against human labels.</p></div>
+    <div class="card"><h3>Harness checked first</h3><p>A perfect predictor scores 1.0 everywhere; a deliberately broken one is caught on every planted error.</p></div>
+    <div class="card"><h3>Headline metric: over-privilege</h3><p>A wrong “recommend” grants access. That is the failure that costs us.</p></div>
+  </div>
+</section>
+
+<!-- 6 RESULTS -->
+<section class="seg" id="s-results">
+  <p class="eyebrow">Results · 29 held-out tickets</p>
+  <h2>When it recommends, the details are right.</h2>
+  <div class="tiles">
+    <div class="card tile"><p class="v">83%</p><p class="k">right outcome</p><p class="s">24 of 29 · 95% CI 69–97%</p></div>
+    <div class="card tile"><p class="v">92%</p><p class="k">recommendations correct</p><p class="s">12 of 13</p></div>
+    <div class="card tile"><p class="v">86%</p><p class="k">of recommendable tickets caught</p><p class="s">12 of 14</p></div>
+    <div class="card tile"><p class="v">100%</p><p class="k">fields on every correct recommendation</p><p class="s">role, login, system role, club, level</p></div>
+    <div class="card tile warn"><p class="v">1</p><p class="k">over-access case</p><p class="s">of 29 · the red cell below</p></div>
+  </div>
+  <div class="tiles2">
+    <div class="card tile"><p class="v">84 / 84</p><p class="k">The CTO’s synthetic gate (95%): met</p><p class="s">Held-back half of a 181-ticket scenario grid · 0 over-access (81/84 with 2 over-access before one fix) · full grid 169/169, 12 await a business ruling.</p><p class="s">One gap found and fixed: intern, contractor and temp hires now go to a person. Seasonal awaits the BDM.</p></div>
+    <div class="card tile"><p class="v">70%</p><p class="k">of onboardings recommendable today</p><p class="s">153 of 220 onboardings across all 487 tickets · 42 go to a person, 24 ask the requester for missing information.</p><p class="s">Grows as the matrix gaps close (Q1–Q6).</p></div>
+  </div>
+  <div class="res">
+    <div>
+      <table class="cm" id="cm" aria-label="Expected outcome by agent outcome"></table>
+      <p class="cmcap">Rows: what IT expected. Columns: what the agent did. Select a cell.</p>
+    </div>
+    <div class="card" id="cell" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- 7 REPLAY -->
+<section class="seg" id="s-replay">
+  <div class="rhead">
+    <div>
+      <p class="eyebrow">Decision replay · recorded results, no live calls</p>
+      <h2 style="margin:0">Click a ticket. Agent first, then the human answer.</h2>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center">
+      <span class="tally" id="tally"></span>
+      <button type="button" class="rbtn" id="revealAll">Reveal all</button>
+      <button type="button" class="rbtn" id="resetAll">Reset</button>
+    </div>
+  </div>
+  <div class="cards" id="cards"></div>
+</section>
+
+<!-- 8 MISSES -->
+<section class="seg" id="s-misses">
+  <p class="eyebrow">What it got wrong, and why</p>
+  <h2>Five misses. Only one granted access.</h2>
+  <div class="grid2" style="align-items:start">
+    <div class="miss-rows">
+      <div class="card mr a"><span class="n">2</span><div><h3>Our anonymization, not the agent</h3><p>The fake name in the summary didn’t match the fake email. The agent saw two people and escalated: the safe choice.</p></div><span class="chip c-rev">to a person</span></div>
+      <div class="card mr a"><span class="n">2</span><div><h3>Asked where a person should review</h3><p>Asked for a club that was on the form, which hid an exception.</p></div><span class="chip c-need">asked</span></div>
+      <div class="card mr r"><span class="n">1</span><div><h3>Recommended where a person should look</h3><p>A lifeguard also covering fitness. The matrix has no rule for cross-unit work, so the code had nothing to stop it.</p></div><span class="chip c-bad">over-access</span></div>
+    </div>
+    <div class="card side">
+      <h3>Read this as a gap report</h3>
+      <p style="margin:6px 0 12px">Four of five erred toward a person. Two are our anonymizer; two are the model missing a club that was on the form, which hid an exception behind it. The fifth is a missing rule in the matrix, not a model error.</p>
+      <p class="small" style="margin:0">One more ticket had the right outcome for the wrong reason: the same name mismatch, on a ticket that needed review anyway. Fixing the anonymizer clears three tickets.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 9 DECISIONS -->
+<section class="seg" id="s-decisions">
+  <p class="eyebrow">What unlocks more automation</p>
+  <h2>Five business decisions. Each one moves tickets from “a person” to “recommend.”</h2>
+  <table class="dt">
+    <thead><tr><th>Decision</th><th>Owner</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td><span class="q">Q1</span>System role names for login roles with none mapped</td><td>BDM / system admin</td><td>Only 7 roles can be fully recommended today</td></tr>
+      <tr><td><span class="q">Q4</span>Hospitality Associate Level 2: Associate or Lead?</td><td>BDM / VP Hospitality</td><td>Removes a provisional label</td></tr>
+      <tr><td><span class="q">Q3</span>Housekeeping Manager: system login yes or no?</td><td>BDM</td><td>Closes a matrix gap</td></tr>
+      <tr class="hot"><td><span class="q">new</span>Rule for cross-unit work (swim school / fitness)</td><td>BDM</td><td>Closes the one over-access case</td></tr>
+      <tr><td><span class="q">new</span>Seasonal hires: same access with an end date, or different?</td><td>BDM</td><td>Decides whether seasonal starts go to a person</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- TOOLS -->
+<section class="seg" id="s-tools">
+  <p class="eyebrow">Already running in test</p>
+  <h2>13 tools, all reads. The admin decides what runs.</h2>
+  <div class="next four">
+    <div class="card"><p class="s">Identity &amp; health</p><h3>Who is calling, is it up</h3><p>Whoami · Egress IP · System ping</p></div>
+    <div class="card"><p class="s">Org structure</p><h3>Clubs and areas</h3><p>Get Centers · Get Centers In Area · Get Scope</p></div>
+    <div class="card"><p class="s">People</p><h3>Look up, never change</h3><p>Find Persons · Get Changed Persons</p></div>
+    <div class="card"><p class="s">Access</p><h3>Who holds which role</h3><p>Get Roles For Login · Get Assigned Staff Groups · Get Available Staff Groups · Get Available Roles For Scope · Get Scope For Roles Matching</p></div>
+  </div>
+  <div class="guard">
+    <span>No write tool exists</span><span>Every tool set to Ask: a person approves each call</span><span>Tools added later default to Ask or Block</span><span>Entra sign-in, one security group</span><span>Secrets in Key Vault</span>
+  </div>
+  <p class="foot">A read-only MCP server on the member-management system's test environment, hosted in a private Azure container. The project owner and the CTO are testing it now. Hardening comes before production, and the onboarding server goes on the same route.</p>
+</section>
+
+<!-- 10 NEXT -->
+<section class="seg" id="s-next">
+  <p class="eyebrow">Next</p>
+  <h2>Shadow mode before any automation.</h2>
+  <div class="next">
+    <div class="card"><p class="s">1 · Standard</p><h3>Close the matrix decisions</h3><p>Work Q1–Q6 with the Business Development Manager, plus the production role export from the club-management system.</p></div>
+    <div class="card"><p class="s">2 · Review</p><h3>Desk reviews at scale</h3><p>The Technology Support Associate reviews edge-case scenarios and the agent’s calls on all 487 tickets.</p></div>
+    <div class="card"><p class="s">3 · Shadow</p><h3>Comment, don’t act</h3><p>The agent comments its recommendation on live tickets; the desk applies it. We measure agreement before automating anything.</p><p class="small" style="margin-top:10px">Repeatability: across three runs, one ticket requesting extra systems was escalated twice and recommended once. That’s why shadow mode comes before any automation.</p></div>
+  </div>
+  <div class="found">
+    <span class="v">7 of 220</span>
+    <p>Found along the way: onboardings that requested a system login the matrix doesn’t allow. The agent would have said no.</p>
+  </div>
+  <p class="foot">Across all 487 tickets: 70% of onboardings recommendable today, 0 run failures.</p>
+</section>
+
+</main>
+
+<div class="pager"><span class="ct" id="ct"></span><button type="button" id="prev" aria-label="Previous">←</button><button type="button" id="next" aria-label="Next">→</button></div>
+<div id="notes" hidden><p id="notesHead"></p><div id="notesBody"></div></div>
+
+<script>
+(function(){
+const el=(t,a={},...k)=>{const e=document.createElement(t);for(const[n,v]of Object.entries(a)){if(n==="text")e.textContent=v;else if(n==="class")e.className=v;else e.setAttribute(n,v)}k.forEach(c=>e.append(c));return e};
+
+/* ---------- data (recorded results, 2026-11-02 endpoint test run) ---------- */
+const OUT={rec:["Recommend","c-rec"],need:["Ask","c-need"],rev:["Send to a person","c-rev"],ign:["Ignore","c-ign"]};
+const CELLS={
+ "rec|rec":[["TKT-119","Hospitality Associate L1 · Club 1","login yes · Front Desk Associate"],["TKT-14","Hospitality Associate L2 · Club 2","login yes · Front Desk Associate · provisional"],["TKT-221","Hospitality Associate · Club 4","login yes · Front Desk Associate"],["TKT-478","Hospitality Associate · Club 3","login yes · Front Desk Associate"],["TKT-164","Aquatics Lead · Club 1","login yes · Aquatics Lead"],["TKT-206","Lifeguard · Club 1","login yes · Lifeguard"],["TKT-485","Personal Trainer · Club 5","login yes · Trainer Level 1"],["TKT-451","Personal Trainer · Club 5","login yes · Trainer Level 1"],["TKT-265","Cafe Associate · Club 3","no login · member record only"],["TKT-502","Cafe Associate · Club 4","no login · member record only"],["TKT-83","Cafe Associate · Club 5","no login · member record only"],["TKT-263","Cafe Supervisor · Club 5","no login · member record only"]],
+ "rec|rev":[["TKT-334","Membership Consultant · Club 5","Escalated: saw two identities. Anonymizer name mismatch."],["TKT-390","Maintenance Technician · Club 4","Escalated: saw two identities. Anonymizer name mismatch."]],
+ "rev|rev":[["TKT-231","Cafe Associate re-hire · Club 3","Re-hire: standard tier proposed, a person decides"],["TKT-414","Lifeguard re-hire · Club 4","Re-hire: standard tier proposed, a person decides"],["TKT-408","Membership Consultant · Club 5","Extra systems requested beyond the standard · varied across runs"],["TKT-475","Marketing role","Extra systems requested beyond the standard"],["TKT-424","Brand Ambassador","Title not in the role matrix"],["TKT-197","Exception","Right outcome, wrong reason: anonymizer name mismatch"]],
+ "rev|need":[["TKT-155","Exception expected","Asked for the club, which was on the form; the re-hire exception behind it was never reached."],["TKT-421","Exception expected","Asked for the club, which was on the form; the extra-systems exception behind it was never reached."]],
+ "rev|rec":[["TKT-63","Lifeguard, also covering fitness · Club 1","Recommended Lifeguard with login. Cross-unit work has no matrix rule."]],
+ "ign|ign":[["TKT-109","Service request","not an onboarding"],["TKT-504","Service request","not an onboarding"],["TKT-400","Incident","not an onboarding"],["TKT-472","Incident","not an onboarding"],["TKT-166","Employee offboarding","not an onboarding"],["TKT-497","Employee offboarding","not an onboarding"]]
+};
+const DEMO=[
+ {t:"Hospitality Associate Level 1",c:"Club 1",a:"Recommend · Hospitality Associate · system login yes · Front Desk Associate",e:"Recommend",k:"match",src:"test"},
+ {t:"Hospitality Associate Level 2",c:"Club 2",a:"Recommend · Hospitality Associate · system login yes · Front Desk Associate",e:"Recommend (Level 2 = Associate, provisional until Q4 closes)",k:"match",src:"test"},
+ {t:"Cafe Associate",c:"Club 5",a:"Recommend · Cafe Associate · no system login (member record only)",e:"Recommend, no login",k:"match",src:"test"},
+ {t:"Not an onboarding (service request)",c:"Club 6",a:"Ignore",e:"Ignore",k:"match",src:"test"},
+ {t:"Cafe Associate (re-hire)",c:"Club 3",a:"Send to a person · exception",e:"Send to a person · exception",k:"match",src:"test"},
+ {t:"Housekeeping Supervisor (re-hire)",c:"Club 1",a:"Ask the requester · venue",e:"Send to a person · exception (re-hire)",n:"The club was on the form (Club 1). The model missed it, so the ask came before the re-hire exception.",k:"miss",src:"test"},
+ {t:"Lifeguard, also covering fitness",c:"Club 1",a:"Recommend · Lifeguard · system login yes",e:"Send to a person: cross-unit work",k:"over",src:"test"}
+];
+const SEGS=[
+ {tok:"opening",name:"Opening",t:0,notes:["TC4 was the first week on real data, and these are still those results. 29 tickets the agent had never seen, graded against our own role matrix.","24 right. And one red bar, which I’ll come back to on the misses slide."]},
+ {tok:"problem",name:"Problem",t:25,notes:["About 220 onboardings in six months. Each one, the desk interprets a free-text form and makes four decisions by hand.","Mirrored access is the root of the inconsistency. And 7 tickets asked for a login the matrix says that role shouldn’t have."]},
+ {tok:"agent",name:"Agent",t:50,notes:["The split that matters: the model only reads and extracts. Code applies the matrix and picks one of four outcomes.","It recommends only. It never writes to Jira or the club-management system."]},
+ {tok:"standard",name:"Standard",t:80,notes:["The rules aren’t mine. They’re the role matrix from the Business Development Manager, turned into a file both the labels and the agent follow.","73 roles, 5 clubs. Six open questions only the business can answer."]},
+ {tok:"method",name:"Method",t:105,notes:["487 real tickets, anonymized, with approval. 58 labelled by IT, split 29 and 29.","I fixed two gaps on dev, then ran test once. No LLM judge: exact match against human labels."]},
+ {tok:"results",name:"Results",t:130,notes:["83% right outcome, wide interval because n is 29. 12 of 13 recommendations correct, every field right on those 12.","Click the red cell: that’s the one over-access case. Click the amber cells: those all erred toward a human.","Two numbers beyond the 29: the CTO’s 95% synthetic gate is met at 84 of 84, and 70% of all onboardings are recommendable today."]},
+ {tok:"replay",name:"Replay",t:170,notes:["Recorded results, no live calls. Click once for the agent, again for the human answer.","Save the lifeguard for last."]},
+ {tok:"misses",name:"Misses",t:220,notes:["Five misses. Two are my anonymizer, two asked instead of escalating. Four of five erred toward caution.","The fifth is a gap in the matrix, not the model: nobody has written the rule for cross-unit work."]},
+ {tok:"decisions",name:"Decisions",t:250,notes:["Each of these moves tickets from ‘send to a person’ to ‘recommend.’ The cross-unit rule closes the only over-access case."]},
+ {tok:"tools",name:"Tools",t:255,notes:["This is already running in test against the member system. Thirteen tools, every one a read: find, get, list. There is no write tool to approve because none exists.","Every tool is set to Ask, so a person approves each call, and tools added later default to Ask or Block. Entra sign-in, one security group, secrets in Key Vault.","The CTO and I are testing it now. Hardening comes next, then the onboarding server goes on this same route."]},
+ {tok:"next",name:"Next",t:275,notes:["Close the matrix questions, have the desk review at scale, then shadow mode: the agent comments, the desk applies, we measure agreement.","Nothing gets automated until shadow mode earns it."]}
+];
+
+/* ---------- opening scoreboard ---------- */
+const score=document.getElementById("score");
+for(let i=0;i<29;i++) score.append(el("i",{class:i<24?"":(i<28?"m":"x")}));
+
+/* ---------- confusion matrix ---------- */
+const cm=document.getElementById("cm"), cell=document.getElementById("cell");
+const ROWS=["rec","rev","ign"], COLS=["rec","need","rev","ign"];
+const hr=el("tr",{},el("th",{text:""}));
+COLS.forEach(c=>hr.append(el("th",{text:OUT[c][0]})));
+cm.append(el("thead",{},hr));
+const tb=el("tbody"); let cmBtns=[];
+ROWS.forEach(r=>{
+  const tr=el("tr",{},el("th",{class:"rh",text:OUT[r][0]}));
+  COLS.forEach(c=>{
+    const list=CELLS[r+"|"+c]||[]; const n=list.length;
+    const cls=!n?"z":(r===c?"ok":(c==="rec"?"over":"safe"));
+    const b=el("button",{type:"button",class:cls,"aria-pressed":"false","aria-label":`Expected ${OUT[r][0]}, agent ${OUT[c][0]}: ${n}`,text:String(n)});
+    if(n){ b.addEventListener("click",()=>showCell(r,c,b)); cmBtns.push(b); } else b.disabled=true;
+    tr.append(el("td",{},b));
+  });
+  tb.append(tr);
+});
+cm.append(tb);
+function showCell(r,c,b){
+  cmBtns.forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+  const list=CELLS[r+"|"+c]; cell.innerHTML="";
+  const verdict=r===c?["Agreed","c-rec"]:(c==="rec"?["Over-access","c-bad"]:["Erred toward a person","c-need"]);
+  const h=el("h3",{},el("span",{text:`Expected ${OUT[r][0]} · agent ${OUT[c][0]}`}),el("span",{class:"chip "+verdict[1],text:verdict[0]}));
+  const ul=el("ul",{class:"tl"});
+  list.forEach(([ref,what,why])=>ul.append(el("li",{},el("span",{class:"r",text:ref}),el("span",{},document.createTextNode(what),el("span",{class:"w",text:why})))));
+  cell.append(h,ul);
+}
+showCell("rev","rec",cmBtns.find(b=>b.classList.contains("over")));
+
+/* ---------- replay ---------- */
+const cards=document.getElementById("cards"), tally=document.getElementById("tally");
+const rcs=DEMO.map(d=>{
+  const b=el("button",{type:"button",class:"rc "+d.k,"data-step":"0"});
+  b.append(el("p",{class:"ti",text:d.t}),el("p",{class:"cl",text:d.c}));
+  b.append(el("div",{class:"st ag"},el("span",{class:"l",text:"Agent"}),document.createTextNode(d.a)));
+  b.append(el("div",{class:"st ex"},el("span",{class:"l",text:"Human-confirmed"}),document.createTextNode(d.e)));
+  if(d.n) b.append(el("p",{class:"nt",text:d.n}));
+  b.append(el("span",{class:"hint",text:"Click to reveal the agent"}));
+  const ico=d.k==="match"?"✓":"✕", lab=d.k==="match"?"Match":(d.k==="over"?"Over-access: a login a person should review":"Miss: safe, a person still sees it");
+  b.append(el("span",{class:"verdict"},el("span",{class:"ico",text:ico}),el("span",{text:lab})));
+  b.addEventListener("click",()=>{const s=+b.dataset.step; if(s<2){b.dataset.step=String(s+1); b.querySelector(".hint").textContent="Click for the human answer";} upd();});
+  cards.append(b); return b;
+});
+function upd(){const done=rcs.filter(b=>b.dataset.step==="2"); const m=done.filter(b=>b.classList.contains("match")).length;
+  tally.innerHTML=""; tally.append(el("b",{text:`${m}/${done.length}`}),document.createTextNode(" matched so far"));}
+document.getElementById("revealAll").addEventListener("click",()=>{rcs.forEach(b=>b.dataset.step="2");upd();});
+document.getElementById("resetAll").addEventListener("click",()=>{rcs.forEach(b=>{b.dataset.step="0";b.querySelector(".hint").textContent="Click to reveal the agent";});upd();});
+upd();
+
+/* ---------- nav ---------- */
+const rail=document.getElementById("rail"), secs=[...document.querySelectorAll("section.seg")];
+const fmt=s=>Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+const railBtns=SEGS.map((s,i)=>{const b=el("button",{type:"button"},el("span",{class:"t",text:fmt(s.t)}),el("span",{class:"n",text:s.name}));b.addEventListener("click",()=>go(i));rail.append(el("li",{},b));return b;});
+let at=0;
+function go(i){at=Math.max(0,Math.min(SEGS.length-1,i));
+  secs.forEach((s,j)=>s.classList.toggle("on",j===at));
+  railBtns.forEach((b,j)=>{if(j===at)b.setAttribute("aria-current","step");else b.removeAttribute("aria-current");b.classList.toggle("done",j<at);});
+  document.getElementById("ct").textContent=`${at+1} / ${SEGS.length}`;
+  if(location.hash.slice(1)!==SEGS[at].tok) history.replaceState(null,"","#"+SEGS[at].tok);
+  renderNotes(); window.scrollTo(0,0);}
+document.getElementById("prev").addEventListener("click",()=>go(at-1));
+document.getElementById("next").addEventListener("click",()=>go(at+1));
+const notes=document.getElementById("notes"), nb=document.getElementById("notesBtn");
+function renderNotes(){const s=SEGS[at],nx=SEGS[at+1];
+  document.getElementById("notesHead").textContent=`${fmt(s.t)} ${s.name}`+(nx?` · next: ${nx.name} at ${fmt(nx.t)}`:" · target end 5:00");
+  const body=document.getElementById("notesBody"); body.innerHTML=""; s.notes.forEach(p=>body.append(el("p",{text:p})));}
+function toggleNotes(){notes.hidden=!notes.hidden;nb.setAttribute("aria-pressed",String(!notes.hidden));}
+nb.addEventListener("click",toggleNotes);
+let t0=null,timer=null; const clock=document.getElementById("clock"), tbtn=document.getElementById("timerBtn");
+function tick(){const s=(Date.now()-t0)/1000;clock.textContent=fmt(s);clock.classList.toggle("over",s>300);}
+tbtn.addEventListener("click",()=>{if(timer){clearInterval(timer);timer=null;tbtn.textContent="Start timer";}else{t0=Date.now();tick();timer=setInterval(tick,500);tbtn.textContent="Stop timer";}});
+document.addEventListener("keydown",e=>{if(e.target.closest&&e.target.closest("input,textarea"))return;
+  if(e.key==="ArrowRight"||e.key==="PageDown"){go(at+1);e.preventDefault()}
+  else if(e.key==="ArrowLeft"||e.key==="PageUp"){go(at-1);e.preventDefault()}
+  else if(e.key==="n"||e.key==="N"){toggleNotes()}
+  else if(e.key==="t"||e.key==="T"){tbtn.click()}});
+window.addEventListener("hashchange",()=>{const k=SEGS.findIndex(s=>s.tok===location.hash.slice(1));if(k>=0&&k!==at)go(k);});
+const start=SEGS.findIndex(s=>s.tok===location.hash.slice(1)); go(start<0?0:start);
+})();
+</script>
+</body>
+</html>
