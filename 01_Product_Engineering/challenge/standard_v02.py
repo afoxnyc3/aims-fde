@@ -57,7 +57,7 @@ SERVICE_DESK_MANAGER = "Service Desk Manager"
 # Exception approver = the role's business-unit owner (owner decision 2026-11-07), keyed by the matrix's role group.
 # The routing (exceptions -> business-unit owner; re-hire, transfer, promotion -> Service Desk Manager) was confirmed
 # by the service desk on 2026-11-09. The owner per group was assigned by the project owner on 2026-11-10.
-# Group Fitness matches the 2026-11-04 call with Group Fitness leadership; see decisions.md.
+# Group Fitness: two of the three leaders the 2026-11-04 call named; the VP is left out by the owner (see decisions.md).
 # A group not listed here, or a title not in the matrix, goes to the Service Desk Manager, who holds and routes it.
 # A tuple means either role can approve; the output names them joined by "or", in this order.
 BUSINESS_UNIT_OWNERS = {
