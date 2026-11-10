@@ -1,7 +1,8 @@
-# TC5: the question endpoint built a second way, and measured (DRAFT)
+# TC5: the question endpoint built a second way, and measured
 
-> Draft 2026-11-07, updated 2026-11-10. Steps 3 to 5 are measured below, and the Step 6 architecture row is
-> decided (owner, 2026-11-07). The Step 1 marks are confirmed and the service desk session was held 2026-11-09; the Step 7.2 line is recorded.
+> Submitted 2026-11-10. **Loom:** LOOM_URL_HERE (4 minutes). **Deck:** [`demo/tc5_demo.html`](demo/tc5_demo.html).
+> Steps 3 to 5 are measured below, the Step 6 architecture row is decided (owner, 2026-11-07), the Step 1 marks are
+> confirmed, and the service desk session was held 2026-11-09.
 
 ## Results after the 2026-11-10 rulings
 
@@ -234,3 +235,20 @@ opens on a single real-shaped ticket end to end, then shows the measured numbers
 - Step 7: Service Desk session held 2026-11-09 with the Technology Support Associate. Answers are in `stakeholders.md` and `decisions.md`. The Step 7.2 line is recorded in `decisions.md`.
 - Step 8: `README.md` "Bring it to work" / TC5 updated 2026-11-09: Desktop use confirmed, hosting route settled and CTO-approved, real volume added.
 - Docker: image rebuilt 2026-11-10 from main (49faead). It runs non-root (UID 1000), has no `.env` in the image, mounts `/data` read-only, and `/health` returns ok on `anthropic/claude-sonnet-5-5`. Live model calls ran in the container with the key supplied at runtime. The app answered two role questions with cited sources. The MCP server, run over stdio, listed only `answer_onboarding_question`, answered with a citation, declined the password question with no sources, and rejected `search_hybrid` as an unknown tool. Re-checked after the v0.5 changes (image rebuilt from this branch, standard mounted read-only): a synthetic Massage Therapist ticket recommended Personal Trainer/Pro New plus the Massage Therapist group at the club, and a synthetic ticket asking for Zoho and Prospr went to review as an exception naming both systems and the approver. Open finding: through the app, the password question was refused in the answer text every time and no credential appeared, but only 1 of 5 runs set `declined: true` with empty `sources`. The other 4 came back `declined: false` with ticket citations. The decline flag follows the model's output, so it is not yet reliable on this question.
+
+## Known issues
+
+- **Grid over-access, 2 of 180:** synthetic tickets where the intake corrects the venue. Next rule: a venue correction goes to a person.
+- **Cautious identity calls, 3 real tickets:** sent to a person as conflicting identity where the label recommends. Safe direction; next failure-analysis target.
+- **Decline flag on the app path:** the password question is always refused in the answer text and no credential appears, but `declined` was set in 1 of 5 runs. The MCP path declined cleanly. The flag follows the model's output; set it in code when the answer refuses.
+- **Senior Group Fitness Instructor carries staff admin.** Recommended as the NY SOP under an owner exception, with a warning on each recommendation, until the cleanup with stakeholders.
+- **Not held out.** Test numbers are "same tickets, current agent". A fresh held-out set is the gate before production.
+
+## Next steps (production target: end of month)
+
+1. Host the onboarding app container in the cloud, on the same private Azure route as the tools server (Entra sign-in, one group, Key Vault).
+2. Scope read-only API users for production.
+3. Deploy the MCP server to production.
+4. Prove writes on the TEST environment before any production write.
+5. Monitored rollout: role by role, every action logged to a Teams channel via webhook, weekly email report.
+6. Before go-live: remove staff admin from Senior Group Fitness Instructor with stakeholders, security sign-off, and a fresh held-out ticket set.
