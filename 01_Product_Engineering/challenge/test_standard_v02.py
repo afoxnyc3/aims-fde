@@ -26,6 +26,7 @@ roles:
   - {title: "Pool Captain",   staff_login: null,  company_mailbox: null,  account_role: null}
   - {title: "Guard",          staff_login: true,  company_mailbox: false, account_role: "Desk Associate", account_role_scope: business_unit}
   - {title: "Therapist",      staff_login: true,  company_mailbox: false, account_role: "Trainer", staff_group: "Therapist"}
+  - {title: "Instructor",     staff_login: true,  company_mailbox: false, account_role: "Senior Instructor", caveat: "Senior Instructor carries staff admin; owner-approved SOP."}
 """
 
 
@@ -76,6 +77,13 @@ class StandardV02Tests(unittest.TestCase):
         self.assertEqual([(g.staff_group.name, g.scope_type, g.scope.name) for g in r.answer.staff_groups],
                          [("Therapist", "venue", "Club A"), ("Therapist", "venue", "Club B")])
         self.assertEqual(self.run_with(facts()).answer.staff_groups, [])  # no group on the title, none granted
+
+    def test_owner_caveat_travels_with_the_recommendation(self):
+        r = self.run_with(facts(job_title="Instructor"))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        self.assertEqual(r.answer.assignments[0].role.name, "Senior Instructor")
+        self.assertIn("Senior Instructor carries staff admin; owner-approved SOP.", r.caveats)
+        self.assertNotIn("Senior Instructor carries staff admin; owner-approved SOP.", self.run_with(facts()).caveats)
 
     def test_venue_scoped_role_is_granted_per_club(self):
         r = self.run_with(facts(venue_names=["Club A", "Club B"]))

@@ -400,6 +400,8 @@ def decide(request: Request, facts, std: dict) -> Response:
 
     proposal = build_proposal(facts, role, std, names)
     caveats = ["Existing-account status was not checked."]
+    if role.get("caveat"):  # a standing warning the owner attached to this title's grant (e.g. a known over-broad role)
+        caveats.append(role["caveat"])
     if not facts.start_date:
         caveats.append("The intake gives no start date.")
     if facts.login_required is not None and facts.login_required != role["staff_login"]:
