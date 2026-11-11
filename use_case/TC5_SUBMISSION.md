@@ -1,6 +1,6 @@
 # TC5: The Question Endpoint, Built a Second Way and Measured
 
-> Submitted 2026-11-10. **Loom:** LOOM_URL_HERE (4 min). **Deck:** [`demo/tc5_demo.html`](demo/tc5_demo.html).
+> Submitted 2026-11-10. **Loom:** https://www.loom.com/share/1a3b85c2674d4b27aeb5fd5ce7c89e14 (4 min). **Deck:** [`demo/tc5_demo.html`](demo/tc5_demo.html).
 > Architecture row decided 2026-11-07. Step 1 marks confirmed, Service Desk session held and Step 7.2 line recorded on 2026-11-09. Role rulings and the v0.5 re-run on 2026-11-10.
 
 ## TL;DR
