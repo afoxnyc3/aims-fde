@@ -119,6 +119,8 @@ class OnboardingTests(unittest.TestCase):
              "human_review", "ambiguous_mapping", [], "venue"),
             (facts(employee_email=".personal@example.invalid", additional_access_request="sell memberships"),
              "needs_information", None, ["employee_email"], "usable employee email"),
+            (facts(job_title="Personal Trainer Level 2", personal_trainer_level=3, person_name=None),
+                         "human_review", "ambiguous_mapping", [], "trainer level"),
         ]
         for extracted, status, review_reason, missing_fields, reason in cases:
             with self.subTest(expected=reason):
@@ -186,6 +188,27 @@ class OnboardingTests(unittest.TestCase):
 
     def test_unknown_venue_requires_review(self):
         self.assertEqual(self.run_with(facts(venue_names=["Unknown Venue"])).review_reason, "ambiguous_mapping")
+
+    def test_title_level_conflicting_with_level_field_requires_review(self):
+        result = self.run_with(facts(job_title="Personal Trainer Level 2", personal_trainer_level=3))
+        self.assertEqual(result.status.value, "human_review")
+        self.assertEqual(result.review_reason, "ambiguous_mapping")
+        self.assertIsNone(result.answer)
+
+    def test_title_level_matching_level_field_is_recommended(self):
+        result = self.run_with(facts(job_title="Personal Trainer Level 2", personal_trainer_level=2))
+        self.assertEqual(result.status.value, "recommended")
+
+    def test_plain_trainer_title_uses_level_field(self):
+        result = self.run_with(facts(job_title="Personal Trainer", personal_trainer_level=3))
+        self.assertEqual(result.status.value, "recommended")
+
+    def test_malformed_email_requires_information(self):
+        for email in ["a@b@c.com", "a@", "a@nodot", "a@.com"]:
+            with self.subTest(email=email):
+                result = self.run_with(facts(employee_email=email))
+                self.assertEqual(result.status.value, "needs_information")
+                self.assertEqual(result.missing_fields, ["employee_email"])
 
     def test_identity_conflict_requires_review(self):
         self.assertEqual(self.run_with(facts(ambiguous_identity=True)).review_reason, "ambiguous_identity")
