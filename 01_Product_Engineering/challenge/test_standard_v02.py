@@ -27,6 +27,7 @@ roles:
   - {title: "Pool Captain",   staff_login: null,  company_mailbox: null,  account_role: null}
   - {title: "Guard",          staff_login: true,  company_mailbox: false, account_role: "Desk Associate", account_role_scope: business_unit}
   - {title: "Therapist",      staff_login: true,  company_mailbox: false, account_role: "Trainer", staff_group: "Therapist"}
+  - {title: "Host",           staff_login: true,  company_mailbox: false, account_role: "Desk Associate", group: "Hospitality"}
   - {title: "Instructor",     staff_login: true,  company_mailbox: false, account_role: "Senior Instructor", caveat: "Senior Instructor carries staff admin; owner-approved SOP."}
 """
 
@@ -104,6 +105,31 @@ class StandardV02Tests(unittest.TestCase):
         r = self.run_text("Needs a laptop", facts(job_title="Instructor", person_name=None))  # no proposal, no grant to warn about
         self.assertIsNone(r.standard_proposal)
         self.assertNotIn("carries staff admin", r.jira_comment)
+
+    def test_system_names_match_whole_dotted_identifiers_only(self):
+        for text, exc in (("Add to portal.Monday.com", True), ("Add to Monday.com.", True),
+                          ("Add to Monday.com.au", False), ("monday.common", False)):
+            with self.subTest(text=text):
+                r = self.run_text(text, facts())
+                self.assertEqual(r.status == Status.HUMAN_REVIEW, exc)
+
+    def test_marketing_promotion_does_not_route_a_system_request_to_the_desk(self):
+        r = self.run_text("Preparing for the January membership promotion; also needs Zoho access.", facts(job_title="Host"))
+        self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, "exception"))
+        self.assertNotEqual(r.approval_owner_role, standard_v02.SERVICE_DESK_MANAGER)
+        r = self.run_text("Transferring from Club B", facts(job_title="Host"))  # a transfer on its own still goes to the desk
+        self.assertEqual(r.approval_owner_role, standard_v02.SERVICE_DESK_MANAGER)
+
+    def test_bad_types_on_new_role_keys_fail_safely(self):
+        for line in ('account_role_scope: [business_unit]', 'account_role_scope: club', 'staff_group: [Therapist]', 'caveat: [bad]'):
+            with self.subTest(line=line):
+                bad = (SYNTHETIC.replace('caveat: "Senior Instructor carries staff admin; owner-approved SOP."', line, 1)
+                       if line.startswith("caveat") else
+                       SYNTHETIC.replace('account_role: "Senior Instructor",', 'account_role: "Senior Instructor", ' + line + ',', 1))
+                self.assertNotEqual(bad, SYNTHETIC)
+                p = Path(self.dir.name) / "bad.yaml"; p.write_text(bad)
+                with self.assertRaises(ValueError):
+                    standard_v02._load(str(p))
 
     def test_venue_scoped_role_is_granted_per_club(self):
         r = self.run_with(facts(venue_names=["Club A", "Club B"]))

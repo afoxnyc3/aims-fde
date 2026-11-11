@@ -30,3 +30,9 @@ No status label changed except TKT-293. Grid labels are unchanged.
 | grid (synthetic) | 174 of 180 (0.97) | 2 | `results/endpoint_grid.json` |
 
 **Not held out.** The test split has now been read closely several times, and the systems-beyond-the-bundle check was added after a test run on v0.5 showed the two TC4 over-access tickets were still recommended. Read test as "same tickets, current agent". Dev and the grid carry the evidence; a fresh held-out set is the gate before production.
+
+## Provenance notes
+
+- **Evidence text is carried over from real_v03.** For the 16 renamed rows, `evidence` still quotes the v0.3 mapping (for example "Front Desk Associate"). The `expected` fields are the v0.5 labels above; the evidence records where the original label came from.
+- **Run metadata says `"labels": "use_case/evals/real_v03"`.** The private runner kept the label path of the set it read, and applied the TC5 changes as an overlay. The `expected` block inside every result row matches `real_v05/golden.jsonl` exactly, and the counts recompute from these files (checked in a second, independent review of PR #58).
+- **Code after the runs:** three review fixes landed after these runs (validation of new standard keys, dotted system names, and the approver for a system request next to marketing "promotion" text). None changes a status on these tickets: the system-name matches on all 58 real tickets and the grid are identical before and after.

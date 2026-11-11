@@ -135,6 +135,11 @@ def _check(std) -> None:
             raise ValueError(f"{r['title']}: account_role must be a name or null")
         if r.get("group") is not None and not isinstance(r["group"], str):
             raise ValueError(f"{r['title']}: group must be a name or null")  # the approver lookup keys on it
+        if r.get("account_role_scope") not in (None, "venue", "business_unit"):
+            raise ValueError(f"{r['title']}: account_role_scope must be venue, business_unit or null")
+        for k in ("staff_group", "caveat"):
+            if r.get(k) is not None and not (isinstance(r[k], str) and r[k].strip()):
+                raise ValueError(f"{r['title']}: {k} must be text or null")
     for k, v in (std.get("aliases") or {}).items():
         if not (isinstance(k, str) and isinstance(v, str)):
             raise ValueError("aliases must map title to title")
@@ -171,7 +176,7 @@ def _parse(path: str, mtime_ns: int, size: int) -> dict:  # key includes the fil
             "pool_clubs": {_norm(v) for v in std.get("pool_clubs") or []},
             "pool_roles": {_norm(t) for t in std.get("pool_roles", POOL_ROLES)},
             # Systems outside every role's bundle, named by the standard. An intake that names one is an exception.
-            "non_bundle_systems": [(n, re.compile(r"(?<![\w.])" + re.escape(n) + r"(?![\w])", re.I))
+            "non_bundle_systems": [(n, re.compile(r"(?<!\w)" + re.escape(n) + r"(?!\w|\.\w)", re.I))
                                    for n in std.get("non_bundle_systems") or []]}
 
 
@@ -395,7 +400,11 @@ def decide(request: Request, facts, std: dict) -> Response:
         if baseline and role and role.get("caveat"):  # the owner's warning travels with the proposed grant here too
             text += " " + role["caveat"]
         # A transfer or promotion the intake names counts too, even when extraction did not flag it.
-        approver = _approver(role, rehire or "transfer or promotion" in triggers, names, std)
+        # The broad transfer/promotion regex picks the desk only when it is the sole reason: "membership promotion"
+        # next to a real system request is marketing copy, and that request belongs to the business-unit owner.
+        other = facts.additional_access_request or pool_confirmed or any(
+            t not in ("re-hire", "transfer or promotion") for t in triggers)
+        approver = _approver(role, rehire or ("transfer or promotion" in triggers and not other), names, std)
         text += f" Approver: {approver}."
         return _out(request, Status.HUMAN_REVIEW, text, review_reason="exception",
                     exception_difference=differences, approval_owner_role=approver, standard_proposal=baseline,
