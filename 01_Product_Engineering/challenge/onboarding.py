@@ -188,6 +188,13 @@ def classify_ticket(facts: ExtractedTicket, standard: dict) -> dict:
     if facts.ambiguous_identity:
         raise EarlyOutcome(Status.HUMAN_REVIEW, "Resolve the conflicting identities in the ticket.",
                            review_reason="ambiguous_identity")
+    title_level = re.search(r"\blevel\s+(\d)\b", facts.job_title, flags=re.IGNORECASE)
+
+    if (row["requires_trainer_level"] and title_level and facts.personal_trainer_level
+                    and int(title_level.group(1)) != facts.personal_trainer_level):
+                raise EarlyOutcome(Status.HUMAN_REVIEW,
+                                   "The trainer level in the job title conflicts with the level field; confirm the level.",
+                                   review_reason="ambiguous_mapping")
 
     required = {
         "person_name": facts.person_name, "start_date": facts.start_date,
