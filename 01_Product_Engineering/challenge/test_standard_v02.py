@@ -520,7 +520,9 @@ class StandardV02Tests(unittest.TestCase):
         self.assertIn("without a legal surname", r.jira_comment)  # the reviewer is told a name was given
 
     def test_dockerfile_copies_the_module_onboarding_imports(self):
-        self.assertIn("standard_v02.py", (Path(__file__).parent / "Dockerfile").read_text())
+        dockerfile = (Path(__file__).parent / "Dockerfile").read_text()
+        self.assertIn("standard_v02.py", dockerfile)
+        self.assertIn("models.py", dockerfile)  # schema, onboarding and standard_v02 all import it
 
 
 # v0.4 shape: pool clubs, the pool rule, and role groups (synthetic names only).

@@ -4,6 +4,9 @@ The trusted adapter masks credentials and supplies source metadata. solve()
 extracts onboarding details and proposes access from a versioned standard.
 A caller posts the result to JSM; an associate reviews and provisions access.
 Request has no fields for caller-supplied standards, production gates, or credentials.
+
+The Request and Response types, with their field descriptions and validators,
+live in models.py and are re-exported here.
 """
 
 from __future__ import annotations
