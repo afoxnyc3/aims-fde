@@ -96,6 +96,15 @@ class StandardV02Tests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(self.run_text(text, facts()).status, Status.RECOMMENDED)
 
+    def test_owner_caveat_travels_with_an_exception_review_that_proposes_the_role(self):
+        r = self.run_text("Needs a laptop", facts(job_title="Instructor"))
+        self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, "exception"))
+        self.assertIsNotNone(r.standard_proposal)
+        self.assertIn("Senior Instructor carries staff admin; owner-approved SOP.", r.jira_comment)
+        r = self.run_text("Needs a laptop", facts(job_title="Instructor", person_name=None))  # no proposal, no grant to warn about
+        self.assertIsNone(r.standard_proposal)
+        self.assertNotIn("carries staff admin", r.jira_comment)
+
     def test_venue_scoped_role_is_granted_per_club(self):
         r = self.run_with(facts(venue_names=["Club A", "Club B"]))
         self.assertEqual([(a.scope_type, a.scope.name) for a in r.answer.assignments], [("venue", "Club A"), ("venue", "Club B")])

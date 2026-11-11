@@ -392,6 +392,8 @@ def decide(request: Request, facts, std: dict) -> Response:
         text = "Requested outside the standard: " + "; ".join(differences) + "." + gaps_text
         text += (" Assign the standard tier, never a mirror." if baseline else
                  " No standard tier can be proposed yet; never mirror another user's access.")
+        if baseline and role and role.get("caveat"):  # the owner's warning travels with the proposed grant here too
+            text += " " + role["caveat"]
         # A transfer or promotion the intake names counts too, even when extraction did not flag it.
         approver = _approver(role, rehire or "transfer or promotion" in triggers, names, std)
         text += f" Approver: {approver}."
