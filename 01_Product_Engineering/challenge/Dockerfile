@@ -31,8 +31,8 @@ COPY corpus.py retrieval.py qa.py qa_schema.py standard_v0_1.md mcp_server.py ./
 # The private role-matrix standard is NOT copied in either. To use it, mount it the
 # same way and point at it:
 #   -v /path/to/standard_dir:/standard:ro -e ONBOARDING_STANDARD=/standard/<file>.yaml
-# or pick a version from the folder (0.4 by default; TC4 runs pin 0.3):
-#   -v /path/to/standard_dir:/standard:ro -e ONBOARDING_STANDARD_DIR=/standard -e ONBOARDING_STANDARD_VERSION=0.4
+# or pick a version from the folder (0.5 by default; TC4 runs pin 0.3):
+#   -v /path/to/standard_dir:/standard:ro -e ONBOARDING_STANDARD_DIR=/standard -e ONBOARDING_STANDARD_VERSION=0.5
 # Without the variable, onboarding uses demo_standard.json.
 COPY frontend/ ./frontend/
 

@@ -3,7 +3,7 @@
 The standard file is never part of this repository. Point the endpoint at it one of two ways:
   ONBOARDING_STANDARD=<path>        one file, used as is (wins over the two below)
   ONBOARDING_STANDARD_DIR=<dir>     the private folder holding onboarding_standard_v<N>_scrubbed_loader.yaml,
-  ONBOARDING_STANDARD_VERSION=<N>   with the version to load: 0.4 by default from TC5 on. TC4 stays pinned
+  ONBOARDING_STANDARD_VERSION=<N>   with the version to load: 0.5 by default (2026-11-10). TC4 stays pinned
                                     to 0.3 (TC4_VERSION; owner decision 2026-11-07) and is never rescored on 0.4.
 A file chosen by version must say that version, or the endpoint fails safely rather than mislabel a run.
 When none is set, the endpoint keeps using demo_standard.json (onboarding.py).
@@ -50,7 +50,7 @@ ENV = "ONBOARDING_STANDARD"
 DIR_ENV = "ONBOARDING_STANDARD_DIR"
 VERSION_ENV = "ONBOARDING_STANDARD_VERSION"
 FILENAME = "onboarding_standard_v{version}_scrubbed_loader.yaml"
-DEFAULT_VERSION = "0.4"  # from TC5 on
+DEFAULT_VERSION = "0.5"  # from 2026-11-10 (owner rulings); 0.4 stays loadable by version
 TC4_VERSION = "0.3"  # frozen for TC4 (owner decision 2026-11-07): its evals and baseline load 0.3 explicitly
 LEVELLED_ROLE = "Personal Trainer"
 POOL_ROLES = ("Lifeguard", "Aquatics Lead")  # the standard's pool_roles list wins when it has one
@@ -135,6 +135,11 @@ def _check(std) -> None:
             raise ValueError(f"{r['title']}: account_role must be a name or null")
         if r.get("group") is not None and not isinstance(r["group"], str):
             raise ValueError(f"{r['title']}: group must be a name or null")  # the approver lookup keys on it
+        if r.get("account_role_scope") not in (None, "venue", "business_unit"):
+            raise ValueError(f"{r['title']}: account_role_scope must be venue, business_unit or null")
+        for k in ("staff_group", "caveat"):
+            if r.get(k) is not None and not (isinstance(r[k], str) and r[k].strip()):
+                raise ValueError(f"{r['title']}: {k} must be text or null")
     for k, v in (std.get("aliases") or {}).items():
         if not (isinstance(k, str) and isinstance(v, str)):
             raise ValueError("aliases must map title to title")
@@ -144,6 +149,9 @@ def _check(std) -> None:
     pool = std.get("pool_clubs") or []
     if not (isinstance(pool, list) and all(isinstance(v, str) and v in std["venues"].get("in_club", []) for v in pool)):
         raise ValueError("pool_clubs must be a list of clubs from venues.in_club")
+    nbs = std.get("non_bundle_systems") or []
+    if not (isinstance(nbs, list) and all(isinstance(x, str) and x.strip() for x in nbs)):
+        raise ValueError("non_bundle_systems must be a list of system names")
     pool_roles = std.get("pool_roles", POOL_ROLES)
     if not (isinstance(pool_roles, (list, tuple)) and all(isinstance(t, str) and t.strip() for t in pool_roles)):
         raise ValueError("pool_roles must be a list of titles")
@@ -166,7 +174,10 @@ def _parse(path: str, mtime_ns: int, size: int) -> dict:  # key includes the fil
             "out_of_scope": {_norm(u) for u in std.get("out_of_scope_business_units", [])},
             "out_of_scope_prefixes": [_norm(p) for p in std.get("out_of_scope_venue_prefixes", [])],
             "pool_clubs": {_norm(v) for v in std.get("pool_clubs") or []},
-            "pool_roles": {_norm(t) for t in std.get("pool_roles", POOL_ROLES)}}
+            "pool_roles": {_norm(t) for t in std.get("pool_roles", POOL_ROLES)},
+            # Systems outside every role's bundle, named by the standard. An intake that names one is an exception.
+            "non_bundle_systems": [(n, re.compile(r"(?<!\w)" + re.escape(n) + r"(?!\w|\.\w)", re.I))
+                                   for n in std.get("non_bundle_systems") or []]}
 
 
 def _load(path: str) -> dict:
@@ -335,16 +346,23 @@ def decide(request: Request, facts, std: dict) -> Response:
     names = list(dict.fromkeys(_norm(v) for v in facts.venue_names))  # one club named twice is one club
     missing = _missing_fields(facts, role, std, names)
     triggers = intake_triggers(request.ticket_text)
+    named = [n for n, rx in std.get("non_bundle_systems", ()) if rx.search(request.ticket_text or "")]
+    if named:  # a deterministic backstop: extraction missed "needs Prospr" and "all Zoho accounts" (TC5 test)
+        triggers.append("systems beyond the role bundle: " + ", ".join(named))
     trigger = triggers[0] if triggers else None
     # A re-hire needs a person whatever the requester answers, so asking first only adds a round trip: it skips
     # the ask and reaches the exception review below with the gaps listed. Only "Re-hire: YES" and the extracted
     # flag count; the broad transfer/promotion regex would let a stray "promotion" suppress a needed ask.
     rehire = facts.rehire_transfer_or_promotion or trigger == "re-hire"
-    if missing and not rehire:
+    # Owner, 2026-11-10: any exception needs a person whatever the requester answers, so it skips the ask too
+    # (extra access, mirror, non-standard start, hardware). The broad transfer/promotion regex alone does not.
+    exception = rehire or bool(facts.additional_access_request) or any(
+        t not in ("re-hire", "transfer or promotion") for t in triggers)
+    if missing and not exception:
         return _out(request, Status.NEEDS_INFORMATION, "Provide: " + ", ".join(_field_label(f, facts) for f in missing) + ".",
                     missing_fields=missing)
 
-    # Only a re-hire reaches review with gaps (it skipped the ask), so whichever review it lands in must
+    # Only an exception reaches review with gaps (it skipped the ask), so whichever review it lands in must
     # still hand them over: the exception branch as data and prose, the earlier three in the comment.
     absent, contradictory = _gaps(facts, missing)
     gaps_text = _gaps_sentence([_field_label(f, facts) for f in absent], contradictory)
@@ -379,8 +397,14 @@ def decide(request: Request, facts, std: dict) -> Response:
         text = "Requested outside the standard: " + "; ".join(differences) + "." + gaps_text
         text += (" Assign the standard tier, never a mirror." if baseline else
                  " No standard tier can be proposed yet; never mirror another user's access.")
+        if baseline and role and role.get("caveat"):  # the owner's warning travels with the proposed grant here too
+            text += " " + role["caveat"]
         # A transfer or promotion the intake names counts too, even when extraction did not flag it.
-        approver = _approver(role, rehire or "transfer or promotion" in triggers, names, std)
+        # The broad transfer/promotion regex picks the desk only when it is the sole reason: "membership promotion"
+        # next to a real system request is marketing copy, and that request belongs to the business-unit owner.
+        other = facts.additional_access_request or pool_confirmed or any(
+            t not in ("re-hire", "transfer or promotion") for t in triggers)
+        approver = _approver(role, rehire or ("transfer or promotion" in triggers and not other), names, std)
         text += f" Approver: {approver}."
         return _out(request, Status.HUMAN_REVIEW, text, review_reason="exception",
                     exception_difference=differences, approval_owner_role=approver, standard_proposal=baseline,
@@ -396,6 +420,8 @@ def decide(request: Request, facts, std: dict) -> Response:
 
     proposal = build_proposal(facts, role, std, names)
     caveats = ["Existing-account status was not checked."]
+    if role.get("caveat"):  # a standing warning the owner attached to this title's grant (e.g. a known over-broad role)
+        caveats.append(role["caveat"])
     if not facts.start_date:
         caveats.append("The intake gives no start date.")
     if facts.login_required is not None and facts.login_required != role["staff_login"]:
@@ -440,10 +466,16 @@ def build_proposal(facts, role, std, names) -> Recommendation:
     venues = [std["venues"][n] for n in names]
     level = facts.personal_trainer_level
     if role["staff_login"]:
-        assignments = [{"role": {"id": "role-" + _slug(role["account_role"]), "name": role["account_role"]},
-                        "scope_type": "venue", "scope": v} for v in venues]
+        role_ref = {"id": "role-" + _slug(role["account_role"]), "name": role["account_role"]}
+        if role.get("account_role_scope") == "business_unit":  # granted once at the business unit, not per club
+            assignments = [{"role": role_ref, "scope_type": "business_unit", "scope": std["unit"]}]
+        else:
+            assignments = [{"role": role_ref, "scope_type": "venue", "scope": v} for v in venues]
         groups = ([{"staff_group": {"id": f"group-trainer-{level}", "name": f"Trainer Level {level}"},
                     "scope_type": "business_unit", "scope": std["unit"]}] if level and role["title"] == LEVELLED_ROLE else [])
+        if role.get("staff_group"):  # a title's own staff group, granted at each club (owner, 2026-11-10)
+            groups += [{"staff_group": {"id": "group-" + _slug(role["staff_group"]), "name": role["staff_group"]},
+                        "scope_type": "venue", "scope": v} for v in venues]
         mailbox = bool(role.get("company_mailbox"))
         login = None if mailbox else facts.employee_email
         steps = [f"Create a staff login for {role['title']}.",

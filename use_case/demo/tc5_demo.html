@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TC5 demo: real tickets, our standard</title>
+<style>
+:root{
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --bg:#FAFAFA; --surface:#FFFFFF; --soft:#F0F0F2; --line:#DBDBE0;
+  --ink:#18181B; --ink-2:#3F3F46; --muted:#71717A;
+  --brand:#0061E9; --brand-t:#E9F1FE;
+  --bar:#0F0F12; --bar-ink:#F4F4F5; --bar-muted:#A1A1AA;
+  --rec:#059669; --rec-t:#ECFDF5;
+  --need:#B45309; --need-t:#FEFCE8;
+  --rev:#7C3AED; --rev-t:#F5F3FF;
+  --ign:#71717A; --ign-t:#F4F4F5;
+  --bad:#DC2626; --bad-t:#FEF2F2;
+  --shadow:0 3px 1px -1px rgba(26,26,26,.07),0 1px 0 0 rgba(26,26,26,.05);
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#09090B; --surface:#141417; --soft:#1C1C20; --line:#2E2E34;
+    --ink:#F4F4F5; --ink-2:#D4D4D8; --muted:#A1A1AA;
+    --brand:#6BA1F8; --brand-t:#00213F;
+    --rec:#34D399; --rec-t:#06281E; --need:#FACC15; --need-t:#2A2206;
+    --rev:#A78BFA; --rev-t:#21173D; --ign:#A1A1AA; --ign-t:#1C1C20;
+    --bad:#F87171; --bad-t:#2D1212; --shadow:none; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#09090B; --surface:#141417; --soft:#1C1C20; --line:#2E2E34;
+  --ink:#F4F4F5; --ink-2:#D4D4D8; --muted:#A1A1AA;
+  --brand:#6BA1F8; --brand-t:#00213F;
+  --rec:#34D399; --rec-t:#06281E; --need:#FACC15; --need-t:#2A2206;
+  --rev:#A78BFA; --rev-t:#21173D; --ign:#A1A1AA; --ign-t:#1C1C20;
+  --bad:#F87171; --bad-t:#2D1212; --shadow:none; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bar)}
+button{font:inherit;color:inherit;cursor:pointer}
+/* top bar */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bar);color:var(--bar-ink)}
+.bar{display:flex;align-items:center;gap:14px;padding:10px 20px;max-width:1440px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:12px;white-space:nowrap}
+.brand svg{height:12px;width:auto;color:var(--bar-ink)}
+.brand span{font:500 12px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--bar-muted)}
+.rail{display:flex;gap:2px;list-style:none;margin:0 auto;padding:0;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1;justify-content:center}
+.rail button{background:none;border:0;border-radius:8px;padding:6px 9px;color:var(--bar-muted);display:flex;gap:6px;align-items:baseline;white-space:nowrap}
+.rail .t{font:400 11px/1 var(--mono);opacity:.7}
+@media (max-width:1560px){.rail .t{display:none}}
+.rail .n{font:500 13px/1 var(--sans)}
+.rail button:hover{color:var(--bar-ink)}
+.rail button.done{color:#71717A}
+.rail button[aria-current]{background:#27272A;color:#fff}
+.ctl{display:flex;gap:6px;align-items:center}
+.ctl button{white-space:nowrap;background:#27272A;border:0;border-radius:8px;padding:6px 10px;font:500 13px/1 var(--sans);color:var(--bar-ink)}
+.ctl button[aria-pressed="true"]{background:#0061E9}
+#clock{font:500 13px/1 var(--mono);color:var(--bar-muted);min-width:38px;text-align:right}
+#clock.over{color:#F87171}
+/* slides */
+main{max-width:1180px;margin:0 auto;padding:44px 32px 120px}
+section.seg{display:none;animation:in .3s ease-out}
+section.seg.on{display:block}
+@media (min-width:900px){.next.four{grid-template-columns:repeat(4,1fr)}}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.eyebrow{font:500 12px/1.2 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+h1{font:500 clamp(36px,5.2vw,60px)/1.06 var(--sans);letter-spacing:-.02em;margin:0 0 20px;max-width:17ch}
+h2{font:400 clamp(30px,3.8vw,44px)/1.15 var(--sans);letter-spacing:-.015em;margin:0 0 14px;max-width:24ch}
+h3{font:500 17px/1.3 var(--sans);margin:0 0 6px}
+.lead{font:500 20px/1.5 var(--sans);color:var(--ink-2);max-width:60ch;margin:0 0 28px}
+.foot{font-size:13px;color:var(--muted);margin:22px 0 0;max-width:80ch}
+.small{font-size:14px;color:var(--muted)}
+.mono{font-family:var(--mono)}
+.grid2{display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:center}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:24px}
+/* outcome chips */
+.chip{display:inline-block;font:500 12px/1 var(--sans);letter-spacing:.04em;text-transform:uppercase;padding:5px 9px;border-radius:9999px;white-space:nowrap}
+.c-rec{background:var(--rec-t);color:var(--rec)}.c-need{background:var(--need-t);color:var(--need)}
+.c-rev{background:var(--rev-t);color:var(--rev)}.c-ign{background:var(--ign-t);color:var(--ign)}
+.c-bad{background:var(--bad-t);color:var(--bad)}
+/* opening */
+.score{display:grid;grid-template-columns:repeat(29,1fr);gap:4px;margin:6px 0 10px}
+.score i{display:block;aspect-ratio:1/2.2;border-radius:3px;background:var(--rec)}
+.score i.m{background:var(--need)}.score i.x{background:var(--bad)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+/* problem */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:8px 0 0}
+.stat .v{font:500 44px/1 var(--sans);letter-spacing:-.02em;margin:0 0 8px}
+.stat .k{font-size:15px;color:var(--ink-2);margin:0}
+.steps{list-style:none;padding:0;margin:0;counter-reset:s}
+.steps li{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
+.steps li:last-child{border:0}
+.steps li::before{counter-increment:s;content:counter(s);font:500 13px/26px var(--sans);min-width:26px;height:26px;text-align:center;border-radius:9999px;background:var(--soft);color:var(--ink-2)}
+/* flow */
+.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1.3fr;gap:14px;align-items:stretch;margin-top:8px}
+.node{border-radius:16px;padding:20px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow)}
+.node .k{font-size:14px;color:var(--muted);margin:0}
+.node.model{border-color:var(--brand)}
+.node.model .tag,.node.code .tag{font:500 11px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;margin-bottom:10px;display:block}
+.node.model .tag{color:var(--brand)}.node.code .tag{color:var(--rec)}
+.arrow{align-self:center;color:var(--muted);font-size:24px}
+.outs{display:grid;gap:8px}
+.out{border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:14px;color:var(--ink-2)}
+.out.o-rec{background:var(--rec-t)}.out.o-need{background:var(--need-t)}.out.o-rev{background:var(--rev-t)}.out.o-ign{background:var(--ign-t)}
+.out b{font-weight:500;color:var(--ink)}
+.guard{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap}
+.guard span{font-size:14px;border:1px solid var(--line);border-radius:9999px;padding:6px 12px;color:var(--ink-2);background:var(--surface)}
+/* standard */
+.std{width:100%;border-collapse:collapse;font-size:15px}
+.std th{font:500 12px/1.2 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+.std td{padding:11px 10px;border-bottom:1px solid var(--line)}
+.std tr:last-child td{border:0}
+.yes{color:var(--rec);font-weight:500}.no{color:var(--ink-2)}
+.prov{font-size:12px;color:var(--need);margin-left:6px}
+.bignums{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+/* method */
+.funnel{display:grid;gap:10px;margin-top:6px}
+.fbar{display:flex;align-items:center;gap:14px}
+.fbar .b{height:46px;border-radius:10px;background:var(--soft);display:flex;align-items:center;padding:0 14px;font:500 16px/1 var(--sans);min-width:max-content}
+.fbar .b.hl{background:var(--brand);color:#fff}
+.fbar .d{font-size:14px;color:var(--muted)}
+.split{display:flex;gap:10px;margin-left:0}
+.split .b{flex:1;justify-content:center}
+.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
+.checks .card{padding:18px}
+.checks p{margin:0;font-size:14px;color:var(--ink-2)}
+/* results */
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:0 0 26px}
+.tile{padding:18px}
+.tile .v{font:500 40px/1 var(--sans);letter-spacing:-.02em;margin:0 0 6px}
+.tile .k{font:500 14px/1.3 var(--sans);margin:0 0 4px}
+.tile .s{font-size:12.5px;color:var(--muted);margin:0}
+.tile.warn{border-color:var(--bad)}.tile.warn .v{color:var(--bad)}
+.tiles2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:-14px 0 26px}
+.tiles2 .s+.s{margin-top:4px}
+@media (max-width:1000px){.tiles2{grid-template-columns:1fr}}
+.res{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start}
+.cm{border-collapse:separate;border-spacing:6px;font-size:14px}
+.cm th{font:500 12px/1.2 var(--sans);color:var(--muted);text-align:center;padding:4px;letter-spacing:.03em}
+.cm th.rh{text-align:right;white-space:nowrap}
+.cm td{padding:0}
+.cm button{width:76px;height:60px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font:500 22px/1 var(--sans)}
+.cm button.z{color:var(--line);cursor:default;font-weight:400}
+.cm button.ok{background:var(--rec-t);color:var(--rec);border-color:transparent}
+.cm button.safe{background:var(--need-t);color:var(--need);border-color:transparent}
+.cm button.over{background:var(--bad-t);color:var(--bad);border-color:var(--bad)}
+.cm button[aria-pressed="true"]{outline:2px solid var(--brand);outline-offset:2px}
+.cmcap{font-size:12.5px;color:var(--muted);margin:6px 0 0 6px}
+#cell h3{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tl{list-style:none;padding:0;margin:10px 0 0;max-height:330px;overflow:auto}
+.tl li{display:grid;grid-template-columns:64px 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.tl li:last-child{border:0}
+.tl .r{font:400 12px/1.6 var(--mono);color:var(--muted)}
+.tl .w{color:var(--muted);font-size:13.5px;display:block}
+/* replay */
+.rhead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.tally{font:500 15px/1 var(--sans);color:var(--ink-2)}
+.tally b{font-size:24px;font-weight:500;color:var(--ink)}
+.rbtn{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font:500 14px/1 var(--sans)}
+.rbtn:hover{border-color:var(--ink-2)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.rc{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px;display:flex;flex-direction:column;gap:10px;min-height:236px;transition:border-color .2s}
+.rc:hover{border-color:var(--ink-2)}
+.rc .ti{font:500 17px/1.3 var(--sans);margin:0}
+.rc .cl{font-size:13px;color:var(--muted);margin:-6px 0 0}
+.rc .st{border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.45;display:none}
+.rc .st .l{display:block;font:500 11px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.rc .ag{background:var(--soft)}
+.rc .ex{background:var(--soft)}
+.rc .nt{display:none;margin:0;font-size:13px;line-height:1.45;color:var(--muted)}
+.rc[data-step="2"] .nt{display:block}
+.rc[data-step="1"] .ag,.rc[data-step="2"] .ag,.rc[data-step="2"] .ex{display:block}
+.rc .hint{margin-top:auto;font-size:13px;color:var(--brand)}
+.rc[data-step="2"] .hint{display:none}
+.rc .verdict{display:none;margin-top:auto;font:500 14px/1.3 var(--sans);align-items:center;gap:8px}
+.rc[data-step="2"] .verdict{display:flex}
+.verdict .ico{width:22px;height:22px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:#fff}
+.rc.match[data-step="2"]{border-color:var(--rec)}
+.rc.match .verdict{color:var(--rec)}.rc.match .ico{background:var(--rec)}
+.rc.miss[data-step="2"]{border-color:var(--need)}
+.rc.miss .verdict{color:var(--need)}.rc.miss .ico{background:var(--need)}
+.rc.over[data-step="2"]{border-color:var(--bad)}
+.rc.over .verdict{color:var(--bad)}.rc.over .ico{background:var(--bad)}
+.rc .src{font:400 11px/1 var(--mono);color:var(--muted)}
+/* misses */
+.miss-rows{display:grid;gap:12px}
+.mr{display:grid;grid-template-columns:70px 1fr auto;gap:18px;align-items:center;padding:18px 22px}
+.mr .n{font:500 40px/1 var(--sans);letter-spacing:-.02em}
+.mr p{margin:2px 0 0;font-size:15px;color:var(--ink-2)}
+.mr.r{border-color:var(--bad)}.mr.r .n{color:var(--bad)}
+.mr.a .n{color:var(--need)}
+.side{font-size:15px;color:var(--ink-2)}
+/* decisions */
+.dt{width:100%;border-collapse:collapse;font-size:16px}
+.dt th{font:500 12px/1.2 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+.dt td{padding:16px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.dt tr:last-child td{border:0}
+.dt td:first-child{font-weight:500;width:42%}
+.dt .q{font:400 12px/1 var(--mono);color:var(--muted);display:block;margin-bottom:5px}
+.dt tr.hot td:first-child{color:var(--bad)}
+/* next */
+.next{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.next .card .s{font:500 12px/1 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--brand);margin:0 0 10px}
+.next p{margin:0;font-size:15px;color:var(--ink-2)}
+.found{display:flex;gap:18px;align-items:center;background:var(--soft);border-radius:16px;padding:20px 24px}
+.found .v{font:500 36px/1 var(--sans);letter-spacing:-.02em}
+.found p{margin:0;color:var(--ink-2)}
+/* pager */
+.pager{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;align-items:center;z-index:4}
+.pager button{width:44px;height:44px;border-radius:9999px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);font-size:18px}
+.pager .ct{font:500 13px/1 var(--mono);color:var(--muted);margin-right:4px}
+/* notes */
+#notes{position:fixed;left:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));width:min(460px,calc(100vw - 140px));background:var(--bar);color:var(--bar-ink);border-radius:14px;padding:16px 18px;z-index:6;font-size:15px;line-height:1.55;box-shadow:0 12px 20px -8px rgba(26,26,26,.3)}
+#notesHead{font:500 12px/1.3 var(--mono);color:var(--bar-muted);margin:0 0 8px}
+#notesBody p{margin:0 0 8px}
+@media (max-width:1000px){
+  .grid2,.res{grid-template-columns:1fr}
+  .tiles{grid-template-columns:repeat(2,1fr)}
+  .flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg);justify-self:center}
+  .stats,.checks,.next{grid-template-columns:1fr}
+  .rail .t{display:none}
+  main{padding:28px 18px 120px}
+}
+@media (max-width:640px){.brand span{display:none}.rail{display:none}.mr{grid-template-columns:50px 1fr}.mr .chip{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand"><span>TC5 · Onboarding agent</span></div>
+    <ol class="rail" id="rail" aria-label="Segments"></ol>
+    <div class="ctl">
+      <span id="clock">0:00</span>
+      <button type="button" id="timerBtn">Start timer</button>
+      <button type="button" id="notesBtn" aria-pressed="false">Notes</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- 1 OPENING -->
+<section class="seg" id="s-opening">
+  <div class="grid2">
+    <div>
+      <p class="eyebrow">TC5 · Real tickets, our standard · Nov 2026</p>
+      <h1>Same 29 real tickets. 14 right at TC4, 27 right now. Over-access 2 to 0.</h1>
+      <p class="lead">The onboarding agent reads anonymized Jira tickets and recommends access against our own role matrix. A person still provisions. This week the business closed six role decisions, and the agent picked up the rules.</p>
+      <p class="foot">Same tickets, current agent: not a held-out score. Everything on screen is counts, roles and clubs. No names, no ticket text.</p>
+    </div>
+    <div class="card">
+      <p class="eyebrow" style="margin-bottom:10px">Test split, TC5 run · each bar is one ticket</p>
+      <div class="score" id="score" aria-label="27 correct, 2 cautious misses, 0 over-access"></div>
+      <div class="legend">
+        <span><b style="background:var(--rec)"></b>27 right outcome</span>
+        <span><b style="background:var(--need)"></b>2 sent to a person, cautious</span>
+        <span><b style="background:var(--bad)"></b>0 granted too much</span>
+      </div>
+      <p class="small" style="margin:16px 0 0">TC4 on the same tickets: 14 right, 2 over-access. The zero has a story; I’ll show it.</p>
+    </div>
+  </div>
+</section>
+
+
+
+
+
+<!-- 2 ADVISORS -->
+<section class="seg" id="s-advisors">
+  <p class="eyebrow">Your feedback, and what we did</p>
+  <h2>Every point from the TC4 review changed the product.</h2>
+  <table class="dt">
+    <thead><tr><th>You said</th><th>What we did</th></tr></thead>
+    <tbody>
+      <tr><td><b>Tyler:</b> put middleware in front of the admin problem while access gets cleaned up</td><td>A gated, read-only tools service: one sign-in, one group, every tool set to Ask. <b>In test now.</b> The staff-admin cleanup is scheduled with stakeholders.</td></tr>
+      <tr><td><b>Phil:</b> lead with one ticket</td><td>This Loom opened on one ticket, end to end.</td></tr>
+      <tr class="hot"><td><b>Phil:</b> the policy cleanup is the product</td><td>Standard v0.5: <b>six role and routing rulings</b> closed by their owners, each now in code. The model reads; code decides.</td></tr>
+      <tr><td><b>Phil:</b> prove onboarding first, then role changes</td><td>Re-hires, transfers and promotions now go straight to a person with the gaps listed. Removing stale access is on the list after go-live.</td></tr>
+      <tr><td><b>Ovo:</b> take the name question to the owner</td><td>The owner ruled a legal surname is required. Unnecessary asks: <b>8 → 0</b>.</td></tr>
+      <tr><td><b>Ovo:</b> score three multi-turn scenarios</td><td>Built and run live: <b>3 of 3 pass</b> (surname then recommend, re-hire to review, mirror refused).</td></tr>
+      <tr><td><b>Ovo:</b> report unnecessary asks beside over-grants</td><td>Now a column. The CTO line today: <b>0 over-grants, 1 extra round-trip</b> on 29 test tickets.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 6 RESULTS -->
+<section class="seg" id="s-results">
+  <p class="eyebrow">Results · same tickets, TC4 agent vs TC5 agent</p>
+  <h2>More tickets right, and nothing granted that a person should decide.</h2>
+  <table class="dt">
+    <thead><tr><th>Set</th><th>TC4 (3 Nov)</th><th>TC5 (10 Nov)</th></tr></thead>
+    <tbody>
+      <tr class="hot"><td>Test · 29 real tickets</td><td>14 of 29 · 2 over-access</td><td><b>27 of 29 · 0 over-access</b></td></tr>
+      <tr><td>Dev · 29 real tickets</td><td>25 of 29 · 0 over-access</td><td><b>28 of 29 · 0 over-access</b></td></tr>
+      <tr><td>Synthetic grid · 180 scenarios</td><td>168 of 180 · 11 over-access</td><td><b>174 of 180 · 2 over-access</b></td></tr>
+    </tbody>
+  </table>
+  <p class="foot">TC4 test was held out and run once. TC5 re-ran the same tickets after this week’s fixes, so read it as “current agent, same tickets.” The grid is synthetic and was not tuned on. A fresh held-out set is the gate before production.</p>
+  <div class="res">
+    <div>
+      <table class="cm" id="cm" aria-label="Expected outcome by agent outcome"></table>
+      <p class="cmcap">TC5 test run. Rows: what IT expected. Columns: what the agent did. Select a cell.</p>
+    </div>
+    <div class="card" id="cell" aria-live="polite"></div>
+  </div>
+</section>
+
+
+<!-- 8 CAUGHT -->
+<section class="seg" id="s-misses">
+  <p class="eyebrow">What we caught</p>
+  <h2>Our first zero was luck. We found it in our own numbers.</h2>
+  <div class="grid2" style="align-items:start">
+    <div class="miss-rows">
+      <div class="card mr r"><span class="n">2</span><div><h3>Safe for the wrong reason</h3><p>Two tickets were safe only because their roles were unmapped. Once mapped, the agent recommended them; both ask for systems outside the bundle.</p></div><span class="chip c-bad">over-access</span></div>
+      <div class="card mr a"><span class="n">✓</span><div><h3>Fixed in code, not in the prompt</h3><p>If the intake names a system outside every bundle, a person reviews it. Verified on dev and the grid.</p></div><span class="chip c-rev">to a person</span></div>
+      <div class="card mr a"><span class="n">3</span><div><h3>Remaining misses on real tickets</h3><p>All three: conflicting identities, sent to a person. Cautious, not wrong-way.</p></div><span class="chip c-rev">to a person</span></div>
+      <div class="card mr a"><span class="n">2</span><div><h3>Grid: next fix</h3><p>Two cases where the intake corrects the club. Next rule: a venue correction goes to a person.</p></div><span class="chip c-need">open</span></div>
+    </div>
+    <div class="card side">
+      <h3>Known risk, accepted by the owner</h3>
+      <p style="margin:6px 0 12px">New York instructors get Senior Group Fitness Instructor. That is current practice, and that role carries staff admin. The agent recommends it with a warning on every ticket.</p>
+      <p class="small" style="margin:0">“0 over-access” is measured against labels that accept today’s practice. The staff-admin cleanup runs with stakeholders; production target is end of month.</p>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- TOOLS -->
+<section class="seg" id="s-tools">
+  <p class="eyebrow">Already running in test</p>
+  <h2>13 tools, all reads. The admin decides what runs.</h2>
+  <div class="next four">
+    <div class="card"><p class="s">Identity &amp; health</p><h3>Who is calling, is it up</h3><p>Whoami · Egress IP · System ping</p></div>
+    <div class="card"><p class="s">Org structure</p><h3>Clubs and areas</h3><p>Get Centers · Get Centers In Area · Get Scope</p></div>
+    <div class="card"><p class="s">People</p><h3>Look up, never change</h3><p>Find Persons · Get Changed Persons</p></div>
+    <div class="card"><p class="s">Access</p><h3>Who holds which role</h3><p>Get Roles For Login · Get Assigned Staff Groups · Get Available Staff Groups · Get Available Roles For Scope · Get Scope For Roles Matching</p></div>
+  </div>
+  <div class="guard">
+    <span>No write tool exists</span><span>Every tool set to Ask: a person approves each call</span><span>Tools added later default to Ask or Block</span><span>Entra sign-in, one security group</span><span>Secrets in Key Vault</span>
+  </div>
+  <p class="foot">A read-only MCP server on the member-management system's test environment, hosted in a private Azure container. The project owner and the CTO are testing it now. Hardening comes before production, and the onboarding server goes on the same route.</p>
+</section>
+
+<!-- 10 NEXT -->
+<section class="seg" id="s-next">
+  <p class="eyebrow">Next</p>
+  <h2>Next: production by end of month.</h2>
+  <div class="next">
+    <div class="card"><p class="s">1 · Host</p><h3>Cloud for the app</h3><p>The onboarding app container on the same private Azure route: Entra sign-in, one group, secrets in Key Vault.</p></div>
+    <div class="card"><p class="s">2 · Credentials</p><h3>Read-only API users</h3><p>Scope read-only API users for production, then deploy the MCP server to production.</p></div>
+    <div class="card"><p class="s">3 · Writes</p><h3>Prove on TEST first</h3><p>Onboarding writes run on the TEST environment before any production write.</p></div>
+  </div>
+  <div class="next">
+    <div class="card"><p class="s">4 · Rollout</p><h3>Monitored, role by role</h3><p>Every action logged to a Teams channel via webhook, plus a weekly email report.</p></div>
+    <div class="card"><p class="s">5 · Cleanup</p><h3>Senior GFI staff admin</h3><p>Remove staff admin from Senior Group Fitness Instructor with stakeholders.</p></div>
+    <div class="card"><p class="s">6 · Gate</p><h3>Sign-off and a fresh set</h3><p>Security sign-off before go-live, and a fresh held-out ticket set.</p></div>
+  </div>
+</section>
+
+</main>
+
+<div class="pager"><span class="ct" id="ct"></span><button type="button" id="prev" aria-label="Previous">←</button><button type="button" id="next" aria-label="Next">→</button></div>
+<div id="notes" hidden><p id="notesHead"></p><div id="notesBody"></div></div>
+
+<script>
+(function(){
+const el=(t,a={},...k)=>{const e=document.createElement(t);for(const[n,v]of Object.entries(a)){if(n==="text")e.textContent=v;else if(n==="class")e.className=v;else e.setAttribute(n,v)}k.forEach(c=>e.append(c));return e};
+
+/* ---------- data (recorded results, 2026-11-10 TC5 test run, standard v0.5) ---------- */
+const OUT={rec:["Recommend","c-rec"],need:["Ask","c-need"],rev:["Send to a person","c-rev"],ign:["Ignore","c-ign"]};
+const CELLS={"rec|rec": [["TKT-119", "Hospitality Associate · Club A", "login yes · Hospitality Associate"], ["TKT-478", "Hospitality Associate · Club B", "login yes · Hospitality Associate"], ["TKT-485", "Personal Trainer · Club E", "login yes · Personal Trainer/Pro New"]], "rev|rev": [["TKT-14", "Hospitality Lead · Club C", "To a person: no system role the agent may grant"], ["TKT-155", "Exception: re-hire, transfer, promotion/title change", "To a person: conflicting identities in the intake"], ["TKT-197", "Exception: hardware, systems beyond bundle", "To a person: conflicting identities in the intake"], ["TKT-231", "Exception: re-hire", "To a person: exception, approver named"], ["TKT-414", "Exception: re-hire", "To a person: exception, approver named"], ["TKT-421", "Exception: systems beyond bundle, venue correction", "To a person: exception, approver named"], ["TKT-63", "Exception: swim-school lifeguard needs a cross-club system to cover fitness", "To a person: exception, approver named"], ["TKT-408", "Exception: systems beyond bundle", "To a person: exception, approver named"], ["TKT-424", "Title not in the matrix", "To a person: title not in the matrix"], ["TKT-475", "Exception: hardware, systems beyond bundle, non-standard start", "To a person: exception, approver named"]], "need|need": [["TKT-164", "Aquatics Lead · Club A", "Asked for: legal surname"], ["TKT-206", "Lifeguard · Club A", "Asked for: legal surname"], ["TKT-221", "Hospitality Associate · Club D", "Asked for: legal surname"], ["TKT-265", "Cafe Associate · Club B", "Asked for: legal surname"], ["TKT-502", "Cafe Associate · Club D", "Asked for: legal surname"], ["TKT-83", "Cafe Associate · Club E", "Asked for: legal surname"], ["TKT-263", "Cafe Supervisor · Club E", "Asked for: legal surname"], ["TKT-451", "Personal Trainer · Club E", "Asked for: legal surname"]], "rec|rev": [["TKT-334", "Membership Consultant · Club E", "To a person: conflicting identities in the intake"], ["TKT-390", "Maintenance Technician · Club D", "To a person: conflicting identities in the intake"]], "ign|ign": [["TKT-109", "Service request", "not an onboarding"], ["TKT-166", "Employee offboarding", "not an onboarding"], ["TKT-400", "Incident", "not an onboarding"], ["TKT-472", "Incident", "not an onboarding"], ["TKT-497", "Employee offboarding", "not an onboarding"], ["TKT-504", "Service request", "not an onboarding"]]};
+const DEMO=[
+ {t:"Hospitality Associate",c:"Club A",a:"Recommend · Hospitality Associate role · system login yes",e:"Recommend",k:"match",src:"test"},
+ {t:"Personal Trainer",c:"Club E",a:"Recommend · Personal Trainer/Pro New · login yes · level group",e:"Recommend",k:"match",src:"test"},
+ {t:"Cafe Associate, one-word name",c:"Club B",a:"Ask the requester · legal surname",e:"Ask for the surname (owner’s name rule)",k:"match",src:"test"},
+ {t:"Not an onboarding (service request)",c:"—",a:"Ignore",e:"Ignore",k:"match",src:"test"},
+ {t:"Re-hire",c:"—",a:"Send to a person · exception · approver named",e:"Send to a person · exception",k:"match",src:"test"},
+ {t:"Lifeguard who needs a system outside the bundle",c:"Club A",a:"Send to a person · systems beyond the role bundle",e:"Send to a person · exception",n:"TC4 recommended this one. This week’s systems check catches it in code.",k:"match",src:"test"},
+ {t:"Membership Consultant",c:"Club E",a:"Send to a person · conflicting identities",e:"Recommend · Sales Associate",n:"The model saw two identities in the intake and stopped. Cautious miss.",k:"miss",src:"test"}
+];
+const SEGS=[
+ {tok:"opening",name:"Opening",t:0,notes:["Same 29 real test tickets as TC4: 14 right then, 27 now, and over-access from 2 to 0.","Same tickets re-run, so not a held-out score."]},
+ {tok:"advisors",name:"Feedback",t:35,notes:["Tyler: middleware, in test now. Phil: one ticket, the policy is the product, onboarding first. Ovo: surname to the owner, three scenarios, unnecessary asks as a column.","Every point changed the product."]},
+ {tok:"results",name:"Results",t:80,notes:["Test 14 to 27, over-access 2 to 0. Dev 25 to 28. Grid 168 to 174, over-access 11 to 2."]},
+ {tok:"misses",name:"Caught",t:115,notes:["Our first zero was luck: two tickets were safe only because their roles weren’t mapped. Fixed in code.","Known risk: NY instructors get Senior Group Fitness Instructor, which carries staff admin, with a warning until the cleanup."]},
+ {tok:"tools",name:"Tools",t:160,notes:["Already running in test: thirteen read-only tools, every one set to Ask. MCP keeps the rules and credentials on our side, where the desk already works."]},
+ {tok:"next",name:"Next",t:195,notes:["Cloud hosting, read-only prod API users, MCP in prod, writes proven on TEST, monitored rollout logged to Teams, the staff-admin cleanup."]}
+];
+
+/* ---------- opening scoreboard ---------- */
+const score=document.getElementById("score");
+for(let i=0;i<29;i++) score.append(el("i",{class:i<27?"":"m"}));
+
+/* ---------- confusion matrix ---------- */
+const cm=document.getElementById("cm"), cell=document.getElementById("cell");
+const ROWS=["rec","need","rev","ign"], COLS=["rec","need","rev","ign"];
+const hr=el("tr",{},el("th",{text:""}));
+COLS.forEach(c=>hr.append(el("th",{text:OUT[c][0]})));
+cm.append(el("thead",{},hr));
+const tb=el("tbody"); let cmBtns=[];
+ROWS.forEach(r=>{
+  const tr=el("tr",{},el("th",{class:"rh",text:OUT[r][0]}));
+  COLS.forEach(c=>{
+    const list=CELLS[r+"|"+c]||[]; const n=list.length;
+    const cls=!n?"z":(r===c?"ok":(c==="rec"?"over":"safe"));
+    const b=el("button",{type:"button",class:cls,"aria-pressed":"false","aria-label":`Expected ${OUT[r][0]}, agent ${OUT[c][0]}: ${n}`,text:String(n)});
+    if(n){ b.addEventListener("click",()=>showCell(r,c,b)); cmBtns.push(b); } else b.disabled=true;
+    tr.append(el("td",{},b));
+  });
+  tb.append(tr);
+});
+cm.append(tb);
+function showCell(r,c,b){
+  cmBtns.forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+  const list=CELLS[r+"|"+c]; cell.innerHTML="";
+  const verdict=r===c?["Agreed","c-rec"]:(c==="rec"?["Over-access","c-bad"]:["Erred toward a person","c-need"]);
+  const h=el("h3",{},el("span",{text:`Expected ${OUT[r][0]} · agent ${OUT[c][0]}`}),el("span",{class:"chip "+verdict[1],text:verdict[0]}));
+  const ul=el("ul",{class:"tl"});
+  list.forEach(([ref,what,why])=>ul.append(el("li",{},el("span",{class:"r",text:ref}),el("span",{},document.createTextNode(what),el("span",{class:"w",text:why})))));
+  cell.append(h,ul);
+}
+showCell("rec","rev",cmBtns.find(b=>b.classList.contains("safe"))||cmBtns[0]);
+
+
+/* ---------- nav ---------- */
+const rail=document.getElementById("rail"), secs=[...document.querySelectorAll("section.seg")];
+const fmt=s=>Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+const railBtns=SEGS.map((s,i)=>{const b=el("button",{type:"button"},el("span",{class:"t",text:fmt(s.t)}),el("span",{class:"n",text:s.name}));b.addEventListener("click",()=>go(i));rail.append(el("li",{},b));return b;});
+let at=0;
+function go(i){at=Math.max(0,Math.min(SEGS.length-1,i));
+  secs.forEach((s,j)=>s.classList.toggle("on",j===at));
+  railBtns.forEach((b,j)=>{if(j===at)b.setAttribute("aria-current","step");else b.removeAttribute("aria-current");b.classList.toggle("done",j<at);});
+  document.getElementById("ct").textContent=`${at+1} / ${SEGS.length}`;
+  if(location.hash.slice(1)!==SEGS[at].tok) history.replaceState(null,"","#"+SEGS[at].tok);
+  renderNotes(); window.scrollTo(0,0);}
+document.getElementById("prev").addEventListener("click",()=>go(at-1));
+document.getElementById("next").addEventListener("click",()=>go(at+1));
+const notes=document.getElementById("notes"), nb=document.getElementById("notesBtn");
+function renderNotes(){const s=SEGS[at],nx=SEGS[at+1];
+  document.getElementById("notesHead").textContent=`${fmt(s.t)} ${s.name}`+(nx?` · next: ${nx.name} at ${fmt(nx.t)}`:" · target end 4:00");
+  const body=document.getElementById("notesBody"); body.innerHTML=""; s.notes.forEach(p=>body.append(el("p",{text:p})));}
+function toggleNotes(){notes.hidden=!notes.hidden;nb.setAttribute("aria-pressed",String(!notes.hidden));}
+nb.addEventListener("click",toggleNotes);
+let t0=null,timer=null; const clock=document.getElementById("clock"), tbtn=document.getElementById("timerBtn");
+function tick(){const s=(Date.now()-t0)/1000;clock.textContent=fmt(s);clock.classList.toggle("over",s>240);}
+tbtn.addEventListener("click",()=>{if(timer){clearInterval(timer);timer=null;tbtn.textContent="Start timer";}else{t0=Date.now();tick();timer=setInterval(tick,500);tbtn.textContent="Stop timer";}});
+document.addEventListener("keydown",e=>{if(e.target.closest&&e.target.closest("input,textarea"))return;
+  if(e.key==="ArrowRight"||e.key==="PageDown"){go(at+1);e.preventDefault()}
+  else if(e.key==="ArrowLeft"||e.key==="PageUp"){go(at-1);e.preventDefault()}
+  else if(e.key==="n"||e.key==="N"){toggleNotes()}
+  else if(e.key==="t"||e.key==="T"){tbtn.click()}});
+window.addEventListener("hashchange",()=>{const k=SEGS.findIndex(s=>s.tok===location.hash.slice(1));if(k>=0&&k!==at)go(k);});
+const start=SEGS.findIndex(s=>s.tok===location.hash.slice(1)); go(start<0?0:start);
+})();
+</script>
+</body>
+</html>

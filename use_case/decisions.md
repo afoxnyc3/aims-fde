@@ -135,6 +135,21 @@ Decided by the project owner, 2026-11-07. Roles only; the full row, with the mea
   - An unlisted group or an unmapped title: the Service Desk Manager, who holds and routes it.
   The review worked from an earlier version of the map; the second approvers the project owner had added (the BDM for the Hospitality groups, the CTO, the Group Fitness Director) were kept (owner, 2026-11-10). Group Fitness's approvers match the 2026-11-04 call with the Senior Group Fitness Manager (the Director, on leave, deferred to them), which named Group Fitness leadership (the Senior Group Fitness Manager, the Director and the VP); the VP is left out because the service desk has never gone to the VP on a role question. The other owners were assigned without a conversation with them; none is needed at this time (owner, 2026-11-10).
 
+## Owner decisions (2026-11-10)
+
+Standard v0.5 (private; built from v0.4 by a script that re-runs the staff-admin check on every mapping) is the default from today. v0.3 stays the TC4 pin; v0.4 stays loadable by version.
+
+- **Role mappings closed** (by role; each cites its source in the standard):
+  - Hospitality Associate -> Hospitality Associate (project owner confirmed).
+  - Membership Consultant -> Sales Associate, per club (Technology Support Associate, desk practice). Supersedes a same-day reading of Membership Advisors.
+  - Lifeguard -> Hospitality Associate, granted once at the Fitness business unit (Technology Support Associate). The pool rule still applies.
+  - Massage Therapist -> Personal Trainer/Pro New plus the Massage Therapist staff group, per club (project owner). The leanest trainer role (14 actions against 102 for the legacy role); the production census agrees with current practice. Not Cashier, not the legacy role.
+- **Any exception skips the ask** (extra access, mirror, non-standard start, hardware), as re-hires already did: it goes to review with the gaps listed. The broad transfer/promotion regex alone still asks.
+- **NY Group Fitness Instructors get Senior Group Fitness Instructor: an owner exception to the staff-admin hard stop.** It is the current SOP. Senior GFI carries AssignRole, ChangeEmployeePassword and EditStaff through its nesting, so every such recommendation carries a warning, and the exception is recorded with an end condition: the nesting is removed in the permission cleanup with stakeholders. Go-live is not blocked on that cleanup (owner). The agent still only recommends; a person applies every grant. The other 16 staff-admin roles stay blocked. The CTO, who owns the hard-stop question, is to be told before go-live.
+- **Systems beyond the bundle are caught in code.** The standard lists systems outside every role's bundle (Prospr, Zoho, Monday.com, Adobe, Amazon); an intake naming one is an exception. Added after the v0.5 test run recommended the two TC4 over-access tickets (TKT-63, TKT-408): both ask for such systems and extraction missed them. Earlier the same day those two looked safe only because their roles were unmapped, which was first reported as over-access falling to zero. It had not; the cause was the mapping, not the agent.
+- **Labels:** `evals/real_v05` carries the TC5 labels (16 role names renamed to production roles, TKT-293 relabelled under the surname policy). `real_v03` stays the frozen TC4 record.
+- **Result** (same tickets, not held out): test 14 -> 27 of 29, over-access 2 -> 0; dev 25 -> 28 of 29, 0 over-access; synthetic grid 168 -> 174 of 180, over-access 11 -> 2. Remaining real-ticket misses: 3 cautious identity calls sent to a person. Grid over-access: 2 venue-correction cases, the next fix. A fresh held-out set is the gate before production.
+
 ## Service desk answers (2026-11-09)
 
 - Volume: about 5 onboarding or access requests a day; the TC5 real-size line uses it (10x = 50 a day).

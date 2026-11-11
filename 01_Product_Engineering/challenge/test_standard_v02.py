@@ -17,6 +17,7 @@ venues: {in_club: ["Club A", "Club B"]}
 out_of_scope_business_units: ["Golf Club"]
 out_of_scope_venue_prefixes: ["Annex"]
 aliases: {"Desk Associate Level 1": "Desk Associate", "Level 2 Coach": "Coach"}
+non_bundle_systems: ["Prospr", "Zoho", "Monday.com"]
 roles:
   - {title: "Desk Associate", staff_login: true,  company_mailbox: false, account_role: "Desk Associate"}
   - {title: "Coach",          staff_login: true,  company_mailbox: true,  account_role: "Coach"}
@@ -24,6 +25,10 @@ roles:
   - {title: "Cafe Associate", staff_login: false, company_mailbox: false, account_role: null}
   - {title: "Desk Manager",   staff_login: true,  company_mailbox: true,  account_role: null}
   - {title: "Pool Captain",   staff_login: null,  company_mailbox: null,  account_role: null}
+  - {title: "Guard",          staff_login: true,  company_mailbox: false, account_role: "Desk Associate", account_role_scope: business_unit}
+  - {title: "Therapist",      staff_login: true,  company_mailbox: false, account_role: "Trainer", staff_group: "Therapist"}
+  - {title: "Host",           staff_login: true,  company_mailbox: false, account_role: "Desk Associate", group: "Hospitality"}
+  - {title: "Instructor",     staff_login: true,  company_mailbox: false, account_role: "Senior Instructor", caveat: "Senior Instructor carries staff admin; owner-approved SOP."}
 """
 
 
@@ -59,6 +64,76 @@ class StandardV02Tests(unittest.TestCase):
         self.assertTrue(r.answer.staff_login)
         self.assertEqual(r.answer.assignments[0].role.name, "Desk Associate")
         self.assertEqual([v.name for v in r.answer.venues], ["Club A"])
+
+    def test_business_unit_scoped_role_is_granted_once_at_the_unit(self):
+        r = self.run_with(facts(job_title="Guard", venue_names=["Club A", "Club B"]))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        self.assertEqual(len(r.answer.assignments), 1)
+        a = r.answer.assignments[0]
+        self.assertEqual((a.role.name, a.scope_type, a.scope.name), ("Desk Associate", "business_unit", "Test Unit"))
+        self.assertEqual([v.name for v in r.answer.venues], ["Club A", "Club B"])
+
+    def test_title_staff_group_is_granted_at_each_club(self):
+        r = self.run_with(facts(job_title="Therapist", venue_names=["Club A", "Club B"]))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        self.assertEqual([(g.staff_group.name, g.scope_type, g.scope.name) for g in r.answer.staff_groups],
+                         [("Therapist", "venue", "Club A"), ("Therapist", "venue", "Club B")])
+        self.assertEqual(self.run_with(facts()).answer.staff_groups, [])  # no group on the title, none granted
+
+    def test_owner_caveat_travels_with_the_recommendation(self):
+        r = self.run_with(facts(job_title="Instructor"))
+        self.assertEqual(r.status, Status.RECOMMENDED)
+        self.assertEqual(r.answer.assignments[0].role.name, "Senior Instructor")
+        self.assertIn("Senior Instructor carries staff admin; owner-approved SOP.", r.caveats)
+        self.assertNotIn("Senior Instructor carries staff admin; owner-approved SOP.", self.run_with(facts()).caveats)
+
+    def test_a_named_system_outside_the_bundle_is_an_exception(self):
+        for text in ("Guard needs prospr to sub at fitness", "Please give access to all Zoho accounts", "Add to Monday.com"):
+            with self.subTest(text=text):
+                r = self.run_text(text, facts())
+                self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, "exception"))
+                self.assertTrue(any("systems beyond the role bundle" in d for d in r.exception_difference))
+        for text in ("Synthetic", "Prosprity is not a system", "zohobar"):  # whole names only
+            with self.subTest(text=text):
+                self.assertEqual(self.run_text(text, facts()).status, Status.RECOMMENDED)
+
+    def test_owner_caveat_travels_with_an_exception_review_that_proposes_the_role(self):
+        r = self.run_text("Needs a laptop", facts(job_title="Instructor"))
+        self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, "exception"))
+        self.assertIsNotNone(r.standard_proposal)
+        self.assertIn("Senior Instructor carries staff admin; owner-approved SOP.", r.jira_comment)
+        r = self.run_text("Needs a laptop", facts(job_title="Instructor", person_name=None))  # no proposal, no grant to warn about
+        self.assertIsNone(r.standard_proposal)
+        self.assertNotIn("carries staff admin", r.jira_comment)
+
+    def test_system_names_match_whole_dotted_identifiers_only(self):
+        for text, exc in (("Add to portal.Monday.com", True), ("Add to Monday.com.", True),
+                          ("Add to Monday.com.au", False), ("monday.common", False)):
+            with self.subTest(text=text):
+                r = self.run_text(text, facts())
+                self.assertEqual(r.status == Status.HUMAN_REVIEW, exc)
+
+    def test_marketing_promotion_does_not_route_a_system_request_to_the_desk(self):
+        r = self.run_text("Preparing for the January membership promotion; also needs Zoho access.", facts(job_title="Host"))
+        self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, "exception"))
+        self.assertNotEqual(r.approval_owner_role, standard_v02.SERVICE_DESK_MANAGER)
+        r = self.run_text("Transferring from Club B", facts(job_title="Host"))  # a transfer on its own still goes to the desk
+        self.assertEqual(r.approval_owner_role, standard_v02.SERVICE_DESK_MANAGER)
+
+    def test_bad_types_on_new_role_keys_fail_safely(self):
+        for line in ('account_role_scope: [business_unit]', 'account_role_scope: club', 'staff_group: [Therapist]', 'caveat: [bad]'):
+            with self.subTest(line=line):
+                bad = (SYNTHETIC.replace('caveat: "Senior Instructor carries staff admin; owner-approved SOP."', line, 1)
+                       if line.startswith("caveat") else
+                       SYNTHETIC.replace('account_role: "Senior Instructor",', 'account_role: "Senior Instructor", ' + line + ',', 1))
+                self.assertNotEqual(bad, SYNTHETIC)
+                p = Path(self.dir.name) / "bad.yaml"; p.write_text(bad)
+                with self.assertRaises(ValueError):
+                    standard_v02._load(str(p))
+
+    def test_venue_scoped_role_is_granted_per_club(self):
+        r = self.run_with(facts(venue_names=["Club A", "Club B"]))
+        self.assertEqual([(a.scope_type, a.scope.name) for a in r.answer.assignments], [("venue", "Club A"), ("venue", "Club B")])
 
     def test_no_login_role_gets_member_record_only(self):
         r = self.run_with(facts(job_title="Cafe Associate"))
@@ -107,6 +182,20 @@ class StandardV02Tests(unittest.TestCase):
                 self.assertIsNone(r.standard_proposal)  # nothing is proposed while a fact is missing
                 self.assertNotIn("Assign the standard tier", r.jira_comment)  # there is no tier to assign
         r = self.run_with(facts(person_name=None))  # not a re-hire: still an ask
+        self.assertEqual((r.status, r.missing_fields), (Status.NEEDS_INFORMATION, ["person_name"]))
+
+    def test_any_exception_with_missing_fields_goes_to_review_not_an_ask(self):
+        # Owner, 2026-11-10: hardware, mirror, non-standard start and extra access need a person anyway.
+        for text, f in (("Needs a laptop", facts(person_name=None)),
+                        ("Same access as her manager", facts(person_name=None)),
+                        ("Contractor start", facts(person_name=None)),
+                        ("Synthetic", facts(person_name=None, additional_access_request="extra system"))):
+            with self.subTest(text=text):
+                r = self.run_text(text, f)
+                self.assertEqual((r.status, r.review_reason), (Status.HUMAN_REVIEW, "exception"))
+                self.assertEqual(r.review_missing_fields, ["person_name"])
+                self.assertIsNone(r.standard_proposal)
+        r = self.run_text("Was promoted last year", facts(person_name=None))  # the broad regex alone still asks
         self.assertEqual((r.status, r.missing_fields), (Status.NEEDS_INFORMATION, ["person_name"]))
 
     def test_rehire_handoff_names_the_gap_and_the_extra_access(self):
@@ -639,12 +728,12 @@ class StandardV04Tests(unittest.TestCase):
 
 
 class StandardVersionTests(unittest.TestCase):
-    """v0.4 is the default from TC5 on; TC4 stays pinned to v0.3 (owner decision, 2026-11-07)."""
+    """v0.5 is the default from 2026-11-10; TC4 stays pinned to v0.3 (owner decision, 2026-11-07)."""
 
     def setUp(self):
         self.dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.dir.cleanup)
-        for v in ("0.3", "0.4"):
+        for v in ("0.3", "0.4", "0.5"):
             text = SYNTHETIC_V04.replace('version: "0.4-test"', f'version: "{v}"')
             (Path(self.dir.name) / standard_v02.FILENAME.format(version=v)).write_text(text)
         standard_v02._load.cache_clear()
@@ -654,13 +743,13 @@ class StandardVersionTests(unittest.TestCase):
         return patch.dict(os.environ, {**base, standard_v02.DIR_ENV: self.dir.name, **kw})
 
     def test_defaults_and_pins(self):
-        self.assertEqual(standard_v02.DEFAULT_VERSION, "0.4")
+        self.assertEqual(standard_v02.DEFAULT_VERSION, "0.5")
         self.assertEqual(standard_v02.TC4_VERSION, "0.3")
 
     def test_directory_selects_the_default_version(self):
         with self.env():
             self.assertTrue(standard_v02.configured())
-            self.assertEqual(standard_v02.load_standard()["version"], "0.4")
+            self.assertEqual(standard_v02.load_standard()["version"], "0.5")
 
     def test_version_can_be_selected(self):
         with self.env(ONBOARDING_STANDARD_VERSION="0.3"):
@@ -675,7 +764,7 @@ class StandardVersionTests(unittest.TestCase):
             self.assertEqual(standard_v02.load_standard()["version"], "0.4-test")
 
     def test_a_file_whose_version_disagrees_fails_safely(self):
-        (Path(self.dir.name) / standard_v02.FILENAME.format(version="0.4")).write_text(SYNTHETIC_V04)  # says 0.4-test
+        (Path(self.dir.name) / standard_v02.FILENAME.format(version=standard_v02.DEFAULT_VERSION)).write_text(SYNTHETIC_V04)  # says 0.4-test
         with self.env(), patch("onboarding.extract_ticket", return_value=v04_facts()):
             r = solve(Request(ticket_ref="T-41", ticket_text="Synthetic", comments=[]))
         self.assertEqual(r.status, Status.FAILED)
