@@ -228,8 +228,9 @@ def resolve_targets(facts: ExtractedTicket, standard: dict) -> Targets:
                            review_reason="ambiguous_mapping")
     venues = list({venue_lookup[normalize(name)]["id"]: venue_lookup[normalize(name)]
                    for name in facts.venue_names}.values())
-    local_part, separator, _ = facts.employee_email.partition("@")
-    if not separator or not local_part or any(ch.isspace() for ch in facts.employee_email):
+    local_part, _, domain = facts.employee_email.partition("@")
+    if (facts.employee_email.count("@") != 1 or not local_part or "." not in domain
+            or not all(domain.split(".")) or any(ch.isspace() for ch in facts.employee_email)):
         raise EarlyOutcome(Status.NEEDS_INFORMATION, "Provide a valid employee email.",
                            missing_fields=["employee_email"])
     local_part = local_part.removesuffix(standard["login_rule"]["strip_suffix"])

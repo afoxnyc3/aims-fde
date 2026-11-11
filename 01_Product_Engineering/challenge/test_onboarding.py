@@ -203,6 +203,13 @@ class OnboardingTests(unittest.TestCase):
         result = self.run_with(facts(job_title="Personal Trainer", personal_trainer_level=3))
         self.assertEqual(result.status.value, "recommended")
 
+    def test_malformed_email_requires_information(self):
+        for email in ["a@b@c.com", "a@", "a@nodot", "a@.com"]:
+            with self.subTest(email=email):
+                result = self.run_with(facts(employee_email=email))
+                self.assertEqual(result.status.value, "needs_information")
+                self.assertEqual(result.missing_fields, ["employee_email"])
+
     def test_identity_conflict_requires_review(self):
         self.assertEqual(self.run_with(facts(ambiguous_identity=True)).review_reason, "ambiguous_identity")
 
