@@ -19,7 +19,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv export --frozen --no-dev --no-emit-project -o requirements.txt \
  && uv pip install --system --no-cache -r requirements.txt
 
-COPY llm.py app.py schema.py onboarding.py standard_v02.py demo_standard.json ./
+COPY llm.py app.py schema.py models.py onboarding.py standard_v02.py demo_standard.json ./
 COPY corpus.py retrieval.py qa.py qa_schema.py standard_v0_1.md mcp_server.py ./
 
 # The ticket corpus is NOT copied in: use_case/data/ is gitignored, and an image

@@ -44,7 +44,7 @@ import unicodedata
 from functools import lru_cache
 from pathlib import Path
 
-from schema import Recommendation, Request, Response, Status
+from models import Recommendation, Request, Response, Status
 
 ENV = "ONBOARDING_STANDARD"
 DIR_ENV = "ONBOARDING_STANDARD_DIR"
