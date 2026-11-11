@@ -9,7 +9,7 @@ from typing import Literal, NamedTuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from schema import REVIEW_STATUSES, Recommendation, Request, Response, Status
+from models import REVIEW_STATUSES, Recommendation, Request, Response, Status
 
 STANDARD_PATH = Path(__file__).with_name("demo_standard.json")
 PREFLIGHT = "Associate must verify identity, existing accounts, rehire/transfer history, and login availability before provisioning."
