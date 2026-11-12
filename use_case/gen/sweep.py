@@ -25,16 +25,18 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from pydantic import ValidationError
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from pydantic import ValidationError  # noqa: E402 -- needs the sys.path inserts above
-
-from helpers import llm, nb  # noqa: E402 -- needs the sys.path inserts above
-from generate import Ticket, build_prompt  # noqa: E402 -- needs the sys.path inserts above
-from picks import build_plan  # noqa: E402 -- needs the sys.path inserts above
-from verify import check  # noqa: E402 -- needs the sys.path inserts above
+# The local imports below resolve only after the sys.path inserts above.
+# ruff: noqa: E402
+from helpers import llm, nb
+from generate import Ticket, build_prompt
+from picks import build_plan
+from verify import check
 
 FIXED = {"top_k": 0, "repeat_penalty": 1.0, "num_ctx": 8192}   # Ollama "options"
 THINK = False                                                   # Ollama top-level
