@@ -127,7 +127,8 @@ class StandardV02Tests(unittest.TestCase):
                        if line.startswith("caveat") else
                        SYNTHETIC.replace('account_role: "Senior Instructor",', 'account_role: "Senior Instructor", ' + line + ',', 1))
                 self.assertNotEqual(bad, SYNTHETIC)
-                p = Path(self.dir.name) / "bad.yaml"; p.write_text(bad)
+                p = Path(self.dir.name) / "bad.yaml"
+                p.write_text(bad)
                 with self.assertRaises(ValueError):
                     standard_v02._load(str(p))
 

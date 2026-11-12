@@ -191,8 +191,8 @@ class ServerTokenCounterTest(unittest.TestCase):
             async with Client(server) as client:
                 await asyncio.gather(*(client.call_tool("answer_onboarding_question", {"question": q}) for q in ("100", "7")))
         asyncio.run(go())
-        lines = sorted((json.loads(l) for l in self.log.read_text().splitlines()), key=lambda l: l["server_model_tokens"])
-        self.assertEqual([(l["server_model_tokens"], l["server_model_turns"]) for l in lines], [(14, 2), (200, 2)])
+        lines = sorted((json.loads(raw) for raw in self.log.read_text().splitlines()), key=lambda rec: rec["server_model_tokens"])
+        self.assertEqual([(rec["server_model_tokens"], rec["server_model_turns"]) for rec in lines], [(14, 2), (200, 2)])
 
 
 class GuardedToolTest(unittest.TestCase):
