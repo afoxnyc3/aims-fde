@@ -15,8 +15,12 @@ import random
 import re
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from helpers import harness
+
+if TYPE_CHECKING:
+    from helpers.judge import Calibration
 
 HERE = Path(__file__).parent
 

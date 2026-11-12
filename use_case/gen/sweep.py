@@ -25,12 +25,14 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from pydantic import ValidationError
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from pydantic import ValidationError
-
+# The local imports below resolve only after the sys.path inserts above.
+# ruff: noqa: E402
 from helpers import llm, nb
 from generate import Ticket, build_prompt
 from picks import build_plan
@@ -300,7 +302,7 @@ def jaccard5(a: str, b: str) -> float:
 
 
 def report(path: Path, threshold: float = 0.85) -> None:
-    recs = [json.loads(l) for l in path.read_text().splitlines()]
+    recs = [json.loads(line) for line in path.read_text().splitlines()]
     groups = defaultdict(list)
     for r in recs:
         groups[(r["model"], r["temperature"], r["top_p"])].append(r)
