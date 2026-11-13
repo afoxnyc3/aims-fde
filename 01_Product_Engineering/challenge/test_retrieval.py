@@ -61,10 +61,37 @@ class CitationTests(unittest.TestCase):
 
 
 class DeclineTests(unittest.TestCase):
-    def test_decline_needs_the_prefix_and_colon(self):
-        self.assertEqual(retrieval.decline_reason("**CANNOT ANSWER:** no record"), "no record")
-        self.assertEqual(retrieval.decline_reason("Seen [STD-role-list].\nCANNOT ANSWER: nope"), "nope")
-        self.assertIsNone(retrieval.decline_reason("Cannot answer the club part, but the role is X [STD-role-list]."))
+    def test_loop_stops_on_a_decline_call_even_beside_a_search(self):
+        calls = [tool_call("search_chunks", '{"query": "q"}', "call-1"),
+                 tool_call("decline", '{"reason": "not covered"}', "call-2")]
+        with patch.object(retrieval.litellm, "completion", return_value=reply("Sorry.", calls)) as completion:
+            result = retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES))
+        self.assertEqual(completion.call_count, 1)
+        self.assertEqual((result["stopped"], result["decline_reason"], result["answer"], result["calls"]),
+                         ("declined", "not covered", "", 0))
+        offered = [tool["function"]["name"] for tool in completion.call_args.kwargs["tools"]]
+        self.assertEqual(offered, ["search_chunks", "decline"])
+
+    def test_pipeline_offers_and_honours_the_decline_tool(self):
+        declined = reply("I'm afraid not.", [tool_call("decline", '{"reason": "not covered"}')])
+        with patch.object(retrieval.Retriever, "search_hybrid", return_value="evidence"), \
+                patch.object(retrieval.litellm, "completion", return_value=declined) as completion:
+            result = retrieval.answer_once("q", retrieval.Retriever(PAGES))
+        self.assertEqual(completion.call_args.kwargs["tools"], [retrieval.DECLINE])
+        self.assertEqual((result["stopped"], result["decline_reason"], result["answer"]),
+                         ("declined", "not covered", ""))
+
+    def test_decline_reason_reads_the_call_never_the_wording(self):
+        def message(content=None, tool_calls=None):
+            return reply(content, tool_calls).choices[0].message
+
+        decline = lambda arguments: message(tool_calls=[tool_call("decline", arguments)])  # noqa: E731
+        self.assertEqual(retrieval.decline_reason(decline('{"reason": " no record "}')), "no record")
+        # The call is the decision: a missing or malformed reason still declines, with a default.
+        for arguments in ("{}", '{"reason": ""}', "not json", "[1]"):
+            self.assertEqual(retrieval.decline_reason(decline(arguments)), "No record answers this.", arguments)
+        self.assertIsNone(retrieval.decline_reason(message("CANNOT ANSWER: nope")))
+        self.assertIsNone(retrieval.decline_reason(message(tool_calls=[tool_call("search_chunks", '{"query": "q"}')])))
 
 
 class AnswerRuleTests(unittest.TestCase):
@@ -74,7 +101,7 @@ class AnswerRuleTests(unittest.TestCase):
         policy = retrieval.SYSTEM.index("the standard does not address it")
         missing_fact = retrieval.SYSTEM.index("a specific ticket you found")
         self.assertLess(policy, missing_fact)
-        self.assertIn("even if the question names\na ticket", retrieval.SYSTEM)
+        self.assertIn("even if the question names a ticket", " ".join(retrieval.SYSTEM.split()))
 
     def test_next_steps_must_come_from_a_record(self):
         self.assertIn("only if a record states it", retrieval.SYSTEM)

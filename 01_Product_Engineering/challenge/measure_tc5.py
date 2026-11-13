@@ -101,12 +101,15 @@ async def way2_mcp(question: str, meter: Meter, client: Client, audit: Path, sys
     listed = await client.list_tools()
     tools = [{"type": "function", "function": {"name": t.name, "description": t.description or "",
                                                "parameters": getattr(t, "input_schema", None) or t.inputSchema}} for t in listed]
+    tools.append(retrieval.DECLINE)  # the system prompt tells the model to decline through it, as in Way 1
     messages = [{"role": "system", "content": system}, {"role": "user", "content": question}]
     call = meter.wrap(llm_call)
     for _ in range(retrieval.MAX_TURNS):
         response = call(litellm.completion, model=retrieval.CHAT_MODEL, messages=messages, tools=tools,
                         timeout=120, num_retries=0, **retrieval.CHAT_KWARGS)
         message = response.choices[0].message
+        if retrieval.decline_reason(message):
+            break  # a decline is no answer, so `answer` stays empty and graded() counts it unanswered
         if not message.tool_calls:
             answer = message.content or ""
             break
@@ -181,10 +184,9 @@ async def open_session(hit_chars: int, audit: Path, toolset: str = "search"):
 def graded(answer: str, label: str, server_declined: int = 0) -> dict:
     """answered: the final text is not a decline, and (guarded way) the server declined no call.
 
-    The client model may paraphrase a guarded decline instead of writing "CANNOT ANSWER:", so the
-    text check alone would count it as answered; the server's structured `declined` field cannot."""
-    declined = retrieval.decline_reason(answer) is not None
-    row = {"answered": bool(answer.strip()) and not declined and not server_declined}
+    A client-side decline is a decline-tool call, which leaves `answer` empty. The client model may
+    still paraphrase a guarded decline in prose, so the server's structured `declined` field counts too."""
+    row = {"answered": bool(answer.strip()) and not server_declined}
     if label == "one lookup":
         row["role_named"] = "front desk associate" in answer.lower()
     return row

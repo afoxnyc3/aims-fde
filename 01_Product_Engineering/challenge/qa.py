@@ -62,12 +62,12 @@ def answer_question(request: QuestionRequest) -> QuestionAnswer:
     # Retrieval always returns its top k, so "nothing matched" has to be decided
     # here. A similarity gate cannot do it on this corpus: the decline question's
     # best cosine sits inside the range of answerable ones (retrieval_results.md).
-    # So the model declines explicitly, and code refuses to pass on any answer
-    # that cites no real record. Only the model's one-line refusal is shown as a
-    # reason; an uncited answer's text is never returned, since it is a guess.
-    refusal = retrieval.decline_reason(text)
-    if refusal:
-        reason = refusal
+    # So the model declines explicitly, by calling the decline tool, and code refuses
+    # to pass on any answer that cites no real record. The flag comes from that call,
+    # never from the reply's wording. Only the tool's one-line reason is shown; an
+    # uncited answer's text is never returned, since it is a guess.
+    if result["stopped"] == "declined":
+        reason = result["decline_reason"]
         sources = []
     elif result["stopped"] == "max_turns":
         reason = "The turn budget ran out before the records answered the question."

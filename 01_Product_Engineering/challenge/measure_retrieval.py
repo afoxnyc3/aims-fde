@@ -43,7 +43,7 @@ def has_term(answer: str, term: str | list[str]) -> bool:
 def score(case: dict, result: dict, retriever: retrieval.Retriever) -> dict:
     answer = normalise(result["answer"])
     cited = retrieval.cited_pages(result["answer"], retriever)
-    declined = retrieval.decline_reason(result["answer"]) is not None
+    declined = result["stopped"] == "declined"
     if case.get("must_decline"):
         passed = declined and not any(has_term(answer, term) for term in case["expected_terms"])
         cited_ok = None  # nothing should be cited; not counted in the citation rate
@@ -115,7 +115,7 @@ def write_report(table, rows, cases, similarities, retriever, started, technique
               f"- **Pipeline:** `answer_once`, hybrid top {retrieval.ANSWER_TOP_K}, one answer call",
               "- **Scoring:** Session 5's rule, two changes. Pass = every expected term in the answer (underscores read "
               f"as spaces; a list means any one phrasing) and no decline; a decline question passes on a "
-              f"`{retrieval.DECLINE_PREFIX}` line "
+              f"`{retrieval.DECLINE_TOOL}` tool call "
               "with no forbidden term. Cited = **every** gold page named in the answer (Session 5: any). "
               "Substring scoring cannot tell a confident answer from a hedged one; that needs the Week 4 judge.",
               ""]

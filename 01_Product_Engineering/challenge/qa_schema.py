@@ -38,7 +38,10 @@ class RetrievalTrace(BaseModel):
     steps: list[ToolStep] = Field(description="Every retrieval call, in order.")
     evidence_chars: int = Field(description="Total characters of evidence the model read.")
     latency_s: float = Field(description="Wall-clock seconds for retrieval and answering.")
-    stopped: str = Field(description="'answer' if the model finished; 'max_turns' if the turn budget ran out.")
+    stopped: str = Field(description=(
+        "'answer' if the model answered; 'declined' if it called the decline tool; "
+        "'max_turns' if the turn budget ran out."
+    ))
 
 
 class QuestionAnswer(BaseModel):
