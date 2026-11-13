@@ -80,8 +80,11 @@ class MeasureTest(unittest.TestCase):
         self.assertEqual((out["answer"], out["declined"]), ("", True))
         self.assertEqual(measure_tc5.graded(out["answer"], "one lookup", 0, out["declined"]), {"answered": False,
                                                                                                "role_named": False})
-        out, _ = self.run_way2([reply(content="Front Desk Associate.")], FakeClient())  # prose: no decision
+        out, _ = self.run_way2([reply(content="Front Desk Associate."), reply(content="Still prose.")],
+                               FakeClient())  # prose, retried, prose: no decision
         self.assertTrue(out["declined"])
+        out, _ = self.run_way2([reply(content="Front Desk Associate."), ANSWER_DONE], FakeClient())
+        self.assertEqual((out["answer"], out["declined"]), ("done", False))  # the retry recovered it
 
     def test_first_turn_count_excludes_answer_and_decline(self):
         meter = measure_tc5.Meter()

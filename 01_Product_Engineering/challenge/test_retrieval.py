@@ -66,6 +66,41 @@ class CitationTests(unittest.TestCase):
         self.assertEqual(retrieval.cited_pages(answer, retriever), ["SYN-aaaaaa", "STD-venue-access"])
 
 
+class ForcedChoiceTests(unittest.TestCase):
+    """tool_choice="required" where the model allows it; the retry turn covers models that reject it."""
+
+    def setUp(self):
+        retrieval.NO_FORCED_CHOICE.clear()
+        self.addCleanup(retrieval.NO_FORCED_CHOICE.clear)
+
+    @staticmethod
+    def rejection(message):
+        from litellm import BadRequestError
+        return BadRequestError(message, model="m", llm_provider="openrouter")
+
+    def test_a_model_that_rejects_forcing_is_asked_again_without_it_and_remembered(self):
+        sent = []
+
+        def completion(**kwargs):
+            sent.append(kwargs.get("tool_choice"))
+            if kwargs.get("tool_choice"):
+                raise self.rejection('tool_choice: type "tool" and "any" are not supported for this model.')
+            return answered("Club C [STD-venue-access].")
+
+        with patch.object(retrieval.litellm, "completion", side_effect=completion):
+            first = retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES), model="m")
+            second = retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES), model="m")
+        self.assertEqual(sent, ["required", None, None])  # one rejected request per process, then never forced
+        self.assertEqual((first["stopped"], second["stopped"]), ("answer", "answer"))
+        self.assertIn("m", retrieval.NO_FORCED_CHOICE)
+
+    def test_other_bad_requests_are_not_mistaken_for_it(self):
+        with patch.object(retrieval.litellm, "completion", side_effect=self.rejection("context window exceeded")):
+            with self.assertRaises(Exception):
+                retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES), model="m")
+        self.assertNotIn("m", retrieval.NO_FORCED_CHOICE)
+
+
 class DeclineTests(unittest.TestCase):
     def test_loop_stops_on_a_decline_call_even_beside_a_search(self):
         calls = [tool_call("search_chunks", '{"query": "q"}', "call-1"),
@@ -77,7 +112,7 @@ class DeclineTests(unittest.TestCase):
                          ("declined", "not covered", "", 0))
         offered = [tool["function"]["name"] for tool in completion.call_args.kwargs["tools"]]
         self.assertEqual(offered, ["search_chunks", "answer", "decline"])
-        self.assertEqual(completion.call_args.kwargs["tool_choice"], "required")
+        self.assertEqual(completion.call_args.kwargs["tool_choice"], "required")  # forced where the model allows
 
     def test_pipeline_offers_and_honours_the_decline_tool(self):
         declined = reply("I'm afraid not.", [tool_call("decline", '{"reason": "not covered"}')])

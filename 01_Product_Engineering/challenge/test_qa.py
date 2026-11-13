@@ -151,11 +151,11 @@ class DeclineFromStructureTests(unittest.TestCase):
                 self.assertIsNone(result.decline_reason)
 
     def test_prose_with_no_final_call_declines_whatever_it_says(self):
-        # A model that ignores tool_choice="required" made no decision the code can read. Every
+        # A model that skips both final tools made no decision the code can read. Every
         # wording, refusal or answer, fails closed, and its text is never passed on.
         for name, wording in {**REFUSAL_WORDINGS, **ANSWER_WORDINGS}.items():
             with self.subTest(wording=name):
-                result = self.run_endpoint(UNCOVERED, [reply(wording)])
+                result = self.run_endpoint(UNCOVERED, [reply(wording), reply(wording)])  # prose, retried, prose
                 self.assertTrue(result.declined)
                 self.assertIsNone(result.answer)
                 self.assertIn("without choosing", result.decline_reason)
@@ -164,6 +164,75 @@ class DeclineFromStructureTests(unittest.TestCase):
         result = self.run_endpoint(UNCOVERED, [reply(None, [decline_call("See [SYN-ffffff] and [STD-venue-access].")])])
         self.assertTrue(result.declined)
         self.assertEqual(result.dropped_citations, ["SYN-ffffff"])
+
+
+PROSE = "A Lifeguard gets a login at Club C only [STD-venue-access]."
+
+
+class RepairTurnTests(unittest.TestCase):
+    """A prose reply gets one retry that offers only answer and decline. The flag still comes from a call.
+
+    Model calls are patched out; `calls` records what each one was sent.
+    """
+
+    def setUp(self):
+        patcher = patch.object(qa, "get_retriever", return_value=retrieval.Retriever(PAGES))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def run_endpoint(self, replies):
+        replies, self.calls = iter(replies), []
+
+        def completion(**kwargs):
+            self.calls.append(kwargs)
+            return next(replies)
+
+        with patch.object(retrieval.litellm, "completion", side_effect=completion):
+            return qa.answer_question(QuestionRequest(question="Where does a Lifeguard get a login?"))
+
+    def assert_retried_with_final_tools_only(self):
+        self.assertEqual(len(self.calls), 2)
+        retry = self.calls[1]
+        self.assertEqual([t["function"]["name"] for t in retry["tools"]], ["answer", "decline"])
+        self.assertEqual(retry["messages"][-2], {"role": "assistant", "content": PROSE})
+        self.assertEqual(retry["messages"][-1], {"role": "user", "content": retrieval.REPAIR_PROMPT})
+
+    def test_prose_then_answer_is_answered(self):
+        result = self.run_endpoint([reply(PROSE), reply(None, [answer_call(PROSE)])])
+        self.assert_retried_with_final_tools_only()
+        self.assertFalse(result.declined)
+        self.assertEqual(result.answer, PROSE)
+        self.assertTrue(result.trace.retried)
+
+    def test_prose_then_decline_is_declined(self):
+        result = self.run_endpoint([reply(PROSE), reply(None, [decline_call(DECLINE_REASON)])])
+        self.assert_retried_with_final_tools_only()
+        self.assertTrue(result.declined)
+        self.assertEqual(result.decline_reason, DECLINE_REASON)
+        self.assertTrue(result.trace.retried)
+
+    def test_prose_then_prose_declines_and_no_text_leaks(self):
+        result = self.run_endpoint([reply(PROSE), reply("Club C, as I said [STD-venue-access].")])
+        self.assert_retried_with_final_tools_only()
+        self.assertTrue(result.declined)
+        self.assertIsNone(result.answer)
+        self.assertEqual(result.sources, [])
+        dumped = result.model_dump_json()
+        self.assertNotIn("Club C", dumped)
+        self.assertEqual(result.trace.stopped, "unstructured")
+
+    def test_a_search_call_in_the_retry_is_not_a_final_call(self):
+        search = tool_call("search_hybrid", '{"query": "q"}')
+        result = self.run_endpoint([reply(PROSE), reply(None, [search])])
+        self.assertTrue(result.declined)
+        self.assertEqual(result.trace.stopped, "unstructured")
+
+    def test_a_correct_first_call_is_never_retried(self):
+        for first in (reply(None, [answer_call(PROSE)]), reply(None, [decline_call(DECLINE_REASON)])):
+            with self.subTest(first=first.choices[0].message.tool_calls[0].function.name):
+                result = self.run_endpoint([first])
+                self.assertEqual(len(self.calls), 1)
+                self.assertFalse(result.trace.retried)
 
 
 class ContractTests(unittest.TestCase):

@@ -95,7 +95,7 @@ def final_step(message) -> tuple[str, str] | None:
         call is the decision, the reason only what the user is shown.
     ("answer", text): it called answer.
     ("unstructured", content): it replied in prose without choosing. Callers decline it; a model
-        that ignores tool_choice="required" must not have its prose passed on as an answer.
+        that skips both final tools must not have its prose passed on as an answer.
     None: only search calls, so the loop goes on.
     """
     calls = getattr(message, "tool_calls", None) or []
@@ -260,9 +260,11 @@ def _schema(name: str, description: str, properties: dict, required: list[str]) 
 _QUERY = {"query": {"type": "string"}, "k": {"type": "integer", "description": "results, 1-8"}}
 SEARCH_DOC = "Return the top-k pages for a query, each headed by its page name."
 
-# Offered with every technique's search tools and to the one-shot pipeline, with
-# tool_choice="required": the model must end in one of these two calls, so `declined` is
-# read from which one it made, never from how a refusal is worded.
+# Offered with every technique's search tools and to the one-shot pipeline. The model must end
+# in one of these two calls, and `declined` is read from which one it made, never from how a
+# refusal is worded. Getting the call, in order: tool_choice="required" where the model accepts
+# it (chat_turn); else one retry turn offering only these two (repair_step); else the reply is
+# declined, never passed on (final_step).
 ANSWER = _schema(ANSWER_TOOL, "Give the final answer. Cite every page you rely on by its exact name "
                  "in square brackets.", {"text": {"type": "string"}}, ["text"])
 DECLINE = _schema(DECLINE_TOOL, "Decline instead of answering when no record supports an answer. "
@@ -270,6 +272,44 @@ DECLINE = _schema(DECLINE_TOOL, "Decline instead of answering when no record sup
                   {"reason": {"type": "string", "description": "One line: why no record answers this."}},
                   ["reason"])
 FINAL_TOOLS = [ANSWER, DECLINE]
+
+REPAIR_PROMPT = "Give your final reply by calling answer or decline. Do not reply in prose."
+
+# Models seen to reject tool_choice="required". Claude Sonnet 5.5 does ("tool_choice: type "tool"
+# and "any" are not supported for this model", every OpenRouter provider, 2026-11-12). Learned at
+# run time from the provider's own error, so a model that accepts forcing keeps it.
+NO_FORCED_CHOICE: set[str] = set()
+
+
+def chat_turn(messages: list[dict], tools: list[dict], model: str, call=None, **kwargs):
+    """One model call offering `tools`, with a tool call forced where the model accepts that.
+
+    `call` is the retrying wrapper (llm.call_with_retry by default; the TC5 measurement passes a
+    counting one). Only a rejection that names tool_choice turns forcing off; any other error raises."""
+    call = call or llm.call_with_retry
+    request = {"model": model, "messages": messages, "tools": tools, "timeout": 120, "num_retries": 0, **kwargs}
+    if model not in NO_FORCED_CHOICE:
+        try:
+            return call(litellm.completion, tool_choice="required", **request)
+        except litellm.BadRequestError as exc:
+            if "tool_choice" not in str(exc):
+                raise
+            NO_FORCED_CHOICE.add(model)
+    return call(litellm.completion, **request)
+
+
+def repair_step(messages: list[dict], prose: str, model: str, call=None, **kwargs):
+    """One retry after a prose reply, offering only answer and decline. Returns (step, response).
+
+    Only an answer or decline call ends it. Prose again, or anything else, is ("unstructured", ""):
+    declined, and neither reply's text is ever passed on."""
+    retry = [*messages, {"role": "assistant", "content": prose or "(no reply)"},
+             {"role": "user", "content": REPAIR_PROMPT}]
+    response = chat_turn(retry, FINAL_TOOLS, model, call, **kwargs)
+    step = final_step(response.choices[0].message)
+    if not step or step[0] == "unstructured":
+        step = ("unstructured", "")
+    return step, response
 
 # Techniques that call the embedding model; the others need only a chat model.
 EMBEDDING_TECHNIQUES = {"agentic_dense", "agentic_hybrid", "pipeline_hybrid"}
@@ -312,13 +352,17 @@ def run_agent(question: str, technique: str, retriever: Retriever,
     trace, evidence_chars, tokens = [], 0, 0
     started = time.perf_counter()
     for _ in range(max_turns):
-        response = llm.call_with_retry(litellm.completion, model=model, messages=messages, tools=tools,
-                                       tool_choice="required", timeout=120, num_retries=0, **CHAT_KWARGS)
-        tokens += int(getattr(response.usage, "total_tokens", 0) or 0)
+        response = chat_turn(messages, tools, model, **CHAT_KWARGS)
+        tokens += _tokens(response)
         message = response.choices[0].message
         step = final_step(message)
+        retried = False
+        if step and step[0] == "unstructured":
+            step, retry = repair_step(messages, step[1], model, **CHAT_KWARGS)
+            tokens += _tokens(retry)
+            retried = True
         if step:  # terminal, even beside search calls in the same turn
-            return _final(step, trace, evidence_chars, tokens, started)
+            return _final(step, trace, evidence_chars, tokens, started, retried)
         messages.append(message.model_dump(exclude_none=True))
         for call in message.tool_calls:
             args = {}
@@ -343,20 +387,22 @@ def run_agent(question: str, technique: str, retriever: Retriever,
 
 
 def answer_once(question: str, retriever: Retriever, model: str = CHAT_MODEL, k: int = ANSWER_TOP_K) -> dict:
-    """Fixed pipeline: one hybrid retrieval, one answer call. Two model-free steps and one model call."""
+    """Fixed pipeline: one hybrid retrieval, one answer call (plus one retry if it replies in prose)."""
     started = time.perf_counter()
     hits = retriever.search_hybrid(question, k)
-    response = llm.call_with_retry(
-        litellm.completion, model=model, tools=FINAL_TOOLS, tool_choice="required", timeout=120, num_retries=0,
-        **CHAT_KWARGS,
-        messages=[{"role": "system", "content": SYSTEM},
-                  {"role": "user", "content": f"Evidence:\n\n{hits}\n\nQuestion: {question}"}],
-    )
-    tokens = int(getattr(response.usage, "total_tokens", 0) or 0)
+    messages = [{"role": "system", "content": SYSTEM},
+                {"role": "user", "content": f"Evidence:\n\n{hits}\n\nQuestion: {question}"}]
+    response = chat_turn(messages, FINAL_TOOLS, model, **CHAT_KWARGS)
+    tokens = _tokens(response)
     trace = [{"tool": "search_hybrid", "args": {"query": question, "k": k}, "chars": len(hits)}]
+    message = response.choices[0].message
     # Only the final tools are offered, so a turn without one of them is unstructured.
-    step = final_step(response.choices[0].message) or ("unstructured", "")
-    return _final(step, trace, len(hits), tokens, started)
+    step = final_step(message) or ("unstructured", message.content or "")
+    retried = step[0] == "unstructured"
+    if retried:
+        step, retry = repair_step(messages, step[1], model, **CHAT_KWARGS)
+        tokens += _tokens(retry)
+    return _final(step, trace, len(hits), tokens, started, retried)
 
 
 PIPELINE = "pipeline_hybrid"  # answer_once: one retrieval, one call, no loop
@@ -369,17 +415,22 @@ def ask(question: str, technique: str, retriever: Retriever) -> dict:
     return run_agent(question, technique, retriever)
 
 
-def _final(step, trace, evidence_chars, tokens, started) -> dict:
+def _tokens(response) -> int:
+    return int(getattr(response.usage, "total_tokens", 0) or 0)
+
+
+def _final(step, trace, evidence_chars, tokens, started, retried=False) -> dict:
     """The loop's result for a final step. Only an answer call's text becomes `answer`."""
     kind, value = step
     if kind == "answer":
-        return _result(value, trace, evidence_chars, tokens, started, "answer")
+        return _result(value, trace, evidence_chars, tokens, started, "answer", retried=retried)
     if kind == "declined":
-        return _result("", trace, evidence_chars, tokens, started, "declined", value)
-    return _result("", trace, evidence_chars, tokens, started, "unstructured")
+        return _result("", trace, evidence_chars, tokens, started, "declined", value, retried)
+    return _result("", trace, evidence_chars, tokens, started, "unstructured", retried=retried)
 
 
-def _result(answer, trace, evidence_chars, tokens, started, stopped, decline_reason=None) -> dict:
+def _result(answer, trace, evidence_chars, tokens, started, stopped, decline_reason=None, retried=False) -> dict:
+    """`retried`: the first final reply was prose, so the one retry turn ran (repair_step)."""
     return {"answer": answer, "trace": trace, "calls": len(trace), "evidence_chars": evidence_chars,
             "tokens": tokens, "latency_s": round(time.perf_counter() - started, 2), "stopped": stopped,
-            "decline_reason": decline_reason}
+            "decline_reason": decline_reason, "retried": retried}

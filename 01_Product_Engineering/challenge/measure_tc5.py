@@ -98,8 +98,9 @@ async def way2_mcp(question: str, meter: Meter, client: Client, audit: Path, sys
                    final_tools: bool = True) -> dict:
     """Same loop as retrieval.run_agent, but tools are discovered from and dispatched to the server.
 
-    With `final_tools` (Way 2), the model also gets run_agent's answer and decline tools and must end
-    in one, so its declines are read the same way. Without (2b, an outside client such as Claude
+    With `final_tools` (Way 2), the model also gets run_agent's answer and decline tools and is told
+    to end in one (forced where accepted, else one retry; prose after that is declined), so its declines
+    are read the same way. Without (2b, an outside client such as Claude
     Desktop), it gets the server's tools only and answers in prose; its declines come from the
     server's structured `declined` field.
 
@@ -111,17 +112,22 @@ async def way2_mcp(question: str, meter: Meter, client: Client, audit: Path, sys
     listed = await client.list_tools()
     tools = [{"type": "function", "function": {"name": t.name, "description": t.description or "",
                                                "parameters": getattr(t, "input_schema", None) or t.inputSchema}} for t in listed]
-    extra = {"tool_choice": "required"} if final_tools else {}
     if final_tools:
         tools += retrieval.FINAL_TOOLS
     messages = [{"role": "system", "content": system}, {"role": "user", "content": question}]
     call = meter.wrap(llm_call)
     for _ in range(retrieval.MAX_TURNS):
-        response = call(litellm.completion, model=retrieval.CHAT_MODEL, messages=messages, tools=tools,
-                        timeout=120, num_retries=0, **extra, **retrieval.CHAT_KWARGS)
+        if final_tools:  # forced where the model accepts it, as in Way 1
+            response = retrieval.chat_turn(messages, tools, retrieval.CHAT_MODEL, call, **retrieval.CHAT_KWARGS)
+        else:  # 2b: an outside client sends no tool_choice
+            response = call(litellm.completion, model=retrieval.CHAT_MODEL, messages=messages, tools=tools,
+                            timeout=120, num_retries=0, **retrieval.CHAT_KWARGS)
         message = response.choices[0].message
         if final_tools:
             step = retrieval.final_step(message)
+            if step and step[0] == "unstructured":  # the same one retry as Way 1
+                step, _ = retrieval.repair_step(messages, step[1], retrieval.CHAT_MODEL, call,
+                                                **retrieval.CHAT_KWARGS)
             if step:
                 answer = step[1] if step[0] == "answer" else ""
                 declined = step[0] != "answer"

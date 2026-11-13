@@ -59,6 +59,7 @@ def answer_question(request: QuestionRequest) -> QuestionAnswer:
         technique=SHIPPED_TECHNIQUE, model=retrieval.CHAT_MODEL,
         steps=[ToolStep(**step) for step in result["trace"]],
         evidence_chars=result["evidence_chars"], latency_s=result["latency_s"], stopped=result["stopped"],
+        retried=result.get("retried", False),
     )
 
     # Retrieval always returns its top k, so "nothing matched" has to be decided

@@ -40,8 +40,11 @@ class RetrievalTrace(BaseModel):
     latency_s: float = Field(description="Wall-clock seconds for retrieval and answering.")
     stopped: str = Field(description=(
         "'answer' if the model called the answer tool; 'declined' if it called the decline tool; "
-        "'unstructured' if it replied in prose without either (declined); "
+        "'unstructured' if it replied in prose without either, even after one retry (declined); "
         "'max_turns' if the turn budget ran out."
+    ))
+    retried: bool = Field(default=False, description=(
+        "True when the first final reply was prose, so one retry turn offering only answer and decline ran."
     ))
 
 
