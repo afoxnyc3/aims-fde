@@ -24,6 +24,9 @@ def tool_call(arguments, name="search_hybrid"):
     return SimpleNamespace(id="t1", function=SimpleNamespace(name=name, arguments=arguments))
 
 
+ANSWER_DONE = reply(tool_calls=[tool_call('{"text": "done"}', "answer")])
+
+
 class FakeClient:
     def __init__(self, outputs=()):
         self.outputs, self.calls = list(outputs), []
@@ -37,7 +40,7 @@ class FakeClient:
 
 
 class MeasureTest(unittest.TestCase):
-    def run_way2(self, replies, client):
+    def run_way2(self, replies, client, final_tools=True):
         script = iter(replies)
         sent = []
 
@@ -46,28 +49,45 @@ class MeasureTest(unittest.TestCase):
             return next(script)
         audit = Path(tempfile.mkdtemp()) / "audit.jsonl"
         with mock.patch.object(measure_tc5, "llm_call", fake_call):
-            out = asyncio.run(measure_tc5.way2_mcp("q", measure_tc5.Meter(), client, audit))
+            out = asyncio.run(measure_tc5.way2_mcp("q", measure_tc5.Meter(), client, audit,
+                                                   final_tools=final_tools))
         return out, sent
 
     def test_non_object_arguments_are_a_message_as_in_way1(self):
         client = FakeClient()
-        out, sent = self.run_way2([reply(tool_calls=[tool_call("[]")]), reply(content="done")], client)
+        out, sent = self.run_way2([reply(tool_calls=[tool_call("[]")]), ANSWER_DONE], client)
         self.assertEqual(client.calls, [])  # never sent to the server
         self.assertEqual(sent[-1]["content"], "(tool error: TypeError)")
         self.assertEqual(out["answer"], "done")
 
     def test_invalid_json_is_a_message_too(self):
-        out, sent = self.run_way2([reply(tool_calls=[tool_call("{not json")]), reply(content="done")], FakeClient())
+        out, sent = self.run_way2([reply(tool_calls=[tool_call("{not json")]), ANSWER_DONE], FakeClient())
         self.assertEqual(sent[-1]["content"], "(tool error: JSONDecodeError)")
 
     def test_a_guarded_decline_is_counted_from_the_server_json(self):
         declined = json.dumps({"declined": True, "answer": None, "sources": []})
         out, _ = self.run_way2([reply(tool_calls=[tool_call('{"question": "x"}', "answer_onboarding_question")]),
-                                reply(content="The service could not answer that.")], FakeClient([declined]))
+                                reply(content="The service could not answer that.")], FakeClient([declined]),
+                               final_tools=False)  # 2b: an outside client, server tools only
         self.assertEqual(out["server_declined"], 1)
         # The client paraphrased the decline, so the text check alone would call it answered.
         self.assertEqual(measure_tc5.graded(out["answer"], "several lookups"), {"answered": True})
         self.assertEqual(measure_tc5.graded(out["answer"], "several lookups", out["server_declined"]), {"answered": False})
+
+    def test_way2_reads_declines_from_the_final_call_not_the_text(self):
+        decline = reply(content="Happy to help!", tool_calls=[tool_call('{"reason": "not covered"}', "decline")])
+        out, _ = self.run_way2([decline], FakeClient())
+        self.assertEqual((out["answer"], out["declined"]), ("", True))
+        self.assertEqual(measure_tc5.graded(out["answer"], "one lookup", 0, out["declined"]), {"answered": False,
+                                                                                               "role_named": False})
+        out, _ = self.run_way2([reply(content="Front Desk Associate.")], FakeClient())  # prose: no decision
+        self.assertTrue(out["declined"])
+
+    def test_first_turn_count_excludes_answer_and_decline(self):
+        meter = measure_tc5.Meter()
+        turn = reply(tool_calls=[tool_call("{}"), tool_call("{}"), tool_call("{}", "decline")])
+        meter.wrap(lambda call, **_: turn)(measure_tc5.litellm.completion)
+        self.assertEqual(meter.first_turn_tool_calls, 2)
 
     def test_raw_search_text_is_never_a_decline(self):
         self.assertFalse(measure_tc5._declined("[STD-role-list]\nFront Desk Associate ..."))

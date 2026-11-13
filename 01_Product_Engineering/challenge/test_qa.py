@@ -2,7 +2,6 @@
 
 import json
 import unittest
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from gradio import Error
@@ -14,6 +13,7 @@ import qa
 import retrieval
 from corpus import CorpusMissing, Page
 from qa_schema import QuestionAnswer, QuestionRequest
+from test_retrieval import reply, tool_call
 
 PAGES = [
     Page("STD-venue-access", "Venue access", "Lifeguard login required at Club C only."),
@@ -59,10 +59,11 @@ class AnswerTests(unittest.TestCase):
         self.assertEqual(result.decline_reason, "no record holds credentials [STD-venue-access].")
         self.assertEqual(result.trace.stopped, "declined")
 
-    def test_old_refusal_prefix_in_prose_is_just_text(self):
-        # The flag no longer reads wording: without a decline call, this cited reply is an answer.
-        result = self.ask("CANNOT ANSWER: the ticket leaves Club B blank, but Club C needs one [STD-venue-access].")
-        self.assertFalse(result.declined)
+    def test_unstructured_reply_declines_and_its_text_is_never_returned(self):
+        result = self.ask("", stopped="unstructured")
+        self.assertTrue(result.declined)
+        self.assertIsNone(result.answer)
+        self.assertIn("without choosing", result.decline_reason)
 
     def test_exhausted_turn_budget_declines(self):
         result = self.ask("", stopped="max_turns")
@@ -76,15 +77,12 @@ class AnswerTests(unittest.TestCase):
         self.assertIn("APITimeoutError", str(caught.exception))
 
 
-def model_reply(content=None, tool_calls=None):
-    message = SimpleNamespace(content=content, tool_calls=tool_calls,
-                              model_dump=lambda **_: {"role": "assistant", "content": content})
-    return SimpleNamespace(choices=[SimpleNamespace(message=message)], usage=SimpleNamespace(total_tokens=10))
-
-
 def decline_call(reason):
-    return SimpleNamespace(id="call-1", function=SimpleNamespace(name="decline",
-                                                                 arguments=json.dumps({"reason": reason})))
+    return tool_call("decline", json.dumps({"reason": reason}))
+
+
+def answer_call(text):
+    return tool_call("answer", json.dumps({"text": text}))
 
 
 # q03 in use_case/evals/retrieval.jsonl: the standard does not cover it, so it must decline.
@@ -115,11 +113,12 @@ ANSWER_WORDINGS = {
 
 
 class DeclineFromStructureTests(unittest.TestCase):
-    """`declined` follows what the model did, never how it worded it.
+    """`declined` follows the model's final call, never how its text is worded.
 
-    The model declines by calling a `decline` tool. If the loop does not recognise that call, the model
-    gets a tool error and, as a real model does, says the same thing in prose; that prose is the wording
-    under test. Model calls are patched out; nothing leaves the machine.
+    The model must end in an `answer` or a `decline` call. Each scripted turn carries the wording as
+    its prose; if the loop does not honour the call, the model gets a tool error and, as a real model
+    does, says the same thing in prose, which is then all the code has to go on. Model calls are
+    patched out; nothing leaves the machine.
     """
 
     def setUp(self):
@@ -135,10 +134,8 @@ class DeclineFromStructureTests(unittest.TestCase):
     def test_every_refusal_wording_declines(self):
         for name, wording in REFUSAL_WORDINGS.items():
             with self.subTest(wording=name):
-                result = self.run_endpoint(UNCOVERED, [
-                    model_reply(wording, tool_calls=[decline_call(DECLINE_REASON)]),
-                    model_reply(wording),  # what follows if the decline call is not honoured
-                ])
+                result = self.run_endpoint(UNCOVERED, [reply(wording, [decline_call(DECLINE_REASON)]),
+                                                       reply(wording)])
                 self.assertTrue(result.declined)
                 self.assertIsNone(result.answer)
                 self.assertEqual(result.sources, [])
@@ -147,10 +144,26 @@ class DeclineFromStructureTests(unittest.TestCase):
     def test_answers_are_never_declined_for_their_wording(self):
         for name, wording in ANSWER_WORDINGS.items():
             with self.subTest(wording=name):
-                result = self.run_endpoint("Where does a Lifeguard get a login?", [model_reply(wording)])
+                result = self.run_endpoint("Where does a Lifeguard get a login?",
+                                           [reply(None, [answer_call(wording)]), reply(wording)])
                 self.assertFalse(result.declined)
                 self.assertEqual(result.answer, wording)
                 self.assertIsNone(result.decline_reason)
+
+    def test_prose_with_no_final_call_declines_whatever_it_says(self):
+        # A model that ignores tool_choice="required" made no decision the code can read. Every
+        # wording, refusal or answer, fails closed, and its text is never passed on.
+        for name, wording in {**REFUSAL_WORDINGS, **ANSWER_WORDINGS}.items():
+            with self.subTest(wording=name):
+                result = self.run_endpoint(UNCOVERED, [reply(wording)])
+                self.assertTrue(result.declined)
+                self.assertIsNone(result.answer)
+                self.assertIn("without choosing", result.decline_reason)
+
+    def test_invented_ids_in_a_decline_reason_are_reported(self):
+        result = self.run_endpoint(UNCOVERED, [reply(None, [decline_call("See [SYN-ffffff] and [STD-venue-access].")])])
+        self.assertTrue(result.declined)
+        self.assertEqual(result.dropped_citations, ["SYN-ffffff"])
 
 
 class ContractTests(unittest.TestCase):
