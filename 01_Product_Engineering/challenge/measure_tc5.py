@@ -46,6 +46,9 @@ REQUESTS = {
 SIZES = {"demo": 300, "real": retrieval.HIT_CHARS}
 
 
+FINAL_NAMES = {retrieval.ANSWER_TOOL, retrieval.DECLINE_TOOL}
+
+
 class Meter:
     """Model round trips, tokens, and how many tool calls the first turn asked for."""
 
@@ -60,8 +63,9 @@ class Meter:
             if call is litellm.completion:
                 self.calls += 1
                 self.tokens += int(getattr(response.usage, "total_tokens", 0) or 0)
-                if self.first_turn_tool_calls is None:
-                    self.first_turn_tool_calls = len(response.choices[0].message.tool_calls or [])
+                if self.first_turn_tool_calls is None:  # capability calls only, not answer/decline
+                    calls = response.choices[0].message.tool_calls or []
+                    self.first_turn_tool_calls = sum(call.function.name not in FINAL_NAMES for call in calls)
             return response
         return counted
 
@@ -87,27 +91,48 @@ def way1_tool(question: str, meter: Meter, retriever) -> dict:
     retrieval.llm.call_with_retry = meter.wrap(llm_call)
     result = retrieval.run_agent(question, "agentic_hybrid", counting)
     return {"capability": counting.calls, "server_count": None, "bytes": counting.response_bytes,
-            "answer": result.get("answer", "")}
+            "answer": result.get("answer", ""), "declined": result["stopped"] != "answer"}
 
 
-async def way2_mcp(question: str, meter: Meter, client: Client, audit: Path, system: str = retrieval.SYSTEM) -> dict:
+async def way2_mcp(question: str, meter: Meter, client: Client, audit: Path, system: str = retrieval.SYSTEM,
+                   final_tools: bool = True) -> dict:
     """Same loop as retrieval.run_agent, but tools are discovered from and dispatched to the server.
+
+    With `final_tools` (Way 2), the model also gets run_agent's answer and decline tools and is told
+    to end in one (forced where accepted, else one retry; prose after that is declined), so its declines
+    are read the same way. Without (2b, an outside client such as Claude
+    Desktop), it gets the server's tools only and answers in prose; its declines come from the
+    server's structured `declined` field.
 
     The server session is opened once per size and kept warm, as Claude Desktop keeps a stdio
     server alive for a session. Its start-up cost is measured separately (see open_session).
     """
     audit.write_text("")
-    client_calls, answer, server_declined = 0, "", 0
+    client_calls, answer, declined, server_declined = 0, "", False, 0
     listed = await client.list_tools()
     tools = [{"type": "function", "function": {"name": t.name, "description": t.description or "",
                                                "parameters": getattr(t, "input_schema", None) or t.inputSchema}} for t in listed]
+    if final_tools:
+        tools += retrieval.FINAL_TOOLS
     messages = [{"role": "system", "content": system}, {"role": "user", "content": question}]
     call = meter.wrap(llm_call)
     for _ in range(retrieval.MAX_TURNS):
-        response = call(litellm.completion, model=retrieval.CHAT_MODEL, messages=messages, tools=tools,
-                        timeout=120, num_retries=0, **retrieval.CHAT_KWARGS)
+        if final_tools:  # forced where the model accepts it, as in Way 1
+            response = retrieval.chat_turn(messages, tools, retrieval.CHAT_MODEL, call, **retrieval.CHAT_KWARGS)
+        else:  # 2b: an outside client sends no tool_choice
+            response = call(litellm.completion, model=retrieval.CHAT_MODEL, messages=messages, tools=tools,
+                            timeout=120, num_retries=0, **retrieval.CHAT_KWARGS)
         message = response.choices[0].message
-        if not message.tool_calls:
+        if final_tools:
+            step = retrieval.final_step(message)
+            if step and step[0] == "unstructured":  # the same one retry as Way 1
+                step, _ = retrieval.repair_step(messages, step[1], retrieval.CHAT_MODEL, call,
+                                                **retrieval.CHAT_KWARGS)
+            if step:
+                answer = step[1] if step[0] == "answer" else ""
+                declined = step[0] != "answer"
+                break
+        elif not message.tool_calls:
             answer = message.content or ""
             break
         messages.append(message.model_dump(exclude_none=True))
@@ -142,7 +167,7 @@ async def way2_mcp(question: str, meter: Meter, client: Client, audit: Path, sys
             "server_tokens": sum(line.get("server_model_tokens", 0) for line in reached),
             "server_turns": sum(line.get("server_model_turns", 0) for line in reached),
             "bytes": [line["response_bytes"] for line in reached], "answer": answer,
-            "server_declined": server_declined}
+            "declined": declined, "server_declined": server_declined}
 
 
 def _declined(output: str) -> bool:
@@ -178,12 +203,13 @@ async def open_session(hit_chars: int, audit: Path, toolset: str = "search"):
     return client, {"handshake_s": round(handshake, 2), "first_call_s": round(time.perf_counter() - started - handshake, 2)}
 
 
-def graded(answer: str, label: str, server_declined: int = 0) -> dict:
-    """answered: the final text is not a decline, and (guarded way) the server declined no call.
+def graded(answer: str, label: str, server_declined: int = 0, declined: bool = False) -> dict:
+    """answered: there is final text, the loop did not decline, and the server declined no call.
 
-    The client model may paraphrase a guarded decline instead of writing "CANNOT ANSWER:", so the
-    text check alone would count it as answered; the server's structured `declined` field cannot."""
-    declined = retrieval.decline_reason(answer) is not None
+    `declined` is structural: Way 1 and Way 2 end in an answer or decline call. 2b's outside client
+    answers in prose, so its only structured signal is the server's `declined` field; a prose refusal
+    from that client with no server decline counts as answered, a limit of measuring a client we do
+    not control."""
     row = {"answered": bool(answer.strip()) and not declined and not server_declined}
     if label == "one lookup":
         row["role_named"] = "front desk associate" in answer.lower()
@@ -219,7 +245,8 @@ def run(size: str, retriever) -> list[dict]:
                     out = way1_tool(question, meter, retriever)
                 else:
                     if way == "2b MCP guarded":
-                        out = loop.run_until_complete(way2_mcp(question, meter, guarded, guarded_audit, CLIENT_SYSTEM))
+                        out = loop.run_until_complete(way2_mcp(question, meter, guarded, guarded_audit,
+                                                               CLIENT_SYSTEM, final_tools=False))
                     else:
                         out = loop.run_until_complete(way2_mcp(question, meter, client, audit))
                 per_call = out["bytes"]
@@ -234,7 +261,7 @@ def run(size: str, retriever) -> list[dict]:
                     "seconds": round(time.perf_counter() - started, 1), "tokens": meter.tokens,
                     "bytes_per_response": round(sum(per_call) / len(per_call)) if per_call else 0,
                     "server_declined": out.get("server_declined"),
-                    **graded(out["answer"], label, out.get("server_declined") or 0),
+                    **graded(out["answer"], label, out.get("server_declined") or 0, out.get("declined", False)),
                     **({"mcp_session_start": guarded_session if way == "2b MCP guarded" else session}
                        if way != "1 tool" else {}),
                 })

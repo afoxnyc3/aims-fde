@@ -1,5 +1,6 @@
 """Retrieval mechanics. Model and embedding calls are patched out; nothing leaves the machine."""
 
+import json
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -18,6 +19,11 @@ PAGES = [
 
 def tool_call(name, arguments="{}", call_id="call-1"):
     return SimpleNamespace(id=call_id, function=SimpleNamespace(name=name, arguments=arguments))
+
+
+def answered(text):
+    """A model turn that ends in the answer tool, the only way an answer is passed on."""
+    return reply(tool_calls=[tool_call("answer", json.dumps({"text": text}))])
 
 
 def reply(content=None, tool_calls=None):
@@ -60,11 +66,96 @@ class CitationTests(unittest.TestCase):
         self.assertEqual(retrieval.cited_pages(answer, retriever), ["SYN-aaaaaa", "STD-venue-access"])
 
 
+class ForcedChoiceTests(unittest.TestCase):
+    """tool_choice="required" where the model allows it; the retry turn covers models that reject it."""
+
+    def setUp(self):
+        retrieval.NO_FORCED_CHOICE.clear()
+        self.addCleanup(retrieval.NO_FORCED_CHOICE.clear)
+
+    @staticmethod
+    def rejection(message):
+        from litellm import BadRequestError
+        return BadRequestError(message, model="m", llm_provider="openrouter")
+
+    def test_a_model_that_rejects_forcing_is_asked_again_without_it_and_remembered(self):
+        sent = []
+
+        def completion(**kwargs):
+            sent.append(kwargs.get("tool_choice"))
+            if kwargs.get("tool_choice"):
+                raise self.rejection('tool_choice: type "tool" and "any" are not supported for this model.')
+            return answered("Club C [STD-venue-access].")
+
+        with patch.object(retrieval.litellm, "completion", side_effect=completion):
+            first = retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES), model="m")
+            second = retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES), model="m")
+        self.assertEqual(sent, ["required", None, None])  # one rejected request per process, then never forced
+        self.assertEqual((first["stopped"], second["stopped"]), ("answer", "answer"))
+        self.assertIn("m", retrieval.NO_FORCED_CHOICE)
+
+    def test_other_bad_requests_are_not_mistaken_for_it(self):
+        with patch.object(retrieval.litellm, "completion", side_effect=self.rejection("context window exceeded")):
+            with self.assertRaises(Exception):
+                retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES), model="m")
+        self.assertNotIn("m", retrieval.NO_FORCED_CHOICE)
+
+
 class DeclineTests(unittest.TestCase):
-    def test_decline_needs_the_prefix_and_colon(self):
-        self.assertEqual(retrieval.decline_reason("**CANNOT ANSWER:** no record"), "no record")
-        self.assertEqual(retrieval.decline_reason("Seen [STD-role-list].\nCANNOT ANSWER: nope"), "nope")
-        self.assertIsNone(retrieval.decline_reason("Cannot answer the club part, but the role is X [STD-role-list]."))
+    def test_loop_stops_on_a_decline_call_even_beside_a_search(self):
+        calls = [tool_call("search_chunks", '{"query": "q"}', "call-1"),
+                 tool_call("decline", '{"reason": "not covered"}', "call-2")]
+        with patch.object(retrieval.litellm, "completion", return_value=reply("Sorry.", calls)) as completion:
+            result = retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES))
+        self.assertEqual(completion.call_count, 1)
+        self.assertEqual((result["stopped"], result["decline_reason"], result["answer"], result["calls"]),
+                         ("declined", "not covered", "", 0))
+        offered = [tool["function"]["name"] for tool in completion.call_args.kwargs["tools"]]
+        self.assertEqual(offered, ["search_chunks", "answer", "decline"])
+        self.assertEqual(completion.call_args.kwargs["tool_choice"], "required")  # forced where the model allows
+
+    def test_pipeline_offers_and_honours_the_decline_tool(self):
+        declined = reply("I'm afraid not.", [tool_call("decline", '{"reason": "not covered"}')])
+        with patch.object(retrieval.Retriever, "search_hybrid", return_value="evidence"), \
+                patch.object(retrieval.litellm, "completion", return_value=declined) as completion:
+            result = retrieval.answer_once("q", retrieval.Retriever(PAGES))
+        self.assertEqual(completion.call_args.kwargs["tools"], retrieval.FINAL_TOOLS)
+        self.assertEqual(completion.call_args.kwargs["tool_choice"], "required")
+        self.assertEqual((result["stopped"], result["decline_reason"], result["answer"]),
+                         ("declined", "not covered", ""))
+
+    def test_only_an_answer_call_becomes_an_answer(self):
+        with patch.object(retrieval.litellm, "completion", return_value=answered("Club C [STD-venue-access].")):
+            result = retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES))
+        self.assertEqual((result["stopped"], result["answer"], result["decline_reason"]),
+                         ("answer", "Club C [STD-venue-access].", None))
+
+    def test_prose_without_a_final_call_is_unstructured_and_never_an_answer(self):
+        for run in (lambda r: retrieval.run_agent("q", "agentic_bm25", r), lambda r: retrieval.answer_once("q", r)):
+            with patch.object(retrieval.Retriever, "search_hybrid", return_value="evidence"), \
+                    patch.object(retrieval.litellm, "completion", return_value=reply("Club C [STD-venue-access].")):
+                result = run(retrieval.Retriever(PAGES))
+            self.assertEqual((result["stopped"], result["answer"]), ("unstructured", ""))
+
+    def test_a_turn_that_answers_and_declines_fails_closed(self):
+        both = reply(tool_calls=[tool_call("answer", '{"text": "Yes [STD-role-list]"}', "call-1"),
+                                 tool_call("decline", '{"reason": "not covered"}', "call-2")])
+        with patch.object(retrieval.litellm, "completion", return_value=both):
+            result = retrieval.run_agent("q", "agentic_bm25", retrieval.Retriever(PAGES))
+        self.assertEqual((result["stopped"], result["answer"]), ("declined", ""))
+
+    def test_decline_reason_reads_the_call_never_the_wording(self):
+        def message(content=None, tool_calls=None):
+            return reply(content, tool_calls).choices[0].message
+
+        decline = lambda arguments: message(tool_calls=[tool_call("decline", arguments)])  # noqa: E731
+        self.assertEqual(retrieval.decline_reason(decline('{"reason": " no record "}')), "no record")
+        # The call is the decision: a missing or malformed reason still declines, with a default.
+        self.assertEqual(retrieval.decline_reason(decline({"reason": "parsed already"})), "parsed already")
+        for arguments in ("{}", '{"reason": ""}', "not json", "[1]", None, 7):
+            self.assertEqual(retrieval.decline_reason(decline(arguments)), "No record answers this.", arguments)
+        self.assertIsNone(retrieval.decline_reason(message("CANNOT ANSWER: nope")))
+        self.assertIsNone(retrieval.decline_reason(message(tool_calls=[tool_call("search_chunks", '{"query": "q"}')])))
 
 
 class AnswerRuleTests(unittest.TestCase):
@@ -74,7 +165,7 @@ class AnswerRuleTests(unittest.TestCase):
         policy = retrieval.SYSTEM.index("the standard does not address it")
         missing_fact = retrieval.SYSTEM.index("a specific ticket you found")
         self.assertLess(policy, missing_fact)
-        self.assertIn("even if the question names\na ticket", retrieval.SYSTEM)
+        self.assertIn("even if the question names a ticket", " ".join(retrieval.SYSTEM.split()))
 
     def test_next_steps_must_come_from_a_record(self):
         self.assertIn("only if a record states it", retrieval.SYSTEM)
@@ -95,7 +186,7 @@ class RetryTests(unittest.TestCase):
             calls.append(kwargs)
             if len(calls) == 1:
                 raise self.unavailable()
-            return reply("Answer [STD-role-list]")
+            return answered("Answer [STD-role-list]")
 
         with patch.object(retrieval.litellm, "completion", side_effect=completion), \
                 patch.object(retrieval.llm.time, "sleep"):
@@ -121,7 +212,7 @@ class RetryTests(unittest.TestCase):
         self.assertEqual(completion.call_count, 2)
 
     def test_pipeline_answer_call_is_retried_too(self):
-        replies = iter([self.unavailable(), reply("Answer [STD-role-list]")])
+        replies = iter([self.unavailable(), answered("Answer [STD-role-list]")])
 
         def completion(**kwargs):
             item = next(replies)
@@ -155,7 +246,7 @@ class RetryTests(unittest.TestCase):
 class LoopTests(unittest.TestCase):
     def test_model_cannot_call_methods_outside_its_technique(self):
         retriever = retrieval.Retriever(PAGES)
-        replies = iter([reply(tool_calls=[tool_call("_embed", '{"texts": ["x"]}')]), reply("No answer.")])
+        replies = iter([reply(tool_calls=[tool_call("_embed", '{"texts": ["x"]}')]), answered("No answer.")])
         with patch.object(retrieval.litellm, "completion", side_effect=lambda **_: next(replies)), \
                 patch.object(retrieval.Retriever, "_embed") as embed:
             result = retrieval.run_agent("q", "agentic_bm25", retriever)
@@ -165,7 +256,7 @@ class LoopTests(unittest.TestCase):
 
     def test_non_object_arguments_become_a_tool_error(self):
         retriever = retrieval.Retriever(PAGES)
-        replies = iter([reply(tool_calls=[tool_call("search_chunks", "[1]")]), reply("No answer.")])
+        replies = iter([reply(tool_calls=[tool_call("search_chunks", "[1]")]), answered("No answer.")])
         with patch.object(retrieval.litellm, "completion", side_effect=lambda **_: next(replies)):
             result = retrieval.run_agent("q", "agentic_bm25", retriever)
         self.assertEqual(result["trace"][0]["args"], {})

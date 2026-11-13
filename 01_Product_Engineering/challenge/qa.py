@@ -52,22 +52,28 @@ def answer_question(request: QuestionRequest) -> QuestionAnswer:
 
     text = (result["answer"] or "").strip()
     sources = retrieval.cited_pages(text, retriever)
-    dropped = sorted(set(retrieval.PAGE_ID.findall(text)) - set(sources))
+    # A decline reason is model text shown to the user too, so its invented ids are reported the same way.
+    said = text or result.get("decline_reason") or ""
+    dropped = sorted(set(retrieval.PAGE_ID.findall(said)) - set(retrieval.cited_pages(said, retriever)))
     trace = RetrievalTrace(
         technique=SHIPPED_TECHNIQUE, model=retrieval.CHAT_MODEL,
         steps=[ToolStep(**step) for step in result["trace"]],
         evidence_chars=result["evidence_chars"], latency_s=result["latency_s"], stopped=result["stopped"],
+        retried=result.get("retried", False),
     )
 
     # Retrieval always returns its top k, so "nothing matched" has to be decided
     # here. A similarity gate cannot do it on this corpus: the decline question's
     # best cosine sits inside the range of answerable ones (retrieval_results.md).
-    # So the model declines explicitly, and code refuses to pass on any answer
-    # that cites no real record. Only the model's one-line refusal is shown as a
-    # reason; an uncited answer's text is never returned, since it is a guess.
-    refusal = retrieval.decline_reason(text)
-    if refusal:
-        reason = refusal
+    # So the model must end in an answer or a decline tool call, and code refuses to
+    # pass on any answer that cites no real record. The flag comes from which call it
+    # made, never from the reply's wording. Only the decline's one-line reason is shown;
+    # an uncited answer's text is never returned, since it is a guess.
+    if result["stopped"] == "declined":
+        reason = result["decline_reason"]
+        sources = []
+    elif result["stopped"] == "unstructured":
+        reason = "The model replied without choosing to answer or decline, so the reply was not passed on."
         sources = []
     elif result["stopped"] == "max_turns":
         reason = "The turn budget ran out before the records answered the question."

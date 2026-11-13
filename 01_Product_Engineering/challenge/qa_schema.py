@@ -38,7 +38,14 @@ class RetrievalTrace(BaseModel):
     steps: list[ToolStep] = Field(description="Every retrieval call, in order.")
     evidence_chars: int = Field(description="Total characters of evidence the model read.")
     latency_s: float = Field(description="Wall-clock seconds for retrieval and answering.")
-    stopped: str = Field(description="'answer' if the model finished; 'max_turns' if the turn budget ran out.")
+    stopped: str = Field(description=(
+        "'answer' if the model called the answer tool; 'declined' if it called the decline tool; "
+        "'unstructured' if it replied in prose without either, even after one retry (declined); "
+        "'max_turns' if the turn budget ran out."
+    ))
+    retried: bool = Field(default=False, description=(
+        "True when the first final reply was prose, so one retry turn offering only answer and decline ran."
+    ))
 
 
 class QuestionAnswer(BaseModel):
@@ -49,8 +56,8 @@ class QuestionAnswer(BaseModel):
     question: str = Field(description="The question, copied from the request.")
     declined: bool = Field(
         description=(
-            "True when the records do not support an answer: the model said so, the turn budget "
-            "ran out, or the answer cited no real record."
+            "True when the records do not support an answer: the model called decline, it replied "
+            "without calling answer or decline, the turn budget ran out, or the answer cited no real record."
         )
     )
     answer: str | None = Field(
