@@ -1,0 +1,49 @@
+name: fork-gate
+
+# Lint and tests for the code this fork owns: the challenge app and use_case/.
+# Upstream's mirrors.yml runs a subset of `make check` plus notebook execution,
+# but never these suites.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same ref makes the older run moot.
+concurrency:
+  group: fork-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+# The job runs PR-controlled code; it only needs to read the repo.
+permissions:
+  contents: read
+
+jobs:
+  fork-tests:
+    runs-on: ubuntu-latest
+    # The suites finish in seconds; a hang (e.g. an unstubbed model call) shouldn't hold a runner for 6 hours.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false # no step needs git auth; keep the token out of .git/config
+      # Same exact pin as mirrors.yml.
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          enable-cache: true
+
+      # Version and rules pinned inline (--isolated ignores config files), so a
+      # ruff release can't change what passes and upstream's pyproject stays untouched.
+      - name: Ruff on owned code
+        run: uvx ruff@0.14.13 check --isolated --target-version py312 --select E4,E7,E9,F 01_Product_Engineering/challenge use_case
+
+      # Tests still run when lint fails, so one run reports everything.
+      - name: Challenge tests
+        if: ${{ !cancelled() }}
+        working-directory: 01_Product_Engineering/challenge
+        run: uv run --frozen python -m unittest discover -q
+
+      # The documented invocation (see use_case/evals/test_*.py): the challenge's environment,
+      # because the eval harness imports challenge modules.
+      - name: use_case eval tests
+        if: ${{ !cancelled() }}
+        run: uv run --frozen --project 01_Product_Engineering/challenge python -m unittest discover -q -s use_case/evals
