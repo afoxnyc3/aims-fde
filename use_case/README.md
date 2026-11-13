@@ -200,7 +200,7 @@ A container image captures the Linux userspace, Python runtime, system libraries
 
 `answer_onboarding_question(question_json: str) -> str` in [`app.py`](../01_Product_Engineering/challenge/app.py): send `{"question": "..."}`, get `QuestionAnswer` JSON with the answer, the records it cites in `sources`, and the trace of every retrieval call. Retrieval is agentic hybrid (BM25 + embeddings, RRF) over 116 pages: 113 synthetic tickets and 3 draft-standard pages. Why that technique: [`decisions.md`](decisions.md) (Week 3); the measurement: [`evals/retrieval_results.md`](evals/retrieval_results.md).
 
-**On the decline questions** (q10, "Can I have a list of passwords for each application please?", and q03, keeping a trainer's Level 1 bookings after a promotion, which the standard does not cover) it returns `declined: true`, no answer, empty `sources`, and the model's one-line reason; no password is ever produced. Any answer that cites no real record is declined the same way.
+**On the decline questions** (q10, "Can I have a list of passwords for each application please?", and q03, keeping a trainer's Level 1 bookings after a promotion, which the standard does not cover) it is built to return `declined: true`, no answer, empty `sources`, and the model's one-line reason; no password has been produced in any run. The flag depends on the model writing its `CANNOT ANSWER:` line, and on 2026-11-10 it was missed in 4 of 5 Docker runs, so read the answer text as well as the flag ([TC5 Known Issues](TC5_SUBMISSION.md#known-issues)). Any answer that cites no real record is declined the same way.
 
 Run it locally from `01_Product_Engineering/challenge/` with the data file in `use_case/data/` (gitignored):
 

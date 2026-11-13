@@ -1,6 +1,6 @@
 # TC5: The Question Endpoint, Built a Second Way and Measured
 
-> Submitted 2026-11-10. **Loom:** https://www.loom.com/share/1a3b85c2674d4b27aeb5fd5ce7c89e14 (4 min). **Deck:** [`demo/tc5_demo.html`](demo/tc5_demo.html).
+> Submitted 2026-11-10 (Known Issues updated 2026-11-12 with a re-measurement; the Loom and deck show the 2026-11-10 state). **Loom:** https://www.loom.com/share/1a3b85c2674d4b27aeb5fd5ce7c89e14 (4 min). **Deck:** [`demo/tc5_demo.html`](demo/tc5_demo.html).
 > Architecture row decided 2026-11-07. Step 1 marks confirmed, Service Desk session held and Step 7.2 line recorded on 2026-11-09. Role rulings and the v0.5 re-run on 2026-11-10.
 
 ## TL;DR
@@ -253,7 +253,7 @@ The ingress route to the privately hosted service, and the data sign-off for rea
 
 - **Grid over-access, 2 of 180:** synthetic tickets where the intake corrects the venue. Next rule: a venue correction goes to a person.
 - **Cautious identity calls, 2 real test tickets** (and 1 on dev): sent to a person as conflicting identity where the label recommends. Safe direction; the next failure-analysis target.
-- **Decline flag on the app path: not reproduced on 2026-11-12.** On 2026-11-10 the password question was always refused in the answer text, but `declined` was set in only 1 of 5 runs. Re-run 5 times on `claude-sonnet-5-5` through the shipped agent: every run opened with the `CANNOT ANSWER:` line, so all 5 came back `declined: true` with no sources, including the 3 runs that cited pages while refusing. The earlier misses weren't logged, so their cause is unknown. **Remaining risk:** the flag still depends on the model writing that exact line. A refusal in plain prose that cites a real page would come back `declined: false`. The general fix is a structured decline from the model (a decline tool or a JSON field), not a keyword filter. I tried a credentials keyword filter and dropped it: it missed paraphrases ("log-in info", "pw") and wrongly declined a synthetic ticket about an invalid login.
+- **Decline flag on the app path (re-measured 2026-11-12; risk still open).** On 2026-11-10, in the Docker container, the password question was always refused in the answer text, but `declined` was set in only 1 of 5 runs. The MCP path, which wraps the same `qa.answer_question`, declined cleanly. That points to variation in the model's wording, not a path bug. The code fixes the mechanism: `declined` comes back false only when the reply has no `CANNOT ANSWER:` line, the turn budget didn't run out, and it cites a real page. So the misses were prose refusals that cited a page. On 2026-11-12, run locally (not in Docker) through `qa.answer_question` on `openrouter/anthropic/claude-sonnet-5-5`, 10 of 10 runs declined with no sources. The last 5 are in [`evals/tc5_decline_rerun_2026-11-12.jsonl`](evals/tc5_decline_rerun_2026-11-12.jsonl). No decline code changed in between, so this is a better run, not a fix: the flag still depends on the model writing that line. A keyword filter is not the fix, because it misses paraphrases and declines real tickets about logins. Next Steps item 7 tracks the code fix.
 - **Senior Group Fitness Instructor carries staff admin.** Recommended as the NY SOP under an owner exception, with a warning on each recommendation, until the cleanup with stakeholders.
 - **Not held out.** Test numbers are "same tickets, current agent". A fresh held-out set is the gate before production.
 
@@ -265,3 +265,4 @@ The ingress route to the privately hosted service, and the data sign-off for rea
 4. Prove writes on the TEST environment before any production write.
 5. Monitored rollout: role by role, every action logged to a Teams channel via webhook, weekly email report.
 6. Before go-live: remove staff admin from Senior Group Fitness Instructor with stakeholders, security sign-off, and a fresh held-out ticket set.
+7. Make the decline flag independent of the model's wording. Require a structured decline, either a forced tool call or a required `declined` field, and add a code check that a reply whose text refuses can't come back `declined: false`. Add paraphrased credential questions to the eval set, so a prose refusal shows up as a failure.
