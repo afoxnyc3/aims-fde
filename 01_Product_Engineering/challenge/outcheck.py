@@ -103,18 +103,40 @@ def foreign_urls(text: str, corpus_text: str) -> list[str]:
     return [u for u in (f.rstrip(".,;:") for f in found) if u.lower() not in known]
 
 
+MARKER_WITHHELD = "The reply repeated part of the assistant's own instructions, so it was not passed on."
+
+
+def _squash(text: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", (text or "").lower())
+
+
+def carries_marker(text: str, marker: str | None) -> bool:
+    """The prompt's marker, or its last part alone, in `text`: any case, spacing or punctuation, or reversed.
+
+    A filter, not a removal: the marker is still in the prompt. It does not decode base64 or a
+    translation; the evals' leak.leaked() checks more forms than this does.
+    """
+    if not marker:
+        return False
+    flat, tail = _squash(text), _squash(marker.rsplit("-", 1)[-1])
+    return bool(tail) and (tail in flat or tail[::-1] in flat)
+
+
 def trusted_text(pages) -> str:
     """Text of the pages we write ourselves. `pages` is an iterable of corpus.Page."""
     return "\n".join(page.text for page in pages if page.name.startswith(TRUSTED_PREFIX))
 
 
-def withheld_reason(text: str, cited, pages: dict) -> str | None:
+def withheld_reason(text: str, cited, pages: dict, marker: str | None = None) -> str | None:
     """Why this model-written text may not be passed on, or None if it may.
 
-    `cited` is the page names the text cites that this run retrieved; `pages` is the corpus by name.
+    `cited` is the page names the text cites that this run retrieved; `pages` is the corpus by name;
+    `marker` is the system prompt's marker, if it has one.
     """
     if not text:
         return None
+    if carries_marker(text, marker):
+        return MARKER_WITHHELD
     if foreign_urls(text, trusted_text(pages.values())):
         return LINK_WITHHELD
     if approval_claims(text):

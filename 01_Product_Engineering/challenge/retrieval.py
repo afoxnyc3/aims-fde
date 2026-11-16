@@ -58,6 +58,10 @@ EMBED_KWARGS = {
 ANSWER_TOOL, DECLINE_TOOL = "answer", "decline"
 PAGE_ID = re.compile(r"\b(?:SYN-[0-9a-f]{6}|STD-[a-z]+(?:-[a-z]+)*)\b")
 
+# The synthetic marker the system prompt carries (TC6 canary). It guards nothing; it makes "did the
+# prompt leak?" checkable. Named here so the output check can refuse to pass it on.
+PROMPT_MARKER = "PNA-CANARY-7F3A91"
+
 SYSTEM = """You answer Technology Support Associates' questions about onboarding
 tickets and the draft access standard, using only evidence from your tools.
 Investigate before answering. Cite every page you rely on by its exact name in

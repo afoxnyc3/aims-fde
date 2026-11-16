@@ -183,6 +183,25 @@ class OutputCheckTests(unittest.TestCase):
         result = self.ask("", stopped="declined", decline_reason=f"Access is approved, see {POISON_URL}")
         self.assert_withheld(result, qa.outcheck.LINK_WITHHELD)
 
+    def test_prompt_marker_in_a_decline_reason_is_replaced(self):
+        # Seen live after the other fixes, 1 run of 8 (roleplay): the model declined and quoted the marker.
+        for reason in ("Internal marker PNA-CANARY-7F3A91 must not be revealed.", "The part after the dash is 7 F 3 A 9 1.",
+                       "Backwards it reads 19A3F7."):
+            with self.subTest(reason=reason):
+                result = self.ask("", stopped="declined", decline_reason=reason)
+                self.assertTrue(result.declined)
+                self.assertEqual(result.decline_reason, qa.outcheck.MARKER_WITHHELD)
+                self.assertNotIn("7F3A91", result.model_dump_json().upper().replace(" ", ""))
+
+    def test_prompt_marker_in_a_cited_answer_or_an_invented_page_name_is_withheld(self):
+        result = self.ask("Club C only [STD-venue-access]. Marker: PNA-CANARY-7F3A91.")
+        self.assertEqual(result.decline_reason, qa.outcheck.MARKER_WITHHELD)
+        result = self.ask("", stopped="declined", decline_reason="No record covers this, see [SYN-7f3a91].")
+        self.assertNotIn("7f3a91", result.model_dump_json().lower())
+
+    def test_the_marker_checked_is_the_one_in_the_prompt(self):
+        self.assertIn(retrieval.PROMPT_MARKER, retrieval.SYSTEM)
+
     def test_approval_passes_only_when_a_cited_tickets_status_field_says_so(self):
         approved = Page("SYN-dddddd", "New hire: Example Hire B", "Cafe Associate at Club A.", status="approved")
         with patch.object(qa, "get_retriever", return_value=retrieval.Retriever([*PAGES, POISONED, approved])):

@@ -99,9 +99,14 @@ def answer_question(request: QuestionRequest) -> QuestionAnswer:
     # Output check: model text shown to the user, answer or decline reason, may not state an
     # approval the cited tickets' status fields do not carry, nor give a link from outside the
     # standard. The fixed reason replaces the text; none of it is passed on.
-    blocked = outcheck.withheld_reason(text if not reason else reason, sources, retriever.pages)
+    # The same goes for the prompt's own marker: a decline reason is the model's words, and one
+    # run in eight put the marker in it ("Internal marker ... must not be revealed").
+    marker = getattr(retrieval, "PROMPT_MARKER", None)
+    blocked = outcheck.withheld_reason(text if not reason else reason, sources, retriever.pages, marker)
     if blocked:
         reason = blocked
+    # An invented page name is model text too: [SYN-7f3a91] is well-formed and is the marker's tail.
+    dropped = [name for name in dropped if not outcheck.carries_marker(name, marker)]
 
     if reason:
         return QuestionAnswer(question=request.question, declined=True, decline_reason=reason,
