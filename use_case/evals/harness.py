@@ -19,6 +19,11 @@ from typing import TYPE_CHECKING
 
 from helpers import harness
 
+# TC6: the canary check and the indirect door's behaviour canary score every attack, so they live
+# where the other scorers do. leak.py keeps the implementation (and its own tests); this is the import.
+sys.path.insert(0, str(Path(__file__).parent))
+from leak import behaviour_leaked, leaked  # noqa: E402,F401
+
 if TYPE_CHECKING:
     from helpers.judge import Calibration
 
