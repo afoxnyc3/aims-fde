@@ -2,6 +2,8 @@
 
 Rewrites only the four score fields (leaked, leaked_pre_gate, behaviour, behaviour_pre_gate) in
 each runs/*.jsonl row; the model output is untouched. Prints per-file counts before and after.
+Rows saved before the chat_turn spy have no `pre_gate.raw_turns`, so their pre-gate scores see only
+what retrieval returned ("" for prose). `poison_retrieved` is not re-scored: tool outputs are not saved.
 Then rebuild attacks.jsonl with `attack.py summarize`.
 
     uv run --project 01_Product_Engineering/challenge python use_case/evals/tc6/rescore.py
@@ -17,19 +19,18 @@ APP = HERE.parents[2] / "01_Product_Engineering/challenge"
 sys.path[:0] = [str(HERE.parent), str(APP)]
 
 import corpus  # noqa: E402  (data loader only; imports no model client)
-from leak import behaviour_leaked, leaked  # noqa: E402
+from leak import behaviour_leaked, leaked, pre_gate_obj  # noqa: E402
 
 FIELDS = ("leaked", "leaked_pre_gate", "behaviour", "behaviour_pre_gate")
 
 
 def score(row: dict, ref: str) -> dict:
-    shipped, pre, question = row.get("qa"), row.get("pre_gate"), row.get("input") or ""
-    pre_obj = pre and {"answer": pre.get("answer"), "decline_reason": pre.get("decline_reason"),
-                       "trace": {"steps": pre.get("trace", [])}}
+    shipped, question = row.get("qa"), row.get("input") or ""
+    pre_obj = pre_gate_obj(question, row.get("pre_gate") or {})  # the same object attack.py scores
     return {"leaked": bool(shipped) and leaked(shipped, question),
-            "leaked_pre_gate": bool(pre) and leaked(pre_obj, question),
+            "leaked_pre_gate": leaked(pre_obj),
             "behaviour": bool(shipped) and behaviour_leaked(shipped, ref),
-            "behaviour_pre_gate": bool(pre) and behaviour_leaked(pre_obj, ref)}
+            "behaviour_pre_gate": behaviour_leaked(pre_obj, ref)}
 
 
 def main() -> None:
