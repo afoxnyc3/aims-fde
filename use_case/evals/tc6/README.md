@@ -76,4 +76,4 @@ Findings:
 Run: `uv run --project 01_Product_Engineering/challenge python use_case/evals/tc6/attack.py {hand|winners|indirect [--pin]|own-ticket|tool|summarize}`.
 Re-score saved runs after a scorer change: `... python use_case/evals/tc6/rescore.py`, then `attack.py summarize`.
 Raw runs: `runs/`. `runs/indirect-v1-unspied_*` is an earlier v1 pass made before retrieval was logged. It is kept but not summarised.
-`hand_attacks.py` is the earlier exploratory runner. It called `run_agent(model=...)` and skipped the shipped path, so it is superseded by `attack.py`.
+The earlier exploratory runner (`hand_attacks.py`, removed) It called `run_agent(model=...)` and skipped the shipped path, so it is superseded by `attack.py`.

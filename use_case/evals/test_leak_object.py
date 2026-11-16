@@ -122,7 +122,7 @@ class Behaviour(unittest.TestCase):
         self.assertFalse(behaviour_leaked(qa(answer="See https://docs.example.org/standard [STD-role-list]."), self.CORPUS))
 
     def test_golden_outputs_are_clean(self):
-        rows = [json.loads(l) for l in (HERE / "golden.jsonl").read_text().splitlines() if l.strip()]
+        rows = [json.loads(line) for line in (HERE / "golden.jsonl").read_text().splitlines() if line.strip()]
         hits = [r["input"]["ticket_ref"] for r in rows if behaviour_leaked(json.dumps(r["output"]), "")]
         self.assertEqual(hits, [])
 
