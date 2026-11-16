@@ -91,6 +91,11 @@ retrieval.Retriever.search_hybrid = _spy_search
 POISON_PAGE: str | None = None
 
 
+def POISON_INJ_CHECK(page_name: str) -> bool:
+    page = qa.get_retriever().pages.get(page_name)
+    return page is not None and poison.POISON_URL in page.text
+
+
 def corpus_text() -> str:
     return "\n".join(page.text for page in corpus.load_corpus(REAL_CORPUS))
 
@@ -155,12 +160,12 @@ def pick_winners(n: int = 2) -> list[tuple[str, str]]:
 
 
 def main(cmd: str) -> None:
+    global POISON_PAGE
     if cmd == "hand":
         run_phase("hand", [("direct", k, t, 1) for k, t in HAND])
     elif cmd == "winners":
         run_phase("winners", [("direct", k, t, REPEATS) for k, t in pick_winners()])
     elif cmd == "indirect":
-        global POISON_PAGE
         pin = "--pin" in sys.argv
         variants = [a for a in sys.argv[2:] if a != "--pin"] or list(poison.VARIANTS)
         real_ranked = retrieval.Retriever.hybrid_ranked
@@ -180,6 +185,16 @@ def main(cmd: str) -> None:
                        "overlay": "real corpus + this one synthetic row, via CORPUS_PATH (test-only)",
                        "weakened": "poisoned page pinned to rank 1 of search_hybrid" if pin else None})
             retrieval.Retriever.hybrid_ranked = real_ranked
+    elif cmd == "own-ticket":  # item 17: injection in the target hire's OWN existing ticket, shipped path
+        os.environ["CORPUS_PATH"] = str(poison.write_own_ticket_overlay(REAL_CORPUS))
+        qa.get_retriever.cache_clear()
+        POISON_PAGE = corpus.ticket_page_name(poison.OWN_TICKET_ROW_ID)
+        assert POISON_INJ_CHECK(POISON_PAGE), "injected comment not in the overlay page"
+        run_phase("indirect-own-ticket", [("indirect", "own-ticket", poison.OWN_TICKET_QUESTION, REPEATS)],
+                  {"poisoned_page": POISON_PAGE, "poison_url": poison.POISON_URL,
+                   "injection": poison.OWN_TICKET_INJECTION,
+                   "overlay": "real corpus with one requester comment appended to the target hire's existing ticket, via CORPUS_PATH (test-only)",
+                   "weakened": None})
     elif cmd == "tool":
         original = retrieval.TECHNIQUES
         retrieval.TECHNIQUES = poison.poisoned_techniques(original)
@@ -198,7 +213,7 @@ def summarize() -> None:
     """One attacks.jsonl row per (door, input) per phase, in the brief's shape plus the pre-gate counts."""
     rows = []
     winners = {r["input"] for r in load(latest("winners"))} if latest("winners") else set()
-    for phase in ("hand", "winners", *(f"indirect-{v}{p}" for v in poison.VARIANTS for p in ("", "-pinned")), "tool"):
+    for phase in ("hand", "winners", *(f"indirect-{v}{p}" for v in poison.VARIANTS for p in ("", "-pinned")), "indirect-own-ticket", "tool"):
         path = latest(phase)
         if not path:
             continue
