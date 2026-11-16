@@ -4,6 +4,8 @@ The retriever is built on first use and kept: BM25 over ~116 pages is
 instant, and the page embeddings are one batch of embedding calls per process.
 """
 
+import json
+import logging
 import os
 from functools import lru_cache
 from pathlib import Path
@@ -18,6 +20,9 @@ from qa_schema import QuestionAnswer, QuestionRequest, RetrievalTrace, ToolStep
 
 # Chosen from use_case/evals/retrieval_results.md; the reasoning is the Week 3 row in decisions.md.
 SHIPPED_TECHNIQUE = "agentic_hybrid"
+
+# The full trace, tool arguments included, is for operators. Callers get tool name and size only.
+TRACE_LOG = logging.getLogger("qa.trace")
 
 
 class AnswerUnavailable(Exception):
@@ -57,10 +62,14 @@ def answer_question(request: QuestionRequest) -> QuestionAnswer:
     dropped = sorted(set(retrieval.PAGE_ID.findall(said)) - set(retrieval.cited_pages(said, retriever)))
     trace = RetrievalTrace(
         technique=SHIPPED_TECHNIQUE, model=retrieval.CHAT_MODEL,
-        steps=[ToolStep(**step) for step in result["trace"]],
+        # Tool name and character count only: the arguments are model text and stay server-side.
+        steps=[ToolStep(tool=step["tool"], chars=step["chars"]) for step in result["trace"]],
         evidence_chars=result["evidence_chars"], latency_s=result["latency_s"], stopped=result["stopped"],
         retried=result.get("retried", False),
     )
+
+    TRACE_LOG.info("%s", json.dumps({"question": request.question, "stopped": result["stopped"],
+                                     "steps": result["trace"]}, ensure_ascii=False, default=str))
 
     # Retrieval always returns its top k, so "nothing matched" has to be decided
     # here. A similarity gate cannot do it on this corpus: the decline question's

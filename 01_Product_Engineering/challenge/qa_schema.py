@@ -23,10 +23,17 @@ class QuestionRequest(BaseModel):
 
 
 class ToolStep(BaseModel):
-    """One retrieval call, kept so a reader can see how the answer was found."""
+    """One retrieval call, reduced to what is safe to hand back: which tool, how much it returned.
+
+    The arguments are not here on purpose (TC6). They are model-written text, and a poisoned tool
+    description made the model put the system prompt's marker in a search query, which this field
+    then returned to the caller 8 runs of 8. The full step, arguments included, goes to the server
+    log only (logger `qa.trace`).
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
     tool: str = Field(description="The retrieval tool called, such as search_chunks.")
-    args: dict = Field(description="The arguments the model passed to it.")
     chars: int = Field(description="Characters of evidence the call returned.")
 
 

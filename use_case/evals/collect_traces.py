@@ -94,7 +94,7 @@ def render_output(trace: dict) -> list[str]:
         if out.get("dropped_citations"):
             lines.append(f"- **dropped_citations:** {', '.join(out['dropped_citations'])}")
         lines.append(f"- **retrieval:** {len(steps)} calls, stopped={out.get('trace', {}).get('stopped')}")
-        lines += [f"  - `{s.get('tool')}` {json.dumps(s.get('args'))} -> {s.get('chars')} chars" for s in steps]
+        lines += [f"  - `{s.get('tool')}` -> {s.get('chars')} chars" for s in steps]
         return lines
     lines = [
         f"- **status:** {out.get('status')}  (needs_human={out.get('needs_human')}, review_reason={out.get('review_reason')})",

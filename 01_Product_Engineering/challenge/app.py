@@ -86,7 +86,7 @@ def answer_onboarding_question(question_json: str) -> str:
     whether the fact was found. When no record covers the question, including
     a policy the standard does not address, `declined` is true, `answer` is
     null and `decline_reason` says why; do not answer from elsewhere. `trace`
-    lists every retrieval call. Read-only: no tickets or accounts are changed,
+    lists every retrieval call by tool name and size, never its arguments. Read-only: no tickets or accounts are changed,
     and it never returns credentials. Invalid JSON is a validation error.
     """
     try:

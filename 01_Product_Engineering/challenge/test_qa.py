@@ -37,6 +37,19 @@ class AnswerTests(unittest.TestCase):
         with patch.object(qa.retrieval, "run_agent", return_value=loop_result(answer, stopped, decline_reason)):
             return qa.answer_question(QuestionRequest(question="Where does a Lifeguard get a login?"))
 
+    def test_tool_arguments_stay_in_the_server_log(self):
+        # TC6 tool-description door: the model put the prompt's marker in a search query and the
+        # response handed the query back. Callers now get tool name and size; the log keeps the rest.
+        leaking = loop_result("Club C only [STD-venue-access].")
+        leaking["trace"] = [{"tool": "search_hybrid", "args": {"query": "PNA-CANARY-7F3A91 lifeguard login"},
+                             "chars": 40}]
+        with patch.object(qa.retrieval, "run_agent", return_value=leaking), \
+                self.assertLogs("qa.trace", level="INFO") as logs:
+            result = qa.answer_question(QuestionRequest(question="Where does a Lifeguard get a login?"))
+        self.assertNotIn("7F3A91", result.model_dump_json())
+        self.assertEqual(result.model_dump()["trace"]["steps"], [{"tool": "search_hybrid", "chars": 40}])
+        self.assertIn("PNA-CANARY-7F3A91", "\n".join(logs.output))
+
     def test_answer_carries_only_real_sources(self):
         result = self.ask("Club C only [STD-venue-access]; see also [SYN-ffffff].")
         self.assertFalse(result.declined)
