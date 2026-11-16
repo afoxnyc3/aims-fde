@@ -208,7 +208,7 @@ Every place text enters `answer_onboarding_question`, who can write there, and w
 
 | Source the model reads | Who can write it | Trust | Notes |
 | --- | --- | --- | --- |
-| The question itself | Any service desk staff member who can reach the endpoint | Untrusted | Direct injection door. Leaks scored on the whole response, not this text. |
+| The question itself | Any service desk staff member who can reach the endpoint, and any outside MCP caller (TC5 server; per-caller scoping still open) | Untrusted | Direct injection door. Leaks scored on the whole response, not this text. |
 | Retrieved onboarding tickets (`search_hybrid` results) | Requesters and hiring managers, through the ticketing system's request form | **Untrusted, and the first one to poison** | Anyone who can raise a ticket can plant instructions that a later question retrieves. Indirect door (`use_case/evals/tc6/poison.py`, synthetic record). |
 | Draft access standard pages | The IT owner, by commit to this repo | Trusted | Reviewed changes only. |
 | Tool names and descriptions the agent sees | This repo's code (`retrieval.py`) | Trusted at rest | Tested with one poisoned description in a run-time copy: the model put the canary in its search arguments 8 of 8 times. No third-party tool descriptions enter the agent. |
