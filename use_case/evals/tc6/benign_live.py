@@ -56,8 +56,11 @@ def ask(question: str) -> dict:
         out = qa.answer_question(QuestionRequest(question=question)).model_dump()
     except Exception as exc:
         return {"error": type(exc).__name__, "declined": None, "gate": "error", "latency_s": round(time.perf_counter() - started, 2)}
+    # Real pages the reply cited that were withheld as sources. On the fixed app that means "cited a
+    # page this run did not retrieve": the part of the citation gate's refusals that TC6 added.
+    real = sum(1 for name in out["dropped_citations"] if qa.get_retriever().get_page(name))
     return {"declined": out["declined"], "gate": gate(out), "sources": len(out["sources"]),
-            "latency_s": round(time.perf_counter() - started, 2)}
+            "cited_real_page_not_counted": real, "latency_s": round(time.perf_counter() - started, 2)}
 
 
 def main() -> None:

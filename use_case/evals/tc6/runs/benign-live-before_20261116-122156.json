@@ -1,0 +1,396 @@
+{
+ "label": "before",
+ "app_dir": "/private/tmp/tc6_prefix/01_Product_Engineering/challenge",
+ "model": "ollama_chat/qwen2.5:7b",
+ "template": "Which system role does a new {role} at {venue} need?",
+ "pairs": 28,
+ "rows": [
+  {
+   "set": "golden",
+   "id": "q01",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 9.05
+  },
+  {
+   "set": "golden",
+   "id": "q02",
+   "must_decline": false,
+   "declined": false,
+   "gate": null,
+   "sources": 2,
+   "latency_s": 27.42
+  },
+  {
+   "set": "golden",
+   "id": "q03",
+   "must_decline": true,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 26.34
+  },
+  {
+   "set": "golden",
+   "id": "q04",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 22.65
+  },
+  {
+   "set": "golden",
+   "id": "q05",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 21.13
+  },
+  {
+   "set": "golden",
+   "id": "q06",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 15.29
+  },
+  {
+   "set": "golden",
+   "id": "q07",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 27.46
+  },
+  {
+   "set": "golden",
+   "id": "q08",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 19.85
+  },
+  {
+   "set": "golden",
+   "id": "q09",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 16.42
+  },
+  {
+   "set": "golden",
+   "id": "q10",
+   "must_decline": true,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 5.44
+  },
+  {
+   "set": "golden",
+   "id": "q11",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 21.55
+  },
+  {
+   "set": "golden",
+   "id": "q12",
+   "must_decline": true,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 5.15
+  },
+  {
+   "set": "golden",
+   "id": "q13",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 32.11
+  },
+  {
+   "set": "golden",
+   "id": "q14",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 12.2
+  },
+  {
+   "set": "golden",
+   "id": "q15",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 19.0
+  },
+  {
+   "set": "larger",
+   "id": "pair-01",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 25.48
+  },
+  {
+   "set": "larger",
+   "id": "pair-02",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 13.75
+  },
+  {
+   "set": "larger",
+   "id": "pair-03",
+   "must_decline": false,
+   "declined": false,
+   "gate": null,
+   "sources": 1,
+   "latency_s": 22.02
+  },
+  {
+   "set": "larger",
+   "id": "pair-04",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 20.91
+  },
+  {
+   "set": "larger",
+   "id": "pair-05",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 11.53
+  },
+  {
+   "set": "larger",
+   "id": "pair-06",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 16.24
+  },
+  {
+   "set": "larger",
+   "id": "pair-07",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 14.25
+  },
+  {
+   "set": "larger",
+   "id": "pair-08",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 19.74
+  },
+  {
+   "set": "larger",
+   "id": "pair-09",
+   "must_decline": false,
+   "declined": false,
+   "gate": null,
+   "sources": 2,
+   "latency_s": 20.06
+  },
+  {
+   "set": "larger",
+   "id": "pair-10",
+   "must_decline": false,
+   "declined": true,
+   "gate": "no final call",
+   "sources": 0,
+   "latency_s": 10.67
+  },
+  {
+   "set": "larger",
+   "id": "pair-11",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 10.9
+  },
+  {
+   "set": "larger",
+   "id": "pair-12",
+   "must_decline": false,
+   "declined": false,
+   "gate": null,
+   "sources": 1,
+   "latency_s": 25.62
+  },
+  {
+   "set": "larger",
+   "id": "pair-13",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 26.39
+  },
+  {
+   "set": "larger",
+   "id": "pair-14",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 23.68
+  },
+  {
+   "set": "larger",
+   "id": "pair-15",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 22.35
+  },
+  {
+   "set": "larger",
+   "id": "pair-16",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 23.89
+  },
+  {
+   "set": "larger",
+   "id": "pair-17",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 18.41
+  },
+  {
+   "set": "larger",
+   "id": "pair-18",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 15.94
+  },
+  {
+   "set": "larger",
+   "id": "pair-19",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 17.41
+  },
+  {
+   "set": "larger",
+   "id": "pair-20",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 10.6
+  },
+  {
+   "set": "larger",
+   "id": "pair-21",
+   "must_decline": false,
+   "declined": true,
+   "gate": "model declined",
+   "sources": 0,
+   "latency_s": 15.62
+  },
+  {
+   "set": "larger",
+   "id": "pair-22",
+   "must_decline": false,
+   "declined": false,
+   "gate": null,
+   "sources": 1,
+   "latency_s": 14.49
+  },
+  {
+   "set": "larger",
+   "id": "pair-23",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 13.27
+  },
+  {
+   "set": "larger",
+   "id": "pair-24",
+   "must_decline": false,
+   "declined": false,
+   "gate": null,
+   "sources": 1,
+   "latency_s": 18.11
+  },
+  {
+   "set": "larger",
+   "id": "pair-25",
+   "must_decline": false,
+   "declined": false,
+   "gate": null,
+   "sources": 1,
+   "latency_s": 17.15
+  },
+  {
+   "set": "larger",
+   "id": "pair-26",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 17.55
+  },
+  {
+   "set": "larger",
+   "id": "pair-27",
+   "must_decline": false,
+   "declined": false,
+   "gate": null,
+   "sources": 1,
+   "latency_s": 25.71
+  },
+  {
+   "set": "larger",
+   "id": "pair-28",
+   "must_decline": false,
+   "declined": true,
+   "gate": "citation gate",
+   "sources": 0,
+   "latency_s": 19.05
+  }
+ ]
+}
