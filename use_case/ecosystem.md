@@ -202,6 +202,21 @@ What the question endpoint would need to index real tickets. Drawn from two quer
 - This is the named outside caller for TC5 ordering question 2. It is also the reason the server must expose the guarded endpoint (declines, citation checks, no credentials), not raw search, and must scope what each caller can see.
 - Open: whether managed laptops may run a local MCP server, or whether it must be hosted privately and reached over the corporate network. Anthropic's remote (custom) connectors are called from Anthropic's cloud, so the server must be reachable from the public internet ([Anthropic: custom connectors using remote MCP](https://support.claude.com/en/articles/11175166-getting-started-with-custom-connectors-using-remote-mcp)), which the deployment rules forbid. A local stdio server also has no caller identity, so per-caller scoping needs the hosted option with authentication.
 
+## Week 6 — who can write to what it reads
+
+Every place text enters `answer_onboarding_question`, who can write there, and which one an attacker would poison first.
+
+| Source the model reads | Who can write it | Trust | Notes |
+| --- | --- | --- | --- |
+| The question itself | Any service desk staff member who can reach the endpoint | Untrusted | Direct injection door. Leaks scored on the whole response, not this text. |
+| Retrieved onboarding tickets (`search_hybrid` results) | Requesters and hiring managers, through the ticketing system's request form | **Untrusted, and the first one to poison** | Anyone who can raise a ticket can plant instructions that a later question retrieves. Indirect door (`use_case/evals/tc6/poison.py`, synthetic record). |
+| Draft access standard pages | The IT owner, by commit to this repo | Trusted | Reviewed changes only. |
+| Tool names and descriptions the agent sees | This repo's code (`retrieval.py`) | Trusted at rest | Tested with one poisoned description in a run-time copy: the model put the canary in its search arguments 8 of 8 times. No third-party tool descriptions enter the agent. |
+| MCP tool descriptions (`mcp_server.py`) | This repo's code | Trusted | Read by the *client's* model, not this agent; a poisoned description would attack the caller, not us. |
+| System prompt | This repo's code | Trusted | Holds no secret by design (public repo). The canary marks whether injected text is obeyed. |
+
+First target: retrieved ticket text, because its writers are the widest group and none of them are reviewed before the text reaches the model.
+
 ## Week 9 — the full checklist
 
 <!--
