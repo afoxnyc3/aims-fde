@@ -35,11 +35,14 @@ def switch_app_to_injection_model() -> tuple[str, str]:
     model = os.environ.get("INJECTION_MODEL") or values.get("INJECTION_MODEL")
     base = os.environ.get("INJECTION_API_BASE") or values.get("INJECTION_API_BASE")
     require_local(model, base)
-    os.environ.update({"LLM_MODEL": model, "LLM_API_BASE": base, "OLLAMA_API_BASE": base,
-                       "EMBED_MODEL": LOCAL_EMBED, "EMBED_API_BASE": base})
+    # RETRIEVAL_MODEL is set to the local model, not blanked: retrieval.CHAT_MODEL reads it first,
+    # so a hosted RETRIEVAL_MODEL left in .env can never win. With it set, the app drops its own
+    # api_base for chat, and litellm routes ollama_chat/* via OLLAMA_API_BASE (set to loopback here).
+    os.environ.update({"LLM_MODEL": model, "RETRIEVAL_MODEL": model, "LLM_API_BASE": base,
+                       "OLLAMA_API_BASE": base, "EMBED_MODEL": LOCAL_EMBED, "EMBED_API_BASE": base})
     # Blank, not popped: litellm calls load_dotenv() on import, which would put a popped
     # provider key straight back from .env (seen: EMBED_API_KEY). The app treats "" as unset.
-    for name in ("RETRIEVAL_MODEL", "LLM_EXTRA_HEADERS", "EMBED_API_KEY"):
+    for name in ("LLM_EXTRA_HEADERS", "EMBED_API_KEY"):
         os.environ[name] = ""
     return model, base
 
@@ -49,7 +52,8 @@ def assert_app_is_local() -> None:
     import llm
     import retrieval
 
-    require_local(retrieval.CHAT_MODEL, retrieval.CHAT_KWARGS.get("api_base"))
+    # With RETRIEVAL_MODEL set the app passes no api_base for chat; litellm then uses OLLAMA_API_BASE.
+    require_local(retrieval.CHAT_MODEL, retrieval.CHAT_KWARGS.get("api_base") or os.environ.get("OLLAMA_API_BASE"))
     require_local(llm.MODEL, llm.API_BASE)
     require_local(retrieval.EMBED_MODEL, retrieval.EMBED_KWARGS.get("api_base"))
     if "extra_headers" in retrieval.CHAT_KWARGS or "api_key" in retrieval.EMBED_KWARGS:
