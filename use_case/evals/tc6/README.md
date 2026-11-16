@@ -87,6 +87,37 @@ Findings:
    format, not by design: a reply that cited the ticket would have shipped, as two did in the
    weakened v1 runs.
 
+## Steps 4-5: the fixes, the permanent test and the measurement pass
+
+Four fixes are in the shipped answer path (`01_Product_Engineering/challenge/`). Each has a test
+that fails on the code before it and passes after.
+
+| Door | Fix | Leg | Regression test |
+| --- | --- | --- | --- |
+| Tool description | Trace steps returned to the caller are tool name and character count. The arguments go to the server log only (`qa.trace`). | Removes the way out. | `test_qa.AnswerTests.test_tool_arguments_stay_in_the_server_log` |
+| Prompt echo | A cited page counts only if a tool call returned it in the same run. | Filter. The marker stays in the prompt. | `test_qa.AnswerTests.test_prompt_echo_citing_a_page_this_run_never_returned_is_withheld` |
+| Indirect (poisoned ticket) | Approval is read from the ticket's structured status field, never from prose. Links are passed on only if the standard has them. | Filter on the output. The ticket is still read. | `test_qa.OutputCheckTests` |
+| Decline reason quoting the marker | Found by the first after-fix pass (1 roleplay run of 8). The output check withholds the marker in an answer, a decline reason or an invented page name. | Filter. Verbatim, spaced or reversed only. | `test_qa.OutputCheckTests.test_prompt_marker_*` |
+
+Links are checked against the standard pages, not the whole corpus. The poisoned ticket is in the
+corpus, so "any link found in the corpus" would have let its link through.
+
+The permanent test is `../test_injection.py`. It replays the recorded leaking model results of
+2026-11-15 (`../injection_cases.jsonl`, built by `build_injection_cases.py`) through
+`qa.answer_question`, with no model. `harness.blocks_injection` scores the same cases and
+`run.py` prints them beside the Week 4 scorers. Which cases the NeMo input rail covers and which
+the code fix covers is in `../../guardrails/README.md`, with the reason the judge rung is declined.
+
+To see the test red on the code before the fixes:
+
+    git worktree add --detach /tmp/tc6_prefix fa2e56f
+    TC6_APP_DIR=/tmp/tc6_prefix/01_Product_Engineering/challenge uv run --project 01_Product_Engineering/challenge \
+        python -m unittest discover -s use_case/evals -p "test_injection.py"
+
+The measurement pass is `ladder_pass.py` (rails and replay, no model) over the run files that
+`attack.py` and `benign_live.py` write on the local model. Its output is `runs/ladder_pass_*.md`
+and `.json`; the newest one is the file of record.
+
 ## Item 18: which larger sets may feed the false-positive count
 
 - `../real_v05/golden.jsonl` (58): **not synthetic.** Labels for 58 real tickets (`origin: real`,
