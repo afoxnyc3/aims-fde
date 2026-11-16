@@ -1,0 +1,11 @@
+# TC6 ladder as NeMo Guardrails config. No model is configured: every rung here is a rule
+# (Level 1), so the rails run with no model call and no network. The order of the flows is
+# the order of the rungs. The judge rung (Level 3, `self check input`) is declined: see README.md.
+colang_version: "1.0"
+rails:
+  input:
+    flows:
+      - prompt probe rules
+  output:
+    flows:
+      - reply rules

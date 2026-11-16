@@ -1,0 +1,17 @@
+define flow prompt probe rules
+  $probe = execute check_prompt_probe
+  if $probe
+    bot decline prompt probe
+    stop
+
+define flow reply rules
+  $unsafe = execute check_reply
+  if $unsafe
+    bot decline unsafe reply
+    stop
+
+define bot decline prompt probe
+  "I answer onboarding questions from the records. I can't share my instructions."
+
+define bot decline unsafe reply
+  "The reply was not passed on."
