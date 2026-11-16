@@ -119,7 +119,7 @@ class WholeObject(unittest.TestCase):
     def test_dropped_citation_carries_the_tail(self):
         # [SYN-7f3a91] is a well-formed page name, so qa.answer_question returns it in dropped_citations
         # even when the answer itself is withheld.
-        obj = qa(reason="The answer cited no record in the corpus, so it was not passed on.")
+        obj = qa(reason="The answer cited no record that this run's searches returned, so it was not passed on.")
         obj.dropped_citations = ["SYN-7f3a91"]
         self.assertTrue(leaked(obj))
         self.assertTrue(leaked(obj.model_dump_json()))

@@ -151,6 +151,11 @@ class Retriever:
         # The server answers questions on several threads; without the lock two
         # first questions would each embed the whole corpus.
         self._matrix_lock = threading.Lock()
+        # Page names the last tool call on this thread returned (TC6): the citation gate only
+        # accepts pages a call in the same run handed the model. Per thread, since one Retriever
+        # serves every request. Recorded here, not parsed from the output, so ticket text that
+        # imitates a hit heading cannot add a name.
+        self._last = threading.local()
 
     # --- ranking -------------------------------------------------------------
 
@@ -209,7 +214,12 @@ class Retriever:
 
     # --- tools the model can call --------------------------------------------
 
+    def last_returned(self) -> list[str]:
+        """Names of the pages whose text the last tool call on this thread returned."""
+        return list(getattr(self._last, "names", []))
+
     def _hits(self, ranked: list[tuple[str, float]]) -> str:
+        self._last.names = [name for name, _ in ranked]
         if not ranked:
             return "(no matches)"
         return "\n\n---\n\n".join(f"[{name}]\n{self.pages[name].text[:HIT_CHARS]}" for name, _ in ranked)
@@ -224,6 +234,7 @@ class Retriever:
         return self._hits(self.hybrid_ranked(query, max(1, min(int(k), 8))))
 
     def list_pages(self) -> str:
+        self._last.names = []  # titles only: listing a page is not reading it
         return self.index_text
 
     def grep_pages(self, pattern: str) -> str:
@@ -237,7 +248,9 @@ class Retriever:
             for number, line in enumerate(self.pages[name].text.splitlines(), 1)
             if any(needle in line.lower() for needle in needles)
         ]
-        return "\n".join(matches[:GREP_LINES]) or "(no matches)"
+        shown = matches[:GREP_LINES]
+        self._last.names = list(dict.fromkeys(line.split(":", 1)[0] for line in shown))
+        return "\n".join(shown) or "(no matches)"
 
     def get_page(self, name: str) -> Page | None:
         """The one lookup by name: the agent's read_page and the public endpoint both use it.
@@ -248,6 +261,7 @@ class Retriever:
 
     def read_page(self, page: str) -> str:
         found = self.get_page(page)
+        self._last.names = [found.name] if found else []
         return found.text[:READ_CHARS] if found else f"(unknown page: {page})"
 
 
@@ -332,11 +346,18 @@ TECHNIQUES = {
 }
 
 
-def cited_pages(answer: str, retriever: Retriever) -> list[str]:
-    """Page names the answer cites that exist. Invented ids are dropped, never passed on."""
+def cited_pages(answer: str, retriever: Retriever, returned=None) -> list[str]:
+    """Page names the answer cites that exist and, given `returned`, that this run retrieved.
+
+    `returned` is the run's `returned_pages`: every page a tool call handed the model. The
+    endpoint always passes it (TC6). Existing in the corpus is not enough: the system prompt
+    names [STD-role-list] as its own example, so a verbatim echo of the prompt cited a real page
+    and shipped with the marker in it. Invented ids are dropped either way, never passed on.
+    """
+    allowed = None if returned is None else set(returned)
     seen = []
     for name in PAGE_ID.findall(answer or ""):
-        if name in retriever.pages and name not in seen:
+        if name in retriever.pages and name not in seen and (allowed is None or name in allowed):
             seen.append(name)
     return seen
 
@@ -366,7 +387,7 @@ def run_agent(question: str, technique: str, retriever: Retriever,
             return _final(step, trace, evidence_chars, tokens, started, retried)
         messages.append(message.model_dump(exclude_none=True))
         for call in message.tool_calls:
-            args = {}
+            args, pages = {}, []
             try:
                 parsed = json.loads(call.function.arguments or "{}")
                 if not isinstance(parsed, dict):
@@ -375,13 +396,14 @@ def run_agent(question: str, technique: str, retriever: Retriever,
                 if call.function.name not in allowed:
                     raise LookupError(call.function.name)
                 output = getattr(retriever, call.function.name)(**args)
+                pages = retriever.last_returned()
             except APIError:
                 # An embedding outage is a failure, not missing evidence. Swallowed
                 # here it would come back as a polite "cannot answer".
                 raise
             except Exception as exc:  # the model sees the error and can recover, as in Session 5
                 output = f"(tool error: {type(exc).__name__})"
-            trace.append({"tool": call.function.name, "args": args, "chars": len(output)})
+            trace.append({"tool": call.function.name, "args": args, "chars": len(output), "pages": pages})
             evidence_chars += len(output)
             messages.append({"role": "tool", "tool_call_id": call.id, "content": output})
     return _result("", trace, evidence_chars, tokens, started, "max_turns")
@@ -395,7 +417,8 @@ def answer_once(question: str, retriever: Retriever, model: str = CHAT_MODEL, k:
                 {"role": "user", "content": f"Evidence:\n\n{hits}\n\nQuestion: {question}"}]
     response = chat_turn(messages, FINAL_TOOLS, model, **CHAT_KWARGS)
     tokens = _tokens(response)
-    trace = [{"tool": "search_hybrid", "args": {"query": question, "k": k}, "chars": len(hits)}]
+    trace = [{"tool": "search_hybrid", "args": {"query": question, "k": k}, "chars": len(hits),
+              "pages": retriever.last_returned()}]
     message = response.choices[0].message
     # Only the final tools are offered, so a turn without one of them is unstructured.
     step = final_step(message) or ("unstructured", message.content or "")
@@ -432,6 +455,8 @@ def _final(step, trace, evidence_chars, tokens, started, retried=False) -> dict:
 
 def _result(answer, trace, evidence_chars, tokens, started, stopped, decline_reason=None, retried=False) -> dict:
     """`retried`: the first final reply was prose, so the one retry turn ran (repair_step)."""
-    return {"answer": answer, "trace": trace, "calls": len(trace), "evidence_chars": evidence_chars,
+    returned = list(dict.fromkeys(name for step in trace for name in step.get("pages", [])))
+    return {"answer": answer, "trace": trace, "returned_pages": returned,
+            "calls": len(trace), "evidence_chars": evidence_chars,
             "tokens": tokens, "latency_s": round(time.perf_counter() - started, 2), "stopped": stopped,
             "decline_reason": decline_reason, "retried": retried}

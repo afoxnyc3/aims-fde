@@ -64,7 +64,7 @@ class QuestionAnswer(BaseModel):
     declined: bool = Field(
         description=(
             "True when the records do not support an answer: the model called decline, it replied "
-            "without calling answer or decline, the turn budget ran out, or the answer cited no real record."
+            "without calling answer or decline, the turn budget ran out, or the answer cited no record that a search in this run returned."
         )
     )
     answer: str | None = Field(
@@ -74,7 +74,7 @@ class QuestionAnswer(BaseModel):
         default_factory=list,
         description=(
             "Every record the answer cites, by page name (SYN-* tickets, STD-* standard pages). "
-            "Only names that exist in the corpus. At least one when answered; may be empty when declined."
+            "Only names that exist in the corpus and that a retrieval call in this run returned. At least one when answered; may be empty when declined."
         ),
     )
     decline_reason: str | None = Field(
@@ -82,7 +82,8 @@ class QuestionAnswer(BaseModel):
     )
     dropped_citations: list[str] = Field(
         default_factory=list,
-        description="Record names the model cited that do not exist. Removed from sources; a sign of guessing.",
+        description=("Record names the model cited that do not exist, or that no retrieval call in this run "
+                     "returned. Removed from sources; a sign of guessing or of an echoed prompt."),
     )
     trace: RetrievalTrace = Field(description="How the answer was found.")
 

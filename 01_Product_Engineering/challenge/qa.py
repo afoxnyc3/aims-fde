@@ -56,10 +56,14 @@ def answer_question(request: QuestionRequest) -> QuestionAnswer:
         raise AnswerUnavailable(f"the model service failed ({type(exc).__name__})") from None
 
     text = (result["answer"] or "").strip()
-    sources = retrieval.cited_pages(text, retriever)
-    # A decline reason is model text shown to the user too, so its invented ids are reported the same way.
+    # Only pages a tool call returned in this run count as sources. A result without the list
+    # counts as nothing returned, so the gate fails closed.
+    returned = result.get("returned_pages") or []
+    sources = retrieval.cited_pages(text, retriever, returned)
+    # A decline reason is model text shown to the user too, so its ids are reported the same way:
+    # invented ones, and real ones no call in this run returned.
     said = text or result.get("decline_reason") or ""
-    dropped = sorted(set(retrieval.PAGE_ID.findall(said)) - set(retrieval.cited_pages(said, retriever)))
+    dropped = sorted(set(retrieval.PAGE_ID.findall(said)) - set(retrieval.cited_pages(said, retriever, returned)))
     trace = RetrievalTrace(
         technique=SHIPPED_TECHNIQUE, model=retrieval.CHAT_MODEL,
         # Tool name and character count only: the arguments are model text and stay server-side.
@@ -87,7 +91,7 @@ def answer_question(request: QuestionRequest) -> QuestionAnswer:
     elif result["stopped"] == "max_turns":
         reason = "The turn budget ran out before the records answered the question."
     elif not sources:
-        reason = "The answer cited no record in the corpus, so it was not passed on."
+        reason = "The answer cited no record that this run's searches returned, so it was not passed on."
     else:
         reason = None
 
