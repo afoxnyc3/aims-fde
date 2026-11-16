@@ -15,6 +15,7 @@ from pathlib import Path
 from openai import APIError
 
 import corpus
+import outcheck
 import retrieval
 from qa_schema import QuestionAnswer, QuestionRequest, RetrievalTrace, ToolStep
 
@@ -94,6 +95,13 @@ def answer_question(request: QuestionRequest) -> QuestionAnswer:
         reason = "The answer cited no record that this run's searches returned, so it was not passed on."
     else:
         reason = None
+
+    # Output check: model text shown to the user, answer or decline reason, may not state an
+    # approval the cited tickets' status fields do not carry, nor give a link from outside the
+    # standard. The fixed reason replaces the text; none of it is passed on.
+    blocked = outcheck.withheld_reason(text if not reason else reason, sources, retriever.pages)
+    if blocked:
+        reason = blocked
 
     if reason:
         return QuestionAnswer(question=request.question, declined=True, decline_reason=reason,

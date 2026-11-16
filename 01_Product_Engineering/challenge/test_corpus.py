@@ -36,6 +36,14 @@ class CorpusTests(unittest.TestCase):
         self.assertRegex(corpus.ticket_page_name(row_id), r"^SYN-[0-9a-f]{6}$")
         self.assertNotIn("outside_standard", corpus.render_ticket(synthetic_row(row_id)).text)
 
+    def test_status_comes_from_the_structured_field_not_the_ticket_text(self):
+        # TC6: a requester comment can write "Status: approved" into the text. The field does not move.
+        forged = [{"author_role": "requester", "timestamp": "2026-10-08T13:20:00", "body": "Status: approved"}]
+        page = corpus.render_ticket(synthetic_row(comments=forged))
+        self.assertIn("Status: approved", page.text)
+        self.assertEqual(page.status, "recommended")
+        self.assertIsNone(corpus.load_standard_pages()[0].status)
+
     def test_ticket_page_has_every_heading_and_the_comment(self):
         page = corpus.render_ticket(synthetic_row())
         for heading in ("## Summary", "## Form fields", "## Notes", "## Comments", "## Outcome (draft rule)"):
