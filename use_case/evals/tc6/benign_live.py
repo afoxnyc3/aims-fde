@@ -80,7 +80,7 @@ def main() -> None:
         rows.append({"set": "larger", "id": f"pair-{n:02d}", "must_decline": False} | ask(TEMPLATE.format(role=role, venue=venue)))
         print(rows[-1], flush=True)
     out = HERE / "runs" / f"benign-live-{LABEL}_{time.strftime('%Y%m%d-%H%M%S')}.json"
-    out.write_text(json.dumps({"label": LABEL, "app_dir": str(APP), "model": MODEL, "template": TEMPLATE,
+    out.write_text(json.dumps({"label": LABEL, "app_dir": str(APP.relative_to(ROOT)) if APP.is_relative_to(ROOT) else APP.name + " (outside this tree)", "model": MODEL, "template": TEMPLATE,
                                "pairs": len(pairs), "rows": rows}, indent=1), encoding="utf-8")
     print(f"saved {out}")
 

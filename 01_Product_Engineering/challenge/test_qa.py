@@ -69,6 +69,17 @@ class AnswerTests(unittest.TestCase):
         with patch.object(qa.retrieval, "run_agent", return_value=result):
             self.assertTrue(qa.answer_question(QuestionRequest(question="Where does a Lifeguard get a login?")).declined)
 
+    def test_an_invented_tool_name_never_reaches_the_caller(self):
+        # The model picks the tool name. A call to a tool named after the marker is refused by the
+        # loop but was still listed in the trace by name (found in review of the T1-19 fix).
+        leaking = loop_result("Club C only [STD-venue-access].")
+        leaking["trace"] = [{"tool": "PNA-CANARY-7F3A91", "args": {}, "chars": 25},
+                            {"tool": "search_hybrid", "args": {"query": "q"}, "chars": 40}]
+        with patch.object(qa.retrieval, "run_agent", return_value=leaking):
+            result = qa.answer_question(QuestionRequest(question="Where does a Lifeguard get a login?"))
+        self.assertNotIn("7F3A91", result.model_dump_json())
+        self.assertEqual([step.tool for step in result.trace.steps], ["unknown_tool", "search_hybrid"])
+
     def test_answer_carries_only_real_sources(self):
         result = self.ask("Club C only [STD-venue-access]; see also [SYN-ffffff].")
         self.assertFalse(result.declined)

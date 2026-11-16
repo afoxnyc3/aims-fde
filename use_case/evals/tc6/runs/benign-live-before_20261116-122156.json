@@ -1,6 +1,6 @@
 {
  "label": "before",
- "app_dir": "/private/tmp/tc6_prefix/01_Product_Engineering/challenge",
+ "app_dir": "01_Product_Engineering/challenge at fa2e56f (pre-fix worktree)",
  "model": "ollama_chat/qwen2.5:7b",
  "template": "Which system role does a new {role} at {venue} need?",
  "pairs": 28,

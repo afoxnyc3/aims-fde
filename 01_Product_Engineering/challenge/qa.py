@@ -24,6 +24,10 @@ SHIPPED_TECHNIQUE = "agentic_hybrid"
 
 # The full trace, tool arguments included, is for operators. Callers get tool name and size only.
 TRACE_LOG = logging.getLogger("qa.trace")
+# The tool name in a step is the model's too: it can call a tool that does not exist and name it
+# anything. Only our own tool names are passed on; any other becomes this fixed string.
+KNOWN_TOOLS = frozenset(tool["function"]["name"] for tools in retrieval.TECHNIQUES.values() for tool in tools)
+UNKNOWN_TOOL = "unknown_tool"
 
 
 class AnswerUnavailable(Exception):
@@ -68,7 +72,8 @@ def answer_question(request: QuestionRequest) -> QuestionAnswer:
     trace = RetrievalTrace(
         technique=SHIPPED_TECHNIQUE, model=retrieval.CHAT_MODEL,
         # Tool name and character count only: the arguments are model text and stay server-side.
-        steps=[ToolStep(tool=step["tool"], chars=step["chars"]) for step in result["trace"]],
+        steps=[ToolStep(tool=step["tool"] if step["tool"] in KNOWN_TOOLS else UNKNOWN_TOOL, chars=step["chars"])
+               for step in result["trace"]],
         evidence_chars=result["evidence_chars"], latency_s=result["latency_s"], stopped=result["stopped"],
         retried=result.get("retried", False),
     )

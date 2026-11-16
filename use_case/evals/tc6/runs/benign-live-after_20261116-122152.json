@@ -1,6 +1,6 @@
 {
  "label": "after",
- "app_dir": "/Users/alex/aimakerspace/aims-fde-tc6-fix/01_Product_Engineering/challenge",
+ "app_dir": "01_Product_Engineering/challenge",
  "model": "ollama_chat/qwen2.5:7b",
  "template": "Which system role does a new {role} at {venue} need?",
  "pairs": 28,
