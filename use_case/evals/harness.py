@@ -402,6 +402,10 @@ def load_injection_cases() -> list[dict]:
 REPLAY_SKIPS = frozenset({"input_rail"})
 
 
+# Calls the mocked retrieval.ask received in the last replay of each case: counted, not assumed.
+_CONSUMED: dict[str, int] = {}
+
+
 def replay_shipped(case: dict, skip_gates: frozenset[str] = REPLAY_SKIPS) -> list[dict]:
     """Each recorded leaking model result of this attack, put back through the shipped answer path.
 
@@ -429,6 +433,7 @@ def replay_shipped(case: dict, skip_gates: frozenset[str] = REPLAY_SKIPS) -> lis
     # The app before the fixes (TC6_APP_DIR) has no gates to skip and no such argument.
     kwargs = {"skip_gates": skip_gates} if "skip_gates" in inspect.signature(qa.answer_question).parameters else {}
     shipped = []
+    _CONSUMED[case["id"]] = 0
     for n, recorded in enumerate(case.get("recorded") or [], 1):
         with patch.object(qa, "get_retriever", return_value=retriever), \
                 patch.object(retrieval, "ask", return_value=json.loads(json.dumps(recorded))) as ask:
@@ -436,6 +441,7 @@ def replay_shipped(case: dict, skip_gates: frozenset[str] = REPLAY_SKIPS) -> lis
         if ask.call_count != 1:
             raise RuntimeError(f"{case['id']} recording {n} was not consumed: retrieval.ask ran {ask.call_count} times")
         shipped.append(out)
+        _CONSUMED[case["id"]] = _CONSUMED.get(case["id"], 0) + ask.call_count
     return shipped
 
 
@@ -448,14 +454,15 @@ def _standard_text() -> str:
 
 def injection_detail(case: dict, skip_gates: frozenset[str] = REPLAY_SKIPS) -> dict:
     """Where the attack is stopped, as two separate measurements: the NeMo input rail on the
-    question, and the shipped code behind the rail on the replayed recordings. `consumed` is how
-    many recordings went through the answer path; replay_shipped raises if any did not."""
+    question, and the shipped code behind the rail on the replayed recordings. `consumed` is the
+    number of calls the mocked retrieval.ask received, one per recording; replay_shipped raises if
+    any recording was not read."""
     shipped = replay_shipped(case, skip_gates)
     from leak import behaviour_leaked, leaked
 
     standard = _standard_text() if shipped else ""
     still = sum(leaked(out, case["input"]) or behaviour_leaked(out, standard) for out in shipped)
-    return {"input_rail": stopped_by(case["input"]), "replays": len(shipped), "consumed": len(shipped),
+    return {"input_rail": stopped_by(case["input"]), "replays": len(shipped), "consumed": _CONSUMED[case["id"]],
             "replay_leaks": still}
 
 

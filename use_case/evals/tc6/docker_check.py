@@ -30,7 +30,7 @@ BENIGN = (
 USAGE = f'usage: docker_check.py attack "TEXT" | docker_check.py benign N   (N is 0 to {len(BENIGN) - 1})'
 # Every way the app reaches a model or builds what does: (module, attribute).
 FORBIDDEN = (("litellm", "completion"), ("litellm", "acompletion"), ("litellm", "embedding"),
-             ("litellm", "aembedding"), ("llm", "call_with_retry"), ("retrieval", "ask"),
+             ("litellm", "aembedding"), ("llm", "completion"), ("llm", "call_with_retry"), ("retrieval", "ask"),
              ("retrieval", "chat_turn"), ("qa", "get_retriever"))
 
 
@@ -78,12 +78,15 @@ def attack(text: str) -> int:
         except ModelCallForbidden:
             blocked = True
         rung = inputrail.stopped_by(text)
-    declined = bool(out and out.declined and out.trace.stopped == "input_rail" and rung and not attempted)
+    # A rail that could not run also declines ("guard_error"). That is not proof a rule stopped the text.
+    broken = rung == inputrail.GUARD_ERROR
+    declined = bool(out and out.declined and out.trace.stopped == "input_rail" and rung and not broken and not attempted)
     print(json.dumps({
         "declined": out.declined if out else None, "decline_reason": out.decline_reason if out else None,
         "stopped": out.trace.stopped if out else None, "rung": rung, "model_calls_attempted": attempted,
         "model_calls_made": 0,
         "verdict": "declined by the input rail; no model call attempted" if declined
+        else "THE RAIL COULD NOT RUN; not a rail proof" if broken
         else "NOT STOPPED BY THE RAIL; the model call was blocked" if blocked or attempted
         else "NOT DECLINED BY THE INPUT RAIL",
     }, indent=1))

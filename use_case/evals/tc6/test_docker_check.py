@@ -69,6 +69,26 @@ class AttackModeForbidsEveryModelCall(unittest.TestCase):
                                      "retrieval.chat_turn", "qa.get_retriever"])
         self.completion.assert_not_called()
 
+    def test_all_of_forbidden_raises_inside_the_guard(self):
+        import importlib
+        attempted = []
+        with docker_check.forbid_model_calls(attempted):
+            for module, attribute in docker_check.FORBIDDEN:
+                with self.subTest(entry=f"{module}.{attribute}"), self.assertRaises(docker_check.ModelCallForbidden):
+                    getattr(importlib.import_module(module), attribute)()
+        self.assertEqual(attempted, [f"{m}.{a}" for m, a in docker_check.FORBIDDEN])
+        self.assertIn(("llm", "completion"), docker_check.FORBIDDEN)
+
+    def test_a_rail_that_cannot_run_is_not_a_rail_proof(self):
+        # A broken rail declines everything with "guard_error". Exit 0 there would prove nothing.
+        import inputrail
+        with mock.patch.object(inputrail, "_check", side_effect=RuntimeError("rails did not build")):
+            code, out = run(["attack", BYPASS])
+        report = json.loads(out[out.index("{"):])
+        self.assertEqual((code, report["rung"]), (1, "guard_error"))
+        self.assertEqual(report["verdict"], "THE RAIL COULD NOT RUN; not a rail proof")
+        self.completion.assert_not_called()
+
     def test_a_stopped_attack_exits_zero_with_no_call_attempted(self):
         code, out = run(["attack", STOPPED])
         report = json.loads(out[out.index("{"):])

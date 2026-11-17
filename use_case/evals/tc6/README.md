@@ -206,7 +206,8 @@ Built from the app folder alone. Run from `01_Product_Engineering/challenge/`. `
 - `attack "TEXT"` proves the input rail declines the text. Every model and retrieval entry point is
   replaced by one that raises, so the text can go no further than the rail whatever model the
   container is pointed at. It exits 0 only if the rail declined and nothing tried to call a model,
-  and refuses to start if a hosted key is in the environment.
+  and refuses to start if a hosted key is in the environment. A rail that could not run
+  (`guard_error`) also declines, and is reported as a failure, not as proof.
 - `benign N` asks question N of a fixed list in the file (four golden questions and one templated
   one). It takes no free text: anything but an index in range is refused before the app is imported.
 
