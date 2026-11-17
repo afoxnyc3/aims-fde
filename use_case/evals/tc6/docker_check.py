@@ -6,7 +6,8 @@
 attack: every model and retrieval entry point is replaced by one that raises, so the text can go
 no further than the input rail whatever model the container is pointed at. Exit 0 only if the rail
 declined it and nothing tried to call a model; exit 1 if the rail let it through (the call was
-blocked, not made). It refuses to start (exit 2) when a hosted key is in the environment. It needs
+blocked, not made). It refuses to start (exit 2) when a provider credential variable is set (API
+keys, and the AWS, Azure and Google names; by variable name only, see hosted_keys). It needs
 no key and no network: run it with `--network none` and no env file (see README.md, "Docker").
 
 benign: takes no free text. The argument is an index into BENIGN, questions copied from the golden
@@ -16,6 +17,7 @@ set (retrieval.jsonl) and the templated set (ladder_pass.TEMPLATE). Anything els
 import contextlib
 import json
 import os
+import re
 import sys
 from unittest.mock import patch
 
@@ -56,8 +58,18 @@ def forbid_model_calls(attempted: list[str]):
         yield
 
 
+# Names the common providers read a credential from: OpenAI-style keys, AWS (Bedrock), Azure, Google
+# (Vertex), Hugging Face, Replicate, watsonx. A check on variable names only: a credential in a file
+# (~/.aws/credentials, a default gcloud login) or an instance role is not seen. What stops a call in
+# attack mode is forbid_model_calls, not this list.
+_CREDENTIAL = re.compile(
+    r"_(API_?KEY|API_TOKEN|ACCESS_KEY_ID|SECRET_ACCESS_KEY|SESSION_TOKEN|AD_TOKEN|CLIENT_SECRET|CREDENTIALS)$"
+    r"|^(AWS_BEARER_TOKEN_BEDROCK|AWS_PROFILE|AWS_WEB_IDENTITY_TOKEN_FILE|HF_TOKEN|HUGGINGFACE_HUB_TOKEN)$")
+
+
 def hosted_keys() -> list[str]:
-    return sorted(k for k, v in os.environ.items() if k.endswith("_API_KEY") and v)
+    """Non-empty environment variables whose name is a provider credential name."""
+    return sorted(k for k, v in os.environ.items() if v and _CREDENTIAL.search(k.upper()))
 
 
 def attack(text: str) -> int:
@@ -68,7 +80,7 @@ def attack(text: str) -> int:
 
     keys = hosted_keys()  # read after the imports: litellm loads a .env file when it is imported
     if keys:
-        print(f"refused: attack mode does not run with a hosted key in the environment ({len(keys)} found)", file=sys.stderr)
+        print(f"refused: attack mode does not run with a provider credential in the environment ({len(keys)} found)", file=sys.stderr)
         return 2
     print("mode attack | model", retrieval.CHAT_MODEL, "| hosted keys in env: [] | model calls: forbidden")
     attempted, out, blocked = [], None, False

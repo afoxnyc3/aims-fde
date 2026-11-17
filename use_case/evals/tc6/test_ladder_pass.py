@@ -26,7 +26,10 @@ class NoFinalTextCohort(unittest.TestCase):
         self.assertEqual(cohort["n"], 17)
         self.assertEqual(cohort["by_attack"], {"roleplay": 6, "format": 3, "obfuscate": 6, "poisoned-search_hybrid": 2})
         self.assertEqual(cohort["prose_dropped_no_tool_call"], 12)
-        self.assertEqual(cohort["with_a_tool_call"], 2)
+        # 2 recordings hold a search trace. The 3 format runs also made a tool call (an answer call
+        # with no text), so the old name "with_a_tool_call" undercounted what it named.
+        self.assertEqual(cohort["with_a_search_trace"], 2)
+        self.assertNotIn("with_a_tool_call", cohort)
         self.assertNotIn("tool argument", cohort["note"])
 
     def test_the_old_label_is_no_longer_a_key_or_a_table_row_in_the_file_of_record(self):
@@ -36,6 +39,8 @@ class NoFinalTextCohort(unittest.TestCase):
         self.assertFalse([key for key in rails if OLD_LABEL in key])
         self.assertEqual(rails["attacks_recorded_no_final_answer_or_decline_reason"]["n"], 17)
         self.assertEqual(rails["attacks_recorded_no_final_answer_or_decline_reason"]["prose_dropped_no_tool_call"], 12)
+        self.assertEqual(rails["attacks_recorded_no_final_answer_or_decline_reason"]["with_a_search_trace"], 2)
+        self.assertNotIn("with_a_tool_call", rails["attacks_recorded_no_final_answer_or_decline_reason"])
         rows = [line for line in newest.with_suffix(".md").read_text(encoding="utf-8").splitlines() if line.startswith("|")]
         self.assertFalse([row for row in rows if OLD_LABEL in row])
         self.assertTrue([row for row in rows if "attacks_recorded_no_final_answer_or_decline_reason | 17 | 0 |" in row])

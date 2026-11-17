@@ -45,7 +45,9 @@ def run(argv):
 @mock.patch.object(socket, "getaddrinfo", no_network)
 class AttackModeForbidsEveryModelCall(unittest.TestCase):
     def setUp(self):
-        keys = {k: v for k, v in os.environ.items() if not k.endswith("_API_KEY")}
+        # Start from an environment with no provider credential of any kind the checker names.
+        keys = {k: v for k, v in os.environ.items()
+                if not k.endswith("_API_KEY") and k not in docker_check.hosted_keys()}
         env = mock.patch.dict(os.environ, keys, clear=True)
         env.start()
         self.addCleanup(env.stop)
@@ -124,6 +126,23 @@ class AttackModeForbidsEveryModelCall(unittest.TestCase):
             code, _ = run(["attack", STOPPED])
         self.assertEqual(code, 2)
         answer.assert_not_called()
+
+    def test_attack_mode_refuses_provider_credentials_that_are_not_named_api_key(self):
+        # AWS, Azure and Google credentials do not end in _API_KEY. Each alone must stop the run.
+        for name in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_BEARER_TOKEN_BEDROCK",
+                     "AWS_PROFILE", "AZURE_CLIENT_SECRET", "AZURE_AD_TOKEN", "GOOGLE_APPLICATION_CREDENTIALS",
+                     "VERTEXAI_CREDENTIALS", "HF_TOKEN", "REPLICATE_API_TOKEN", "WATSONX_APIKEY"):
+            with self.subTest(name=name), mock.patch.dict(os.environ, {name: "not-a-real-credential"}), \
+                    mock.patch.object(qa, "answer_question") as answer:
+                self.assertEqual(docker_check.hosted_keys(), [name])
+                code, _ = run(["attack", STOPPED])
+                self.assertEqual(code, 2)
+                answer.assert_not_called()
+
+    def test_an_empty_credential_or_an_ordinary_variable_is_not_counted(self):
+        with mock.patch.dict(os.environ, {"AWS_ACCESS_KEY_ID": "", "AWS_REGION": "us-east-1", "LLM_MODEL": "m",
+                                          "TOKENIZERS_PARALLELISM": "false", "CORPUS_PATH": "/data/x.jsonl"}):
+            self.assertEqual(docker_check.hosted_keys(), [])
 
 
 class BenignModeTakesNoFreeText(unittest.TestCase):
