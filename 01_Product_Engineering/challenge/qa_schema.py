@@ -23,10 +23,17 @@ class QuestionRequest(BaseModel):
 
 
 class ToolStep(BaseModel):
-    """One retrieval call, kept so a reader can see how the answer was found."""
+    """One retrieval call, reduced to what is safe to hand back: which tool, how much it returned.
+
+    The arguments are not here on purpose (TC6). They are model-written text, and a poisoned tool
+    description made the model put the system prompt's marker in a search query, which this field
+    then returned to the caller 8 runs of 8. The full step, arguments included, goes to the server
+    log only (logger `qa.trace`).
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
     tool: str = Field(description="The retrieval tool called, such as search_chunks.")
-    args: dict = Field(description="The arguments the model passed to it.")
     chars: int = Field(description="Characters of evidence the call returned.")
 
 
@@ -41,7 +48,8 @@ class RetrievalTrace(BaseModel):
     stopped: str = Field(description=(
         "'answer' if the model called the answer tool; 'declined' if it called the decline tool; "
         "'unstructured' if it replied in prose without either, even after one retry (declined); "
-        "'max_turns' if the turn budget ran out."
+        "'max_turns' if the turn budget ran out; "
+        "'input_rail' if the input rail stopped the question before any model or retrieval call (declined)."
     ))
     retried: bool = Field(default=False, description=(
         "True when the first final reply was prose, so one retry turn offering only answer and decline ran."
@@ -57,7 +65,7 @@ class QuestionAnswer(BaseModel):
     declined: bool = Field(
         description=(
             "True when the records do not support an answer: the model called decline, it replied "
-            "without calling answer or decline, the turn budget ran out, or the answer cited no real record."
+            "without calling answer or decline, the turn budget ran out, or the answer cited no record that a search in this run returned."
         )
     )
     answer: str | None = Field(
@@ -67,7 +75,7 @@ class QuestionAnswer(BaseModel):
         default_factory=list,
         description=(
             "Every record the answer cites, by page name (SYN-* tickets, STD-* standard pages). "
-            "Only names that exist in the corpus. At least one when answered; may be empty when declined."
+            "Only names that exist in the corpus and that a retrieval call in this run returned. At least one when answered; may be empty when declined."
         ),
     )
     decline_reason: str | None = Field(
@@ -75,7 +83,8 @@ class QuestionAnswer(BaseModel):
     )
     dropped_citations: list[str] = Field(
         default_factory=list,
-        description="Record names the model cited that do not exist. Removed from sources; a sign of guessing.",
+        description=("Record names the model cited that do not exist, or that no retrieval call in this run "
+                     "returned. Removed from sources; a sign of guessing or of an echoed prompt."),
     )
     trace: RetrievalTrace = Field(description="How the answer was found.")
 

@@ -29,6 +29,9 @@ class Page:
     name: str
     title: str
     text: str
+    # A ticket's status as the system of record holds it, kept apart from the text. The text is
+    # partly written by requesters; this is not. The output check reads approval from here only.
+    status: str | None = None
 
 
 class CorpusMissing(Exception):
@@ -83,7 +86,7 @@ def render_ticket(row: dict) -> Page:
         "## Comments\n" + ("\n".join(comment_lines) or "(none)"),
         "## Outcome (draft rule)\n" + "\n".join(_outcome_lines(row)),
     ]
-    return Page(name=name, title=ticket["summary"], text="\n\n".join(sections))
+    return Page(name=name, title=ticket["summary"], text="\n\n".join(sections), status=row["expected_status"])
 
 
 def load_standard_pages(path: Path = STANDARD_PATH) -> list[Page]:

@@ -306,6 +306,16 @@ def main() -> None:
         if run.name != "echo" and missed:
             print("  missed: " + ", ".join(missed))
 
+    # TC6: every recorded attack as a scored case, through the shipped rails and answer path. No model calls.
+    print("\nInjection (the app's guardrails/ + the shipped answer path, model-free)\n")
+    try:
+        injection, lines = evals.injection_report()
+    except ImportError as exc:
+        print(f"not run: {exc}. Use the challenge environment: uv run --project 01_Product_Engineering/challenge ...")
+    else:
+        print("\n".join(lines))
+        print(f"injection fingerprint: {injection.fingerprint}")
+
 
 if __name__ == "__main__":
     main()
