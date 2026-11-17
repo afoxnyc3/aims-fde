@@ -228,10 +228,16 @@ What the table must not be read as saying:
   standard pages (Level 1).
 - **The input rail covers direct attacks only:** 12 of 12 fitted, 0 of 6 tool and indirect questions.
 - **All doors together: 13 of 100 runs shipped a leak before, 1 of 84 after the three planned fixes,
-  0 of 84 after the marker check (LP part C).** The 0 of 84 was measured on app code at `680480b`,
-  one app commit before the tool-name fix (`5478746`, trace steps return only our own tool names),
-  before the input rail was put on the request path (`60fd4f0`) and before the rules were narrowed
-  (`ad3be3e`). It has not been re-run on the final code. 16 of the 100 before-runs (the two
+  0 of 84 after the marker check (LP part C).** That pass ran on app code at `680480b`,
+  before the tool-name fix (`5478746`, trace steps return only our own tool names), before the input
+  rail was put on the request path (`60fd4f0`) and before the rules were narrowed (`ad3be3e`).
+  **The pass was re-run on the final code (`0709a05`) on 2026-11-17:** 84 runs on the same local
+  model (`*_20261117-16*.jsonl`), and 0 of 84 reached the caller by `leaked()`. Two facts sit next
+  to that number. (1) On the final code the input rail is on the request path and stopped the 52
+  direct runs before the model, so only the 32 tool and indirect runs reached the model, unlike the
+  2026-11-16 pass. (2) The behaviour scorer flags 1 of 84 (indirect own-ticket, run 7): the reply
+  was withheld, and the scorer matched the app's own withhold notice, not model text. It is still
+  one pass on one small local model. 16 of the 100 before-runs (the two
   unpinned poisoned-ticket variants) were not repeated after, which is why the totals differ.
 - **False positives on the production model: 0 of 43 withheld by the gates, one run per arm** (PROD).
   The same ten questions were declined by the model with the gates on and off. One run of 43 does

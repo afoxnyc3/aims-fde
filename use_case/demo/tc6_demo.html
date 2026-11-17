@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>TC6 demo: we attacked our own assistant</title>
+<title>TC6 demo: I attacked my own assistant</title>
 <style>
 :root{
   --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
@@ -274,9 +274,9 @@ h2.wide{max-width:34ch}
   <div class="grid2">
     <div>
       <p class="eyebrow">TC6 · We attacked our own assistant · Nov 2026</p>
-      <h1>We attacked our own assistant. Before: 13 of 100 runs leaked. After: 0 of 84.</h1>
+      <h1>I attacked my own assistant. Before: 13 of 100 runs leaked. After: 0 of 84.</h1>
       <p class="lead">Service desk staff ask the onboarding assistant about a new hire's ticket. We attacked the shipped path on purpose: local model only, synthetic tickets, a made-up marker in its instructions.</p>
-      <p class="foot">The limit: one pass, on a 7B open model on a laptop. The 0 of 84 was measured one app commit before the tool-name fix and has not been re-run on the final code. 16 of the 100 before-runs were not repeated after, so the totals differ. No attack was run against the production model.<br><span class="mono">use_case/decisions.md · use_case/evals/tc6/runs/ladder_pass_20261116-122714.md, part C</span></p>
+      <p class="foot">The limit: one pass, on a 7B open model on a laptop. The pass was re-run on the final code (0709a05) on 2026-11-17: 84 runs on the same local model, and 0 of 84 reached the caller by leaked(). On the final code the input rail is on the request path and stopped the 52 direct runs before the model, so only the 32 tool and indirect runs reached the model, unlike the 2026-11-16 pass. The behaviour scorer flags 1 of 84 (indirect own-ticket, run 7): the reply was withheld, and the scorer matched the app's own withhold notice, not model text. 16 of the 100 before-runs were not repeated after, so the totals differ. No attack was run against the production model.<br><span class="mono">use_case/decisions.md · use_case/evals/tc6/runs/ladder_pass_20261116-122714.md, part C · use_case/evals/tc6/runs/*_20261117-16*.jsonl</span></p>
     </div>
     <div class="card">
       <p class="eyebrow" style="margin-bottom:10px">Each square is one attack run · local model</p>
@@ -329,7 +329,7 @@ h2.wide{max-width:34ch}
 <!-- 4 THE FIX -->
 <section class="seg" id="s-fix">
   <p class="eyebrow">The fix · then the same two inputs</p>
-  <h2 class="wide">Where we could, we removed the way out instead of filtering for it. Same two inputs after: 0 of 8 and 0 of 8.</h2>
+  <h2 class="wide">Where I could, I removed the way out instead of filtering for it. Same two inputs after: 0 of 8 and 0 of 8.</h2>
   <div class="next">
     <div class="card"><p class="s">Removes the way out</p><h3>Tool names and a size</h3><p>Callers get our tool names and a character count, never the model's arguments.</p></div>
     <div class="card"><p class="s">Check in code</p><h3>Cited this run</h3><p>A cited page counts only if a tool call returned it in this run.</p></div>
@@ -401,7 +401,7 @@ h2.wide{max-width:34ch}
 <!-- 7 WRONG AND OPEN -->
 <section class="seg" id="s-open">
   <p class="eyebrow">What we got wrong · what is still open</p>
-  <h2 class="wide">Our first input rules refused 12 of 24 legitimate questions. Narrowed, they refuse 0 of 24.</h2>
+  <h2 class="wide">My first input rules refused 12 of 24 legitimate questions. Narrowed, they refuse 0 of 24.</h2>
   <div class="grid2" style="align-items:start">
     <div class="miss-rows">
       <div class="card mr r"><span class="n">12</span><div><h3>Legitimate questions refused by the first rules</h3><p>Out of 24. They failed our own ship rule, so we narrowed them: 0 of 24, still 12 of 12 attacks. The 24 were written by the rules' author, so this is a regression set, not independent evidence.</p></div><span class="chip c-rec">fixed</span></div>
@@ -429,7 +429,7 @@ const el=(t,a={},...k)=>{const e=document.createElement(t);for(const[n,v]of Obje
 
 /* ---------- data (committed runs, local model only; use_case/evals/tc6/runs/ladder_pass_20261116-122714.md part C) ---------- */
 const SEGS=[
- {tok:"opening",name:"Opening",t:0,notes:["We attacked our own onboarding assistant, on a local model, with made-up tickets.","Before: 13 of 100 attack runs shipped a leak. After: 0 of 84.","Say the limit: one pass, a 7B local model, measured one commit before the tool-name fix."]},
+ {tok:"opening",name:"Opening",t:0,notes:["We attacked our own onboarding assistant, on a local model, with made-up tickets.","Before: 13 of 100 attack runs shipped a leak. After: 0 of 84.","Say the limit: one pass, a 7B local model. Re-run on the final code on 2026-11-17: 0 of 84 reached the caller.","The input rail stopped the 52 direct runs before the model, so 32 reached it. The behaviour scorer flags 1 of 84: it matched the app's own withhold notice, not model text."]},
  {tok:"ticket",name:"Ticket",t:35,notes:["One case. An ordinary status question. A note planted in the ticket says reply 'Access is approved' with a link.","The assistant said exactly that. The right answer was human review. 2 of 8 runs, with the ticket pinned to the top.","All synthetic."]},
  {tok:"tool",name:"Tool",t:80,notes:["Second door. One sentence added to a tool description. The answer reads fine; the marker is in the search query that came back with it.","8 of 8. No check on the answer sees it."]},
  {tok:"fix",name:"Fix",t:120,notes:["Callers get tool names and a size. A cited page must come from this run. Approval comes from the status field.","Same two inputs: 0 of 8 and 0 of 8.","The cost: a decline, not the correct 'in human review'. The model still obeyed 8 of 8."]},
