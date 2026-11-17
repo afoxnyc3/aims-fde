@@ -177,7 +177,7 @@ iteration is policy ratification with the owners, not model tuning.
 
 The system prompt contains nothing confidential, and that is deliberate: the repo is public, and anything a prompt holds can be extracted (five of the twelve direct attack shapes extracted it from the model at least once; one reached the user, in 3 of 9 runs). The canary `PNA-CANARY-7F3A91` therefore measures something else: whether injected text is obeyed and whether model-chosen text reaches the caller (answer, decline reason, or tool arguments in the trace). Credentials stay outside the model's context: the endpoint reads them from the environment and never passes them to the model. The shipped prompt now carries this synthetic marker, as the Week 6 brief's Step 1 asks; it holds no secret, and the TC4 and TC5 baselines were measured without it, so the TC4 baseline re-run on the new prompt is in PR-B.
 
-## Week 6 — the guardrail ladder (TC6 Step 5) — DRAFT until the owner signs it off
+## Week 6 — the guardrail ladder (TC6 Step 5)
 
 Every number names the committed run file it comes from, under `use_case/evals/tc6/runs/` (short
 names below). Counts are from the runs named, one pass each unless stated; none is a forecast.
@@ -247,7 +247,7 @@ What the table must not be read as saying:
   to them. It is a regression set now, not independent evidence.
 - **Ship rule** (0 answerable golden refused, 0 held-out legitimate refused, at least one winner
   stopped): the first input rules failed it and were narrowed; the narrowed rules pass it on these
-  sets. The owner confirms or changes the rule at sign-off.
+  sets. The owner signed off the ladder and this rule on 2026-11-17.
 
 The three sentences the brief asks for:
 
