@@ -1,6 +1,6 @@
 # TC6 Steps 1-3: attacks on the shipped path, local model only
 
-Every run file here names `ollama_chat/qwen2.5:7b`, and the runner points the app at
+Every attack run file here names `ollama_chat/qwen2.5:7b`, and the attack runner points the app at
 `http://localhost:11434` for chat and for embeddings (`ollama/nomic-embed-text`). That is what the
 files and the config record. What stands behind "local only", for the past runs and for runs from
 now on, and where it stops, is below and under "What the committed runs prove". `local_guard.py`
@@ -51,7 +51,7 @@ Checked on the machine that made the runs, on 2026-11-17 (metadata calls only, n
 |---|---|---|
 | Is the model local? | `ollama list`; `POST /api/show {"model":"qwen2.5:7b"}`; `GET /api/tags` | `qwen2.5:7b`, 4.7 GB, format `gguf`, `remote_model` and `remote_host` absent. |
 | Are the weights on disk, whole? | `M=~/.ollama/models/manifests/registry.ollama.ai/library/qwen2.5/7b`; `jq -r '.layers[] \| select(.mediaType \| endswith(".model")) \| "\(.digest) \(.size)"' $M`; then `stat -f '%z' ~/.ollama/models/blobs/sha256-<that digest>` | The manifest's model layer is `sha256:2bada8a7...` at 4,683,073,952 bytes, and the blob file of that name is 4,683,073,952 bytes. |
-| When did the weights arrive? | `stat -f '%Sm' -t '%Y-%m-%d %H:%M' $M`, and the same on the blob | Both last written 2026-11-15 14:34. That is a file time, not a pull log: it shows the files have not changed since, and that they were written before the first run file (`20261115-185259`). |
+| When did the weights arrive? | `stat -f '%Sm' -t '%Y-%m-%d %H:%M' $M`, and the same on the blob | Both last written 2026-11-15 14:34. That is a file time, not a pull log: by file time the files have not been rewritten since, and they were written before the first run file (`20261115-185259`). |
 | Are any cloud models installed? | `ollama list` | No. Two models only: `qwen2.5:7b` and `nomic-embed-text:latest` (274 MB, `gguf`). |
 | Is the daemon signed in to a cloud account? | `POST /api/me` | `401 {"error":"unauthorized", "signin_url": ...}`: not signed in. Ollama 0.18.3. |
 | Proxy variables in this shell? | `env \| grep -i proxy` | None set. |
@@ -228,8 +228,10 @@ Built from the app folder alone. Run from `01_Product_Engineering/challenge/`. `
   and refuses to start if a provider credential variable is set: any `*_API_KEY`, and the AWS,
   Azure, Google, Hugging Face, Replicate and watsonx names (`AWS_ACCESS_KEY_ID`,
   `AWS_SECRET_ACCESS_KEY`, `AZURE_CLIENT_SECRET`, `GOOGLE_APPLICATION_CREDENTIALS` and the like).
-  The check reads variable names only, so a credential kept in a file or an instance role is not
-  seen; the raising entry points are what stop a call. A rail that could not run
+  These are common names, not a complete list (`AZURE_OPENAI_KEY` and `ANTHROPIC_AUTH_TOKEN`, for
+  two, are not on it), and any name ending `_API_KEY` or `_CREDENTIALS` counts, provider or not,
+  which only makes attack mode refuse. The check reads variable names only, so a credential kept in
+  a file or an instance role is not seen; the raising entry points are what stop a call. A rail that could not run
   (`guard_error`) also declines, and is reported as a failure, not as proof.
 - `benign N` asks question N of a fixed list in the file (four golden questions and one templated
   one). It takes no free text: anything but an index in range is refused before the app is imported.
