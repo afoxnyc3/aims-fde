@@ -47,3 +47,9 @@ jobs:
       - name: use_case eval tests
         if: ${{ !cancelled() }}
         run: uv run --frozen --project 01_Product_Engineering/challenge python -m unittest discover -q -s use_case/evals
+
+      # tc6 is not a package, so the discovery above never descends into it. These tests need no
+      # Ollama, Docker or corpus: the daemon is faked and socket connections are turned into errors.
+      - name: use_case tc6 guard and spy tests
+        if: ${{ !cancelled() }}
+        run: uv run --frozen --project 01_Product_Engineering/challenge python -m unittest discover -q -s use_case/evals/tc6
