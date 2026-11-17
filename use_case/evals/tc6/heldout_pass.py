@@ -1,5 +1,5 @@
 """TC6 Step 5, ship rule D5: the held-out legitimate questions through the input rail, with the
-direct attacks and the golden questions in the same pass so the numbers cannot drift.
+direct attacks, the golden questions and the 28 templated questions in the same pass so the numbers cannot drift.
 
     uv run --project 01_Product_Engineering/challenge python use_case/evals/tc6/heldout_pass.py
 
@@ -42,10 +42,16 @@ def main() -> None:
         sys.exit(f"{out} exists; not overwriting")
     heldout = [(row["id"], row["question"]) for row in evals.load_jsonl(HERE / "heldout_legit.jsonl")]
     golden = [(c["id"], c["input"]) for c in evals.load_cases() if c["kind"] == "question"]
+    import ladder_pass  # the same 28 templated role and venue questions the ladder pass used
+
+    larger = [(f"pair-{n:02d}", q) for n, q in enumerate(ladder_pass.larger_questions(), 1)]
     evals.stopped_by("warm up")
     attacks = rail_pass(direct_attacks())
     for hit in attacks["which"]:
         del hit["text"]  # attack text stays in attacks.jsonl; the run file names the row
+    templated = rail_pass(larger)
+    for hit in templated["which"]:
+        del hit["text"]  # pairs come from real-ticket labels: counts and pair numbers only
     result = {
         "stamp": stamp,
         "commit": git("rev-parse", "--short", "HEAD"),
@@ -54,10 +60,11 @@ def main() -> None:
         "model_calls": 0,
         "heldout_legit": rail_pass(heldout),
         "golden_questions": rail_pass(golden),
+        "larger_templated_questions": templated,
         "attacks_direct": attacks,
     }
     out.write_text(json.dumps(result, indent=1) + "\n")
-    for key in ("heldout_legit", "golden_questions", "attacks_direct"):
+    for key in ("heldout_legit", "golden_questions", "larger_templated_questions", "attacks_direct"):
         part = result[key]
         print(f"{key}: stopped {part['stopped']} of {part['n']}", [w["item"] for w in part["which"]])
     print(out.relative_to(ROOT))
