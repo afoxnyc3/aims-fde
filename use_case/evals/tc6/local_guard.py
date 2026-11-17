@@ -132,9 +132,11 @@ def _check_direct_loopback(transport, request) -> None:
 def install_loopback_lock() -> None:
     """Every httpx transport in this process refuses a request that is not direct to loopback.
 
-    litellm sends chat and embeddings through httpx; some of its clients follow redirects. Each
-    hop, a redirect included, passes through the transport, so this stops both a proxied request
-    and a redirect off the machine at the last point before a socket is opened. Idempotent.
+    litellm sends the app's chat and embedding calls (both synchronous) through httpx; some of its
+    clients follow redirects. Each hop, a redirect included, passes through the transport, so this
+    stops both a proxied request and a redirect off the machine at the last point before a socket
+    is opened. Idempotent. Not covered: HTTP libraries other than httpx (litellm's optional aiohttp
+    transport for async calls, requests). The app's model calls do not use them.
     """
     import httpx
 
@@ -207,8 +209,9 @@ def assert_app_is_local() -> None:
     require_local(retrieval.EMBED_MODEL, embed_base)
     if "extra_headers" in retrieval.CHAT_KWARGS or "api_key" in retrieval.EMBED_KWARGS:
         raise SystemExit("REFUSING: gateway headers or a provider key survived the switch")
-    # litellm's import ran load_dotenv(): a proxy or OLLAMA_API_KEY in .env cannot have come back
-    # (the variables were blanked, not popped), but check rather than trust that.
+    # litellm's import ran load_dotenv(). Blanked variables normally stay blank, but litellm reloads
+    # with override when LITELLM_DEV_ENV_HOT_RELOAD is set, which would restore them from .env. So
+    # this is checked after the import, not assumed: anything that came back is a hard stop.
     if any(os.environ.get(name) or os.environ.get(name.lower()) for name in PROXY_VARS) or os.environ.get("OLLAMA_API_KEY"):
         raise SystemExit("REFUSING: a proxy variable or OLLAMA_API_KEY is set after the switch")
     install_loopback_lock()
