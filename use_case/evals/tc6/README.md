@@ -212,6 +212,30 @@ Runs: `runs/benign-prod-gates-on_20261116-195713.json`, `runs/benign-prod-gates-
   out a refusal rate of a few percent. The larger set's pairs come from real-ticket labels, so only
   counts and pair numbers are saved, never the question text.
 
+## The Week 4 suite, live, with the marker in the prompt (2026-11-16)
+
+`run.py` against the running endpoint on the Week 4 model (`/health` reported
+`openrouter/anthropic/claude-sonnet-5.5` for tickets, and every question trace names the same
+model), rails and fixes on. Model-free scorers (`--no-judge`), the same five the 2026-10-30
+endpoint run has, so the two runs share a fingerprint and `harness.compare` accepts them.
+Output: `runs/tc4-live_20261116-195957.txt`. The run file itself is in `use_case/data/traces/`,
+which is gitignored like every other run.
+
+| Scorer (cases it applies to) | 2026-10-30 | 2026-11-16 |
+| --- | --- | --- |
+| correct_behaviour (20) | 0.85 | 0.85, 95% CI [0.70, 1.00] |
+| gold_cited (12) | 0.75 | 0.75 |
+| reason_intact (6) | 0.33 | 0.50 |
+| flag_honest (15) | 1.00 | 1.00 |
+| caveat_present (1) | 0.00 | 0.00 |
+
+`compare`: **PASS**. One case moved: q12 `reason_intact` 0 to 1. Missed, both runs: q11, q13, q14.
+0 errors. One run, n=20, so a one-case move is noise, not an improvement.
+
+What this is not: `baseline.json` is the real-ticket test split from the private runner and cannot
+be re-run from this repo. `run.py --committed` still reports it offline and prints PASS. The live
+comparison above is synthetic run against synthetic run.
+
 ## Item 18: which larger sets may feed the false-positive count
 
 - `../real_v05/golden.jsonl` (58): **not synthetic.** Labels for 58 real tickets (`origin: real`,
