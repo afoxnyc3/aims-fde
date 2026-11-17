@@ -396,14 +396,24 @@ def load_injection_cases() -> list[dict]:
     return load_jsonl(HERE / "injection_cases.jsonl")
 
 
-def replay_shipped(case: dict) -> list[dict]:
+# The replay skips the input rail and nothing else. With the rail on, a direct attack is declined
+# before retrieval.ask is called, so its recording is never read and "no leak" says nothing about
+# the citation gate or the output check. The rail is measured on its own, by stopped_by().
+REPLAY_SKIPS = frozenset({"input_rail"})
+
+
+def replay_shipped(case: dict, skip_gates: frozenset[str] = REPLAY_SKIPS) -> list[dict]:
     """Each recorded leaking model result of this attack, put back through the shipped answer path.
 
     No model: retrieval.ask returns the recording and qa.answer_question does everything it does in
-    production (citation gate, output check, the response schema). This is where the fixes for the
-    tool and indirect doors live, which an input rail never sees. Returns the responses as dicts.
+    production behind the input rail (citation gate, output check, the response schema). This is
+    where the fixes for the tool and indirect doors live, which an input rail never sees. Returns
+    the responses as dicts. Raises if a recording was not consumed (retrieval.ask not called exactly
+    once), so a replay cannot pass by never reading what it replays. `skip_gates` other than the
+    default is for the test that shows the replay fails with the gates behind the model off.
     """
     _app_on_path()
+    import inspect
     from dataclasses import fields
     from unittest.mock import patch
 
@@ -416,11 +426,16 @@ def replay_shipped(case: dict) -> list[dict]:
     pages = corpus.load_standard_pages() + [corpus.Page(**{k: v for k, v in page.items() if k in known})
                                             for page in case.get("pages") or []]
     retriever = retrieval.Retriever(pages)
+    # The app before the fixes (TC6_APP_DIR) has no gates to skip and no such argument.
+    kwargs = {"skip_gates": skip_gates} if "skip_gates" in inspect.signature(qa.answer_question).parameters else {}
     shipped = []
-    for recorded in case.get("recorded") or []:
+    for n, recorded in enumerate(case.get("recorded") or [], 1):
         with patch.object(qa, "get_retriever", return_value=retriever), \
-                patch.object(retrieval, "ask", return_value=json.loads(json.dumps(recorded))):
-            shipped.append(qa.answer_question(QuestionRequest(question=case["input"])).model_dump())
+                patch.object(retrieval, "ask", return_value=json.loads(json.dumps(recorded))) as ask:
+            out = qa.answer_question(QuestionRequest(question=case["input"]), **kwargs).model_dump()
+        if ask.call_count != 1:
+            raise RuntimeError(f"{case['id']} recording {n} was not consumed: retrieval.ask ran {ask.call_count} times")
+        shipped.append(out)
     return shipped
 
 
@@ -431,14 +446,17 @@ def _standard_text() -> str:
     return "\n".join(page.text for page in corpus.load_standard_pages())
 
 
-def injection_detail(case: dict) -> dict:
-    """Where the attack is stopped: the NeMo input rail on the question, and the shipped code on replay."""
-    shipped = replay_shipped(case)
+def injection_detail(case: dict, skip_gates: frozenset[str] = REPLAY_SKIPS) -> dict:
+    """Where the attack is stopped, as two separate measurements: the NeMo input rail on the
+    question, and the shipped code behind the rail on the replayed recordings. `consumed` is how
+    many recordings went through the answer path; replay_shipped raises if any did not."""
+    shipped = replay_shipped(case, skip_gates)
     from leak import behaviour_leaked, leaked
 
     standard = _standard_text() if shipped else ""
     still = sum(leaked(out, case["input"]) or behaviour_leaked(out, standard) for out in shipped)
-    return {"input_rail": stopped_by(case["input"]), "replays": len(shipped), "replay_leaks": still}
+    return {"input_rail": stopped_by(case["input"]), "replays": len(shipped), "consumed": len(shipped),
+            "replay_leaks": still}
 
 
 def injection_applies(case: dict) -> bool:

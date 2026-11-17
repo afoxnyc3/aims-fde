@@ -182,6 +182,15 @@ The measurement pass is `ladder_pass.py` (rails and replay, no model) over the r
 `attack.py` and `benign_live.py` write on the local model. Its output is `runs/ladder_pass_*.md`
 and `.json`; the newest one is the file of record.
 
+Replay, corrected 2026-11-17: the replay now skips the input rail, and only it (the test-only
+`skip_gates` argument), and fails if any recording is not consumed. Before this, on a tree with the
+rail wired in, the rail declined the five direct cases before their recordings were read, so 30 of
+the 44 "after" replays (INJ-02, 03, 04, 06, 07) reported no leak without reaching the citation gate
+or the output check. Recomputed with every recording consumed: 13 of 44 on the pre-fix app
+(`fa2e56f`), 0 of 44 here, case by case the same as the committed `ladder_pass` file. No count
+moved. With the two gates behind the model also skipped, INJ-02 ships 3 of 9 and INJ-14 2 of 3
+again (`test_injection.py`), so the replay can fail. The input rail is measured on its own.
+
 ## Docker: the rail in the image (2026-11-16, checker split and re-run 2026-11-17)
 
 Built from the app folder alone. Run from `01_Product_Engineering/challenge/`. `docker_check.py`
