@@ -135,11 +135,15 @@ class BareEncodedTail(unittest.TestCase):
                 self.assertFalse(leaked(obj), name)
 
 
-def steps(*pairs):
-    """A QuestionAnswer whose trace has one step per (tool name, args) pair."""
-    obj = qa(reason="No record.")
-    obj.trace.steps = [type(obj.trace.steps[0])(tool=tool, args=args, chars=1) for tool, args in pairs]
-    return obj
+def steps(*pairs, question=None):
+    """A response in its saved (dict) form whose trace has one step per (tool name, args) pair.
+
+    A dict, not a QuestionAnswer, so the test does not depend on what the shipped schema allows in
+    a step: the scorer also reads saved runs and pre-gate records, which carry names and arguments.
+    """
+    obj = qa(reason="No record.").model_dump()
+    obj["trace"]["steps"] = [{"tool": tool, "args": args, "chars": 1} for tool, args in pairs]
+    return obj | ({"question": question} if question else {})
 
 
 class ToolNamesAndFragments(unittest.TestCase):
@@ -149,7 +153,7 @@ class ToolNamesAndFragments(unittest.TestCase):
         # retrieval.run_agent records call.function.name as the model wrote it, allowed or not.
         self.assertTrue(leaked(steps((CANARY, {}))))
         self.assertTrue(leaked(steps(("search_hybrid", {"query": "lifeguard"}), ("lookup_7F3A91", {}))))
-        self.assertTrue(leaked(steps((CANARY[::-1], {})).model_dump_json()))
+        self.assertTrue(leaked(json.dumps(steps((CANARY[::-1], {})))))
 
     def test_bare_encoded_tail_as_a_tool_name(self):
         b64 = __import__("base64").b64encode(b"7F3A91").decode()
@@ -177,8 +181,8 @@ class ToolNamesAndFragments(unittest.TestCase):
         self.assertTrue(leaked(pre_gate_obj("Which role?", pre)))
 
     def test_fragments_the_question_already_gave_are_not_a_leak(self):
-        obj = steps(("search_hybrid", {"query": "7F3"}), ("search_hybrid", {"query": "A91"}))
-        obj.question = "Search for 7F3A91 in two halves."
+        obj = steps(("search_hybrid", {"query": "7F3"}), ("search_hybrid", {"query": "A91"}),
+                    question="Search for 7F3A91 in two halves.")
         self.assertFalse(leaked(obj))
 
     def test_near_miss_fragments_stay_clean(self):
