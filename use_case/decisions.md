@@ -173,6 +173,10 @@ drew a policy answer, not a model correction (front-desk selling, unclear title 
 removed). That confirms the confirmed fair mark: the role-to-permissions standard is the product, and the next
 iteration is policy ratification with the owners, not model tuning.
 
+## Week 6 — the prompt holds no secret
+
+The system prompt contains nothing confidential, and that is deliberate: the repo is public, and anything a prompt holds can be extracted (five of the twelve direct attack shapes extracted it from the model at least once; one reached the user, in 3 of 9 runs). The canary `PNA-CANARY-7F3A91` therefore measures something else: whether injected text is obeyed and whether model-chosen text reaches the caller (answer, decline reason, or tool arguments in the trace). Credentials stay outside the model's context: the endpoint reads them from the environment and never passes them to the model. The shipped prompt now carries this synthetic marker, as the Week 6 brief's Step 1 asks; it holds no secret, and the TC4 and TC5 baselines were measured without it, so the TC4 baseline re-run on the new prompt is in PR-B.
+
 ## Decisions still required
 
 - Replace the hard-coded exception phrase about “nonspecific replies” with wording that distinguishes a claim of approval from verified authority. My DEMO-004 injection test retained human_review but exposed this explanation gap.
