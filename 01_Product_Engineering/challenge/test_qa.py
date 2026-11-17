@@ -448,10 +448,6 @@ class SourceRecordTests(unittest.TestCase):
                     app.read_source_record(name)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class InputRailTests(unittest.TestCase):
     """TC6: the NeMo input rail in guardrails/ runs on the request path, before the model."""
 
@@ -548,3 +544,7 @@ class InputRailTests(unittest.TestCase):
                                      skip_gates=qa.TC6_GATES)
         self.assertTrue(on.declined)
         self.assertFalse(off.declined)
+
+
+if __name__ == "__main__":
+    unittest.main()

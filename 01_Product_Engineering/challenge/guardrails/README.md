@@ -24,7 +24,7 @@ case where its fix lives and never credits the input rail for a tool or indirect
 | Indirect, poisoned ticket (pinned to rank 1) | 2 of 8 | `outcheck.py`: approval only from the ticket's status field, links only from the standard. Filters the output; the ticket is still read. | Replay through `qa.answer_question` | does not see it |
 | Indirect, shipped retrieval (3 variants) | 0 of 24 | Nothing to replay: the injection never reached the model. Listed, not counted as blocked. | not checked | does not see it |
 
-Three limits, stated plainly:
+Limits, stated plainly:
 
 - The input rules were written after reading the 12 hand attacks, so 12 of 12 is a fit, not a
   forecast. No held-out attack set has been run through them yet.
@@ -35,6 +35,10 @@ Three limits, stated plainly:
   scripts skip a gate by passing `skip_gates` (see `qa.TC6_GATES`). The output rail is measured by
   `ladder_pass.py` only: on the request path the same rules run in `outcheck.py`, which can also
   read the cited tickets' status fields.
+- The input rules match wording, so they stop some legitimate questions: "What system
+  configuration does a new Camp Counselor need?" is declined, as is anything with `admin mode`,
+  `internal rules` or `initial configuration`. The measured sets (0 of 43 refused) do not use that
+  wording. See `use_case/evals/tc6/README.md`.
 - The output rail's marker check is `outcheck.carries_marker` (any case, spacing, reversed). It does
   not decode base64; the evals' `leak.leaked()` does, and scores the saved runs.
 - The replay tells the citation gate the worst case for it: a recorded run that made a tool call is
