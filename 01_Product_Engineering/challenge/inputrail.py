@@ -7,6 +7,7 @@ scripts do.
 """
 
 import asyncio
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
@@ -18,6 +19,8 @@ INPUT_ONLY = {"rails": {"input": True, "dialog": False, "output": False, "retrie
 DECLINE = ("The question asks for the assistant's own instructions or tries to change them, so it was "
            "not sent to the model. Ask about onboarding tickets or the access standard.")
 GUARD_ERROR = "guard_error"
+# The endpoint serves requests on threads. One check at a time: it takes milliseconds.
+_LOCK = threading.Lock()
 
 
 @lru_cache(maxsize=1)
@@ -29,7 +32,8 @@ def rails():
 
 
 def _check(question: str) -> str | None:
-    response = rails().generate(messages=[{"role": "user", "content": question}], options=INPUT_ONLY)
+    with _LOCK:
+        response = rails().generate(messages=[{"role": "user", "content": question}], options=INPUT_ONLY)
     return next((rail.name for rail in response.log.activated_rails if rail.stop), None)
 
 
