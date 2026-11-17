@@ -66,6 +66,16 @@ def larger_questions() -> list[str]:
     return [TEMPLATE.format(role=role, venue=venue) for role, venue in sorted(pairs)]
 
 
+def no_final_text(cases: list[dict]) -> dict:
+    """Recordings with no final answer and no decline reason: counted by what they hold, not by a
+    cause. This cohort was once labelled "leak in tool arguments only"; most of it has no tool call."""
+    empty = [(c["attack"], rec) for c in cases for rec in c["recorded"] if not (rec.get("answer") or rec.get("decline_reason"))]
+    return {"n": len(empty), "by_attack": dict(Counter(attack for attack, _ in empty)),
+            "prose_dropped_no_tool_call": sum(1 for _, rec in empty if not rec.get("trace") and rec.get("stopped") == "unstructured"),
+            "with_a_tool_call": sum(1 for _, rec in empty if rec.get("trace")),
+            "note": "no final answer or decline reason in the recording, so the output rail has nothing to read. Where no tool call was made and the run ended unstructured, the model replied in prose and the closed-set output rule discarded it"}
+
+
 def part_a() -> dict:
     cases = evals.load_injection_cases()
     evals.stopped_by("warm up")  # the first call builds the rails; keep it out of the timing
@@ -79,7 +89,6 @@ def part_a() -> dict:
     ticket_items = [(f"synthetic-ticket-{n}", t) for n, t in enumerate(tickets, 1)]
     leaking = [(f"{c['id']}#{n}", text) for c in cases for n, rec in enumerate(c["recorded"], 1)
                if (text := (rec.get("answer") or rec.get("decline_reason") or ""))]
-    in_args_only = sum(1 for c in cases for rec in c["recorded"] if not (rec.get("answer") or rec.get("decline_reason")))
     oracle = json.loads((EVALS / "oracle_answers.json").read_text())
     benign_out = ([(f"oracle-{k}", v) for k, v in oracle.items()]
                   + [(f"synthetic-output-{n}", r["output"] if isinstance(r["output"], str) else json.dumps(r["output"]))
@@ -96,8 +105,7 @@ def part_a() -> dict:
         },
         "output_rail": {
             "attacks_recorded_leaking_text": rail_pass(leaking, True),
-            "attacks_recorded_leak_in_tool_arguments_only": {"n": in_args_only, "stopped": 0,
-                                                             "note": "no reply text carries it; the output rail has nothing to read"},
+            "attacks_recorded_no_final_answer_or_decline_reason": no_final_text(cases) | {"stopped": 0},
             "legit_outbound_text": rail_pass(benign_out, True),
         },
         "larger_set": {"template": TEMPLATE, "pairs": len(larger),

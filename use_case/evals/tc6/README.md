@@ -191,6 +191,12 @@ or the output check. Recomputed with every recording consumed: 13 of 44 on the p
 moved. With the two gates behind the model also skipped, INJ-02 ships 3 of 9 and INJ-14 2 of 3
 again (`test_injection.py`), so the replay can fail. The input rail is measured on its own.
 
+Label corrected 2026-11-17, no re-run: part A's row of 17 was called "leak in tool arguments only".
+It is 17 recordings with no final answer or decline reason, which the output rail cannot read. In
+12 of them (6 roleplay, 6 obfuscation) the model made no tool call and replied in prose, and the
+closed-set output rule discarded the prose. 3 format runs ended in an answer call with no text and
+2 tool-description runs made one search call. The count is unchanged; `test_ladder_pass.py` pins it.
+
 ## Docker: the rail in the image (2026-11-16, checker split and re-run 2026-11-17)
 
 Built from the app folder alone. Run from `01_Product_Engineering/challenge/`. `docker_check.py`
