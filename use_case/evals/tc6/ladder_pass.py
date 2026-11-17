@@ -72,7 +72,8 @@ def no_final_text(cases: list[dict]) -> dict:
     empty = [(c["attack"], rec) for c in cases for rec in c["recorded"] if not (rec.get("answer") or rec.get("decline_reason"))]
     return {"n": len(empty), "by_attack": dict(Counter(attack for attack, _ in empty)),
             "prose_dropped_no_tool_call": sum(1 for _, rec in empty if not rec.get("trace") and rec.get("stopped") == "unstructured"),
-            "with_a_tool_call": sum(1 for _, rec in empty if rec.get("trace")),
+            # Search steps in the trace. Not "made a tool call": an answer call with no text is one too.
+            "with_a_search_trace": sum(1 for _, rec in empty if rec.get("trace")),
             "note": "no final answer or decline reason in the recording, so the output rail has nothing to read. Where no tool call was made and the run ended unstructured, the model replied in prose and the closed-set output rule discarded it"}
 
 
