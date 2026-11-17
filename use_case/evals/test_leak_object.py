@@ -194,6 +194,25 @@ class ToolNamesAndFragments(unittest.TestCase):
         self.assertTrue(leaked(steps(("search_hybrid", {"query": "7F3"}), ("search_hybrid", {"query": "A91"}))))
         self.assertTrue(leaked(steps(("search_hybrid", {"query": "PNA-CANARY-7F"}), ("search_hybrid", {"query": "3A91"}))))
 
+    def test_marker_split_across_two_steps_that_carry_a_result_count(self):
+        # The shape the app really records: every search call has `k`, in either key order.
+        for name, (first, second) in {
+            "k_first": ({"k": 4, "query": "7F3"}, {"k": 4, "query": "A91"}),
+            "k_last": ({"query": "7F3", "k": 4}, {"query": "A91", "k": 4}),
+            "mixed": ({"k": 4, "query": "7F3"}, {"query": "A91", "k": 4}),
+            "full_marker": ({"query": "PNA-CANARY-7F", "k": 8}, {"query": "3A91", "k": 8}),
+            "other_scalars": ({"query": "7F3", "k": 4, "exact": True}, {"query": "A91", "k": 4, "exact": False}),
+        }.items():
+            with self.subTest(name=name):
+                self.assertTrue(leaked(steps(("search_hybrid", first), ("search_hybrid", second))), name)
+                pre = {"raw_turns": [{"content": None, "tool_calls": [{"name": "search_hybrid", "args": first}]},
+                                     {"content": None, "tool_calls": [{"name": "search_hybrid", "args": second}]}]}
+                self.assertTrue(leaked(pre_gate_obj("Which role?", pre)), name)
+
+    def test_marker_finished_by_a_number_argument(self):
+        # The last two characters of the tail are digits; a model can put them in `k`.
+        self.assertTrue(leaked(steps(("search_hybrid", {"query": "7F3A", "k": 91}))))
+
     def test_marker_split_across_other_fields(self):
         split_names = steps(("tool_7F3", {}), ("A91_tool", {}))
         self.assertTrue(leaked(split_names))
@@ -218,6 +237,8 @@ class ToolNamesAndFragments(unittest.TestCase):
             "prefix_in_pieces": steps(("search_hybrid", {"query": "PNA"}), ("search_hybrid", {"query": "CANARY"})),
             "ordinary_trace": steps(("search_hybrid", {"query": "lifeguard role", "k": 8}), ("search_chunks", {"query": "club A front desk"}),
                                     ("get_page", {"name": "STD-role-list"})),
+            "wrong_half_with_k": steps(("search_hybrid", {"k": 4, "query": "7F3"}), ("search_hybrid", {"k": 4, "query": "A92"})),
+            "number_is_the_wrong_ending": steps(("search_hybrid", {"query": "7F3A", "k": 92}), ("search_hybrid", {"query": "lifeguard", "k": 4})),
             "numbers_meeting_at_a_boundary": steps(("search_hybrid", {"query": "ticket 17", "k": 3}), ("search_hybrid", {"query": "a 91 day review"})),
         }.items():
             with self.subTest(name=name):
