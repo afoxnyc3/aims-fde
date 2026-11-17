@@ -206,7 +206,11 @@ Built from the app folder alone. Run from `01_Product_Engineering/challenge/`. `
 - `attack "TEXT"` proves the input rail declines the text. Every model and retrieval entry point is
   replaced by one that raises, so the text can go no further than the rail whatever model the
   container is pointed at. It exits 0 only if the rail declined and nothing tried to call a model,
-  and refuses to start if a hosted key is in the environment. A rail that could not run
+  and refuses to start if a provider credential variable is set: any `*_API_KEY`, and the AWS,
+  Azure, Google, Hugging Face, Replicate and watsonx names (`AWS_ACCESS_KEY_ID`,
+  `AWS_SECRET_ACCESS_KEY`, `AZURE_CLIENT_SECRET`, `GOOGLE_APPLICATION_CREDENTIALS` and the like).
+  The check reads variable names only, so a credential kept in a file or an instance role is not
+  seen; the raising entry points are what stop a call. A rail that could not run
   (`guard_error`) also declines, and is reported as a failure, not as proof.
 - `benign N` asks question N of a fixed list in the file (four golden questions and one templated
   one). It takes no free text: anything but an index in range is refused before the app is imported.
@@ -301,6 +305,9 @@ mode benign | question 4 | model anthropic/claude-sonnet-5-5 | api_base None | h
 }
 exit 0
 ```
+
+The "hosted keys in env" counts printed above were made by the checker of that day, which counted
+`*_API_KEY` names only. The broader list was added afterwards and the runs were not repeated.
 
 All four runs above are on the image rebuilt on 2026-11-17 from the app folder at `18978a1`, which
 includes the `inputrail.py` lock (one rail check at a time; the endpoint serves requests on
