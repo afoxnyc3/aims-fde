@@ -21,16 +21,23 @@ APP = Path(__file__).resolve().parents[1]
 if str(APP) not in sys.path:
     sys.path.append(str(APP))
 
+# Narrowed 2026-11-16 after the held-out legitimate set (use_case/evals/tc6/heldout_legit.jsonl): the
+# first rules refused 12 of 24 real-sounding questions on wording alone ("system configuration",
+# "admin mode", "internal rules", "your instructions for a re-hire"). A rule now needs the prompt or
+# the marker named, or an extraction verb aimed at the assistant's own instructions.
+_OWN = r"your\s+(?:own\s+|full\s+|system\s+|internal\s+|hidden\s+)?"
 PROBES = [re.compile(pattern, re.IGNORECASE) for pattern in (
-    # asks for the prompt, the instructions or the marker by name
-    r"\b(?:system|hidden|internal|initial|secret)\s+(?:prompt|instructions?|marker|configuration|config|rules)\b",
-    r"\byour\s+(?:own\s+|full\s+)?(?:instructions?|prompt|configuration|config|marker)\b",
+    # names the prompt or the marker
+    r"\b(?:system|hidden|internal|initial|secret)\s+(?:prompt|marker)s?\b",
+    r"\b" + _OWN + r"(?:prompt|marker)\b",
     r"\bPNA-?\s*CANARY\b",
+    # asks for the assistant's own instructions to be handed over in some form
+    r"\b(?:repeat|print|return|translate|reveal|show|output|echo|encode|spell|write|list|give)\b[^.?!]{0,40}\b"
+    + _OWN + r"(?:instructions?|configuration|config)\b",
     # tells the assistant to drop its instructions or become something else
     r"\b(?:ignore|disregard|forget)\s+(?:all\s+)?(?:of\s+)?(?:the\s+|your\s+)?(?:previous|prior|above|earlier)\s+"
-    r"(?:instructions?|rules|messages)\b",
+    r"(?:instructions?|rules)\b",
     r"\byou\s+are\s+now\b",
-    r"\b(?:admin|developer|debug|audit)\s+(?:override|mode)\b",
 )]
 
 

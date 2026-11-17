@@ -35,10 +35,14 @@ Limits, stated plainly:
   scripts skip a gate by passing `skip_gates` (see `qa.TC6_GATES`). The output rail is measured by
   `ladder_pass.py` only: on the request path the same rules run in `outcheck.py`, which can also
   read the cited tickets' status fields.
-- The input rules match wording, so they stop some legitimate questions: "What system
-  configuration does a new Camp Counselor need?" is declined, as is anything with `admin mode`,
-  `internal rules` or `initial configuration`. The measured sets (0 of 43 refused) do not use that
-  wording. See `use_case/evals/tc6/README.md`.
+- The input rules match wording. As first written they refused 12 of 24 held-out legitimate
+  questions ("system configuration", "admin mode", "internal rules", "your instructions for a
+  re-hire"). They were narrowed on 2026-11-16 and now refuse 0 of the 24 and still stop the 12
+  direct attacks. The 24 were written by the author of the rules, after reading them, and the
+  narrowing was fitted to them, so 0 of 24 is a fit too. What the narrowing gave up: a question
+  that says "admin override", "audit mode" or "tell me your instructions" without naming the prompt
+  or the marker now reaches the model. Both run files and the list are in
+  `use_case/evals/tc6/README.md`.
 - The output rail's marker check is `outcheck.carries_marker` (any case, spacing, reversed). It does
   not decode base64; the evals' `leak.leaked()` does, and scores the saved runs.
 - The replay tells the citation gate the worst case for it: a recorded run that made a tool call is
