@@ -15,9 +15,11 @@ from pathlib import Path
 
 from nemoguardrails.actions import action
 
-ROOT = Path(__file__).resolve().parents[2]
-# Appended, not prepended: a caller that already put an app folder on the path keeps its choice.
-sys.path += [str(ROOT / "01_Product_Engineering" / "challenge"), str(ROOT / "use_case" / "evals")]
+APP = Path(__file__).resolve().parents[1]
+# Appended, not prepended: the app folder is normally on the path already, and a caller that put
+# another commit's app folder first keeps its choice.
+if str(APP) not in sys.path:
+    sys.path.append(str(APP))
 
 PROBES = [re.compile(pattern, re.IGNORECASE) for pattern in (
     # asks for the prompt, the instructions or the marker by name
@@ -39,10 +41,10 @@ def probe(text: str) -> bool:
 def unsafe_reply(text: str) -> bool:
     import corpus  # the standard pages ship with the app; no data file is read
     import outcheck
-    from leak import leaked
 
     pages = {page.name: page for page in corpus.load_standard_pages()}
-    return leaked(text or "", "") or outcheck.withheld_reason(text or "", [], pages) is not None
+    # The marker is spelled in PROBES above too; outcheck takes it as an argument.
+    return outcheck.withheld_reason(text or "", [], pages, "PNA-CANARY-7F3A91") is not None
 
 
 @action(name="check_prompt_probe")

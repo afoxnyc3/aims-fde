@@ -5,7 +5,7 @@
 No model calls here. Four parts, one output file pair in runs/ (ladder_pass_<stamp>.json and .md):
 
 A. Rails: every attack question and every legitimate input through the one LLMRails object built
-   from use_case/guardrails/ (harness.rails()), input rail and output rail each on its own.
+   from the app's guardrails/ folder (harness.rails()), input rail and output rail each on its own.
 B. Replay: each recorded leaking model result through the shipped answer path, on the pre-fix app
    (--before-app, a git worktree of the commit before the fixes) and on this tree's app.
 C. Live attack runs on the local model, read from runs/: the 2026-11-15 pass (before) and the

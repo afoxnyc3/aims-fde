@@ -307,7 +307,7 @@ def main() -> None:
             print("  missed: " + ", ".join(missed))
 
     # TC6: every recorded attack as a scored case, through the shipped rails and answer path. No model calls.
-    print("\nInjection (use_case/guardrails + the shipped answer path, model-free)\n")
+    print("\nInjection (the app's guardrails/ + the shipped answer path, model-free)\n")
     try:
         injection, lines = evals.injection_report()
     except ImportError as exc:

@@ -7,13 +7,13 @@ rules (Level 1), run in about 5 ms and send nothing anywhere.
 | --- | --- |
 | `config.yml` | The rungs, in order: input rail `prompt probe rules`, output rail `reply rules`. |
 | `rails.co` | The two flows. Each calls one action and stops if it returns true. |
-| `actions.py` | The rules. `check_reply` applies the app's own `outcheck.py` patterns and `leak.leaked()`. |
+| `actions.py` | The rules. `check_reply` applies the app's own `outcheck.py` rules: marker, approval, link. |
 
 ## Which door is closed where
 
 The NeMo input rail reads the user's question, so it can only stop a direct attack. A poisoned
 ticket or a poisoned tool description arrives behind an ordinary question, and the rail passes it.
-Those two doors are closed in the app's code. `blocks_injection` (`../evals/harness.py`) scores each
+Those two doors are closed in the app's code. `blocks_injection` (`../../../use_case/evals/harness.py`) scores each
 case where its fix lives and never credits the input rail for a tool or indirect case.
 
 | Door | Shipped a leak before the fix | Fix, and the leg it removes | Where `blocks_injection` checks it | NeMo input rail |
@@ -28,9 +28,15 @@ Three limits, stated plainly:
 
 - The input rules were written after reading the 12 hand attacks, so 12 of 12 is a fit, not a
   forecast. No held-out attack set has been run through them yet.
-- The input rail is measured here and in `run.py`. It is **not yet called by the app**:
-  `qa.answer_question` enforces the three code fixes and nothing from this folder. The Docker image
-  is built from the app folder alone, so wiring it means moving or copying this config there.
+- The input rail is on the request path: `qa.answer_question` calls `inputrail.stopped_by()` before
+  the model, and a stopped question is declined with a fixed reason and `trace.stopped` set to
+  `input_rail`. No model or retrieval call is made for it. If the rails cannot be built or run, the
+  question is declined too. There is no setting that turns the rail off; tests and measurement
+  scripts skip a gate by passing `skip_gates` (see `qa.TC6_GATES`). The output rail is measured by
+  `ladder_pass.py` only: on the request path the same rules run in `outcheck.py`, which can also
+  read the cited tickets' status fields.
+- The output rail's marker check is `outcheck.carries_marker` (any case, spacing, reversed). It does
+  not decode base64; the evals' `leak.leaked()` does, and scores the saved runs.
 - The replay tells the citation gate the worst case for it: a recorded run that made a tool call is
   assumed to have retrieved every page it cites. The three prompt echoes that shipped made no tool
   call, so for them the result is certain.

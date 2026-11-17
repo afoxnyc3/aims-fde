@@ -351,7 +351,9 @@ def report(reports: list[harness.RunReport]) -> str:
 # leaked() and behaviour_leaked() stay in leak.py and are imported where they are used, not
 # re-exported from here (test_leak_object.HarnessDoesNotReExport pins that earlier review decision).
 
-GUARDRAILS = HERE.parent / "guardrails"
+# The rails config ships in the app folder (the image is built from it alone). Always this tree's
+# config, even when TC6_APP_DIR points the replay at another commit's app.
+GUARDRAILS = HERE.parents[1] / "01_Product_Engineering" / "challenge" / "guardrails"
 APP_DIR = Path(os.getenv("TC6_APP_DIR") or HERE.parents[1] / "01_Product_Engineering" / "challenge")
 
 
@@ -368,7 +370,7 @@ _RAILS = {}
 
 
 def rails():
-    """The one LLMRails object, built from use_case/guardrails/. Every count goes through it."""
+    """The one LLMRails object, built from the app's guardrails/ folder. Every count goes through it."""
     if "rails" not in _RAILS:
         from nemoguardrails import LLMRails, RailsConfig
 

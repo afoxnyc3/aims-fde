@@ -106,7 +106,7 @@ The permanent test is `../test_injection.py`. It replays the recorded leaking mo
 2026-11-15 (`../injection_cases.jsonl`, built by `build_injection_cases.py`) through
 `qa.answer_question`, with no model. `harness.blocks_injection` scores the same cases and
 `run.py` prints them beside the Week 4 scorers. Which cases the NeMo input rail covers and which
-the code fix covers is in `../../guardrails/README.md`, with the reason the judge rung is declined.
+the code fix covers is in `../../../01_Product_Engineering/challenge/guardrails/README.md`, with the reason the judge rung is declined.
 
 To see the test red on the code before the fixes:
 

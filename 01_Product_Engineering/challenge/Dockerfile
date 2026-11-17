@@ -21,6 +21,9 @@ RUN uv export --frozen --no-dev --no-emit-project -o requirements.txt \
 
 COPY llm.py app.py schema.py models.py onboarding.py standard_v02.py demo_standard.json ./
 COPY corpus.py retrieval.py qa.py qa_schema.py outcheck.py standard_v0_1.md mcp_server.py ./
+# TC6: the input rail and its NeMo config. qa.py calls it before the model on every question.
+COPY inputrail.py ./
+COPY guardrails/ ./guardrails/
 
 # The ticket corpus is NOT copied in: use_case/data/ is gitignored, and an image
 # carries whatever is baked into it to everyone who can pull it. Mount it

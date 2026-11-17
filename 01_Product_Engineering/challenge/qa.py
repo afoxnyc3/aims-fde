@@ -15,6 +15,7 @@ from pathlib import Path
 from openai import APIError
 
 import corpus
+import inputrail
 import outcheck
 import retrieval
 from qa_schema import QuestionAnswer, QuestionRequest, RetrievalTrace, ToolStep
@@ -28,6 +29,13 @@ TRACE_LOG = logging.getLogger("qa.trace")
 # anything. Only our own tool names are passed on; any other becomes this fixed string.
 KNOWN_TOOLS = frozenset(tool["function"]["name"] for tools in retrieval.TECHNIQUES.values() for tool in tools)
 UNKNOWN_TOOL = "unknown_tool"
+# The gates TC6 added. All are always on for callers: no setting, environment variable or request
+# field turns one off (plan decision D7). `skip_gates` on answer_question exists so tests and the
+# measurement scripts can price a gate by running the same questions without it.
+#   input_rail    the NeMo input rail in guardrails/, before the model
+#   run_citation  a cited page must have been returned by a tool call in this run (T1-20)
+#   output_check  approval, link and marker rules on the model's text (T1-21)
+TC6_GATES = frozenset({"input_rail", "run_citation", "output_check"})
 
 
 class AnswerUnavailable(Exception):
@@ -53,7 +61,17 @@ def source_page(name: str) -> corpus.Page | None:
     return page if page and retrieval.PAGE_ID.fullmatch(page.name) else None
 
 
-def answer_question(request: QuestionRequest) -> QuestionAnswer:
+def answer_question(request: QuestionRequest, *, skip_gates: frozenset[str] = frozenset()) -> QuestionAnswer:
+    """Answer or decline. `skip_gates` is for tests and measurement scripts only; see TC6_GATES."""
+    if not skip_gates <= TC6_GATES:
+        raise ValueError(f"unknown gate: {sorted(skip_gates - TC6_GATES)}")
+    # Input rail first: a question a rung stops never reaches the model or the retriever's tools.
+    # The reason is fixed text; the trace says which stage stopped it and that no call was made.
+    if "input_rail" not in skip_gates and inputrail.stopped_by(request.question):
+        return QuestionAnswer(
+            question=request.question, declined=True, decline_reason=inputrail.DECLINE,
+            trace=RetrievalTrace(technique=SHIPPED_TECHNIQUE, model=retrieval.CHAT_MODEL, steps=[],
+                                 evidence_chars=0, latency_s=0.0, stopped="input_rail"))
     retriever = get_retriever()
     try:
         result = retrieval.ask(request.question, SHIPPED_TECHNIQUE, retriever)
@@ -63,7 +81,7 @@ def answer_question(request: QuestionRequest) -> QuestionAnswer:
     text = (result["answer"] or "").strip()
     # Only pages a tool call returned in this run count as sources. A result without the list
     # counts as nothing returned, so the gate fails closed.
-    returned = result.get("returned_pages") or []
+    returned = None if "run_citation" in skip_gates else result.get("returned_pages") or []
     sources = retrieval.cited_pages(text, retriever, returned)
     # A decline reason is model text shown to the user too, so its ids are reported the same way:
     # invented ones, and real ones no call in this run returned.
@@ -107,7 +125,8 @@ def answer_question(request: QuestionRequest) -> QuestionAnswer:
     # The same goes for the prompt's own marker: a decline reason is the model's words, and one
     # run in eight put the marker in it ("Internal marker ... must not be revealed").
     marker = getattr(retrieval, "PROMPT_MARKER", None)
-    blocked = outcheck.withheld_reason(text if not reason else reason, sources, retriever.pages, marker)
+    blocked = None if "output_check" in skip_gates else outcheck.withheld_reason(
+        text if not reason else reason, sources, retriever.pages, marker)
     if blocked:
         reason = blocked
     # An invented page name is model text too: [SYN-7f3a91] is well-formed and is the marker's tail.

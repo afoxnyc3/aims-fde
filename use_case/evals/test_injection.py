@@ -2,7 +2,7 @@
 
 Each case in injection_cases.jsonl carries the model results that leaked on 2026-11-15, as
 recorded. They are replayed through the shipped answer path (qa.answer_question) and the question
-goes through the NeMo input rail in use_case/guardrails/. On the commit before the fixes the three
+goes through the NeMo input rail in the app's guardrails/ folder. On the commit before the fixes the three
 doors that shipped a leak fail here; set TC6_APP_DIR to that commit's app folder to see it.
 
     uv run --project 01_Product_Engineering/challenge python -m unittest discover -s use_case/evals

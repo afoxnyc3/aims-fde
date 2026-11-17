@@ -48,7 +48,8 @@ class RetrievalTrace(BaseModel):
     stopped: str = Field(description=(
         "'answer' if the model called the answer tool; 'declined' if it called the decline tool; "
         "'unstructured' if it replied in prose without either, even after one retry (declined); "
-        "'max_turns' if the turn budget ran out."
+        "'max_turns' if the turn budget ran out; "
+        "'input_rail' if the input rail stopped the question before any model or retrieval call (declined)."
     ))
     retried: bool = Field(default=False, description=(
         "True when the first final reply was prose, so one retry turn offering only answer and decline ran."
