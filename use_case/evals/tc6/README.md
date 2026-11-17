@@ -266,6 +266,8 @@ the first rules (12 failures).
 The second run file was written with the narrowed rules not yet committed, so it records commit
 `ac6050a` and `rules_dirty: true`. The rules it measured are the ones in this commit.
 The third run is the file of record for the narrowed rules: commit `ad3be3e`, `rules_dirty: false`.
+The script change that added the templated set was itself committed one commit later (`4b3a7b9`);
+`rules_dirty` covers the rules folder only.
 It also sends the 28 templated role and venue questions of the ladder pass through the rail: 0 of 28
 refused (pair numbers only, no question text, as in the ladder pass).
 
