@@ -24,34 +24,55 @@ import sys
 
 UNSTATED = "not stated"
 
-# anchor: how an answer refers to the hire. role: the standard role to use.
+# title: how an answer names the hire. role: the standard role to use.
 HIRES = {
-    "hospitality": {"anchor": r"hospitality\s+associate|front\s+desk\s+associate",
-                    "role": "Front Desk Associate", "mailbox": UNSTATED},
-    "lifeguard": {"anchor": r"lifeguard", "role": "Lifeguard", "mailbox": UNSTATED},
-    "trainer": {"anchor": r"personal\s+trainer", "role": "Personal Trainer", "mailbox": UNSTATED},
+    "hospitality": {"title": r"hospitality\s+associate", "role": "Front Desk Associate", "mailbox": UNSTATED},
+    "lifeguard": {"title": r"lifeguard", "role": "Lifeguard", "mailbox": UNSTATED},
+    "trainer": {"title": r"personal\s+trainer", "role": "Personal Trainer", "mailbox": UNSTATED},
 }
 
 # The role name as a value. For the trainer the level is not part of the role, so
 # "Personal Trainer Level 2" and "Level 2 Personal Trainer" are the title, not the role.
+# "Lifeguard Supervisor" or "Front Desk Associate Lead" is a different role name, not the role.
+LONGER = r"(?!\s+(?:supervisor|lead|leader|manager|assistant|senior|junior|trainee|coordinator|captain|ii|iii|[1-9])\b)"
 ROLE_VALUE = {
-    "hospitality": r"front\s+desk\s+associate",
-    "lifeguard": r"lifeguard",
-    "trainer": r"(?<!level\s\d\s)(?<!l\d\s)personal\s+trainer(?!s?\W{0,3}(?:level|lvl|l)\W?\d)",
+    "hospitality": r"front\s+desk\s+associate" + LONGER,
+    "lifeguard": r"lifeguard" + LONGER,
+    "trainer": r"(?<!level\s\d\s)(?<!l\d\s)personal\s+trainer(?!s?\W{0,3}(?:level|lvl|l)\W?\d)" + LONGER,
 }
-# For these two the title and the role share a name, so a bare mention is not an answer:
-# the name has to follow a cue, or appear twice in one statement (label, then value).
-NEEDS_CUE = {"lifeguard", "trainer"}
-ROLE_CUE = r"(?:\brole\b|\buse[sd]?\b|\busing\b|→|->|=>|\bmaps?\s+to\b|\bmapped\s+to\b|\bassign\w*|:)[^.\n]{0,40}$"
-SAME_AS_TITLE = (r"already\s+a\s+standard\s+role|is\s+a\s+standard\s+role|exact\s+match|direct\s+match|as[- ]is\b|"
-                 r"same\s+(?:name|role|title)|unchanged|maps?\s+directly|matches\s+the\s+standard")
-# A rejection is a negation right before the name, with only words like "use" or "the" between:
-# "do not use X", "not X", "rather than X". "I can't give the Lifeguard answer" is not one.
-REJECT_BEFORE = (r"(?:\bnot\b|n't\b|\bnever\b|\brather\s+than\b|\binstead\s+of\b|\bavoid\b|\bno\s+longer\b)"
-                 r"(?:\s+(?:to|use|using|used|assign|assigning|map|pick|choose|select|be|as|a|an|the|role|called))*"
+# A role counts as stated only right after a cue in the same clause ("use X", "Role: X", "maps to X").
+# A bare mention does not count: two of the titles are also role names, and a role can be named for
+# another purpose ("Front Desk Associate gets a login").
+# The cue has to sit right before the name, with only small words between ("role to use: X").
+# "the role for the Lifeguard" is not one. A colon or dash is a cue only after the hire's own
+# title ("Lifeguard: Lifeguard"), so "Hire: Lifeguard" does not state the role.
+ROLE_CUE = (r"(?:\brole\b|\buses?\b|\busing\b|→|->|=>|\bmaps?\s+to\b|\bmapped\s+to\b|\bassign\w*|"
+            r"\bset\s+up\s+as\b)(?:\s*[:=]|\s+(?:to|use|is|be|the|a|an|as|would|should|will|standard|role)\b|"
+            r"[\s\"'(\[]){0,8}$")
+AFTER_TITLE = r"[^.,;:|\n]{0,25}(?::|\s[—–-]\s)[\s\"'(\[]{0,3}$"
+# A rejection is a negation right before the name, with only words like "use" or "the" between
+# ("do not use X", "not X", "rather than X"), or a verdict right after it ("X is not the role",
+# "X would be the wrong choice", "X does not apply"). "I can't give the Lifeguard answer" is neither.
+REJECT_BEFORE = (r"(?:\bnot\b|n't\b|\bcannot\b|\bnever\b|\brather\s+than\b|\binstead\s+of\b|\bavoid\b|"
+                 r"\bno\s+longer\b|\bwrong\b|\bother\s+than\b|\bno\s+role\b)"
+                 r"(?:\s+(?:to|use|using|used|assign|assigning|assigned|map|mapped|pick|choose|select|be|as|a|an|the|"
+                 r"role|called))*"
                  r"\W{0,3}$")
-REJECT_AFTER = r"^\W{0,3}(?:is|are|would\s+be|should|must)\s*(?:not\b|n't\b|wrong\b|incorrect\b)"
+# "A Lifeguard does not get a mailbox" is about the mailbox, so the verdict has to be about the role.
+REJECT_AFTER = (r"^\W{0,3}(?:(?:is|are|was|would\s+be)\s*(?:not|n't)\s+(?:the|a|an|correct|right|valid|appropriate|"
+                r"used|to\s+be\s+used|what)\b|(?:is|are|was|would\s+be)\s+(?:the\s+|a\s+|an\s+)?(?:wrong|incorrect)\b|"
+                r"(?:should|must|can)\s*(?:not|n't)\s+be\s+(?:used|assigned)|no\s+longer\s+exists?|"
+                r"[^.;]{0,40}\b(?:is|was|would\s+be)\s+(?:a\s+mistake|wrong|incorrect)\b|(?:does|do|would)\s*(?:not|n't)\s+(?:apply|fit|match|exist))")
 
+# After the name, in the rest of the same clause: a verb with a negation ("is not in the standard",
+# "has no entry", "was not found"), a bracket that opens with a doubt ("(not found ...", "(unconfirmed"),
+# or an alternative or condition ("or Pool Attendant", "if it exists"). A clause about the login,
+# mailbox, member record or club is left alone: "does not get a staff login" is not about the role.
+DOUBT_AFTER = (r"\b(?:is|are|was|were|does|do|did|has|have|had|can|could|would|will)\s*(?:not\b|n't\b|no\b)|"
+               r"\bcannot\b|\(\s*(?:not\b|no\b|un\w+|could\s*n|can\s*n)|^\W{0,3}(?:or|if)\b")
+OTHER_TOPIC = r"mailbox|e-?mail|\blogin\b|member\s+record|\bclubs?\b"
+
+MAILBOX_NOUN = r"(?:mailbox|mail\s+account|e-?mail\s+account|inbox)"
 MAILBOX = r"mailbox|mail\s+account|e-?mail\s+account|inbox"
 GLOBAL = (r"all\s+(?:three|3)|any\s+of|none\s+of|each\s+(?:of|one|hire|role)|these\s+(?:roles|hires|three|titles)|"
           r"the\s+three|every(?:one)?\b|\bcolumn\b|any\s+role|all\s+roles|at\s+all\b|anywhere|nowhere|mailboxes")
@@ -60,102 +81,145 @@ SAYS_NOTHING = (
     r"(?:say|specif|mention|address|cover|state|includ|defin|list|contain|indicat|record|document|speak|refer)|"
     r"\bnot\s+(?:\w+\s+){0,2}?(?:stated|specified|covered|addressed|mentioned|defined|listed|documented|recorded|"
     r"in\s+the\s+standard|part\s+of\s+the\s+standard|something\s+the\s+standard)|"
-    r"\bsilent\b|\bno\s+(?:information|mention|column|rule|guidance|entry|data|field|reference|basis|evidence)|"
+    r"\bsilent\b|\bno\s+(?:\w+\s+){0,2}?(?:information|mention|column|rule|guidance|entry|data|field|reference|basis|evidence)|"
     r"nothing\s+(?:about|on|regarding)|can(?:no|')t\s+(?:confirm|determine|say|tell|answer)|unable\s+to|"
     r"\bunknown\b|\bunclear\b|\bn/a\b|outside\s+(?:the\s+)?(?:standard|scope)|not\s+enough|no\s+way\s+to|"
-    r"\bonly\s+(?:covers?|says?|lists?|records?|addresses)|\bcovers?\s+only|rule\s+(?:one|it|that|this)\s+out|"
-    r"either\s+way|(?:n't|\bnot|\bnor)\s+(?:\w+\s+)?withhold")
+    r"\bonly\s+(?:covers?|says?|lists?|records?|addresses)|\bcovers?\s+only|\bno\s+(?:\w+\s+){0,3}?entitlement")
+# "It doesn't give a mailbox, and it doesn't rule one out" is the unstated answer, not a no.
+NEITHER = r"rule\s+(?:one|it|that|this)\s+out|either\s+way|(?:n't|\bnot|\bnor)\s+(?:\w+\s+)?withhold"
 # A yes or a no has to be about getting a mailbox: a label ("Company mailbox: yes") or a verb of
 # giving next to the word. "That field is not a mailbox entitlement" is neither.
 LABEL = r"^\W*(?:[\w ?'/-]{0,40}:)?\W*"
 LEADING_YES = LABEL + r"(?:yes\b|✅)"
-LEADING_NO = LABEL + r"(?:no\b|❌|✗)"
+LEADING_NO = LABEL + r"(?:no\b(?!\s+(?:\w+\s+){0,3}?(?:information|mention|column|rule|guidance|entry|record))|❌|✗)"
 GIVE = r"(?:gets?|receiv\w*|given|gives?|provid\w*|includ\w*|has|have|comes?\s+with|entitled\s+to|eligible\s+for)"
-MAILBOX_NOUN = r"(?:mailbox|mail\s+account|e-?mail\s+account|inbox)"
-NOT_GIVEN = (r"(?:\bnot\b|n't\b|\bno\b|\bnever\b|\bwithout\b|\bneither\b|\bnor\b)\s+(?:\w+\s+){0,3}?" + GIVE +
-             r"\s+(?:\w+\s+){0,4}?" + MAILBOX_NOUN + r"|\b" + GIVE + r"\s+no\s+(?:\w+\s+){0,2}?" + MAILBOX_NOUN +
+NOT_GIVEN = (r"(?:\bnot\b|n't\b|\bno\b|\bnever\b|\bwithout\b|\bneither\b|\bnor\b|\bnone\b|\bnobody\b|\bno\s+one\b)"
+             r"\s+(?:\w+\s+){0,4}?" + GIVE + r"\s+(?:\w+\s+){0,4}?" + MAILBOX_NOUN +
+             r"|\b" + GIVE + r"\s+no\s+(?:\w+\s+){0,2}?" + MAILBOX_NOUN +
              r"|\bno\s+(?:company\s+|corporate\s+|work\s+)?" + MAILBOX_NOUN + r"\s+(?:is|are)\s+(?:given|provided|issued)")
-IS_GIVEN = r"\b" + GIVE + r"\s+(?:\w+\s+){0,4}?" + MAILBOX_NOUN
+IS_GIVEN = (r"\b" + GIVE + r"\s+(?:(?!no\b|not\b|never\b)\w+\s+){0,4}?" + MAILBOX_NOUN + r"|" + MAILBOX_NOUN +
+            r"\s+(?:is|are)\s+(?:standard|given|provided|included|issued|provisioned|created|set\s+up)|"
+            r"\b(?:but|so|and)\s+yes\b|✅")
+# Not claims about the hire: "whether they get one", "doesn't say that they get one".
+NOT_A_CLAIM = (r"\b(?:whether|if)\b[^.,;]*|"
+               r"\b(?:say|says|state|states|mention|mentions|show|shows|mean|means)\s+that\b[^.,;]*")
+TURN = r"\b(?:but|however|though|yet|still)\b"
 
 
-def _expand_tables(text: str) -> str:
-    """Turn each markdown table row into 'Header: cell' lines, so a cell keeps its column's meaning."""
-    out, header = [], None
-    for line in text.splitlines():
+def _clean(text: str) -> str:
+    return text.replace("’", "'").replace("**", "").replace("`", "").lower()
+
+
+def _units(answer: str) -> list[dict]:
+    """Split the answer into statements. Each has the text to look for a role in, and the
+    pieces to look for a mailbox answer in. A table row is one statement: its first cell is
+    the label, the rest are 'Header: cell' pieces, so a cell keeps its column's meaning."""
+    units, header = [], None
+    for line in _clean(answer).splitlines():
         stripped = line.strip()
         if stripped.startswith("|"):
             cells = [cell.strip() for cell in stripped.strip("|").split("|")]
             if header is None:
                 header = cells
             elif not all(re.fullmatch(r":?-+:?", cell or "-") for cell in cells):
-                out.append(" ; ".join(f"{head}: {cell}" for head, cell in zip(header, cells)))
-        else:
-            header = None
-            out.append(line)
-    return "\n".join(out)
-
-
-def _statements(answer: str) -> list[tuple[str, set[str]]]:
-    """Split into statements and say which hires each one is about.
-
-    A statement that names a hire is about that hire. One that names nobody is about all three
-    if it speaks generally ("any of these roles", "no column"), else about the hire of the
-    statement before it, as a bullet under a heading is.
-    """
-    text = _expand_tables(answer.replace("’", "'").replace("**", "").replace("`", ""))
-    out, current = [], set(HIRES)
-    for piece in re.split(r"\n+|(?<=[.!?])\s+|\s;\s|;\s", text):
-        statement = piece.strip().lower()
-        if not statement:
+                pairs = [f"{head}: {cell}" for head, cell in zip(header, cells)]
+                units.append({"label": cells[0], "role_text": " | ".join(pairs[1:]),
+                              "pieces": [piece for pair in pairs[1:] for piece in _sentences(pair)]})
             continue
-        named = {key for key, hire in HIRES.items() if re.search(hire["anchor"], statement)}
+        header = None
+        for sentence in _sentences(stripped):
+            units.append({"label": sentence, "role_text": sentence, "pieces": [sentence]})
+    return units
+
+
+def _sentences(text: str) -> list[str]:
+    return [piece.strip() for piece in re.split(r"(?<=[.!?])\s+|;\s", text) if piece.strip()]
+
+
+def _statements(answer: str) -> list[dict]:
+    """Say which hire each statement is about.
+
+    For a role, a statement belongs to one hire: the one whose title it names first (the label
+    of a bullet or a table row), else the hire of the statement before it, as a bullet under a
+    heading does. A role named in another hire's statement is never credited, so swapped roles
+    score wrong. For a mailbox, a statement is about every hire it names; one that names nobody
+    (a title right after a role cue is a value, not a name) is about all three if it speaks generally ("any of these roles", "no column"), else about
+    the hire of the statement before it.
+    """
+    owner, about, units, clauses = None, set(HIRES), _units(answer), []
+    for unit in units:
+        first, label = {}, unit["label"]
+        for key, hire in HIRES.items():
+            # A title right after a role cue is a value ("Role: use Lifeguard"), not a label: it
+            # must not move the line to that hire, or swapped roles under headings would score right.
+            starts = [m.start() for m in re.finditer(hire["title"], label) if not re.search(ROLE_CUE, label[:m.start()])]
+            if starts:
+                first[key] = starts[0]
+        if len(first) > 1 and unit["role_text"] is label:
+            # One sentence that names several hires: each hire owns only its own clause, from its
+            # title to the next hire's, so a role stated for a later hire is not credited to the first.
+            cuts = sorted(first.values()) + [len(label)]
+            for key, start in first.items():
+                clauses.append({"role_text": label[start:cuts[cuts.index(start) + 1]], "owner": key,
+                                "labelled": True, "about": set(), "pieces": []})
+            unit["role_text"] = ""
+        named = set(first) | ({"hospitality"} if any(
+            not re.search(ROLE_CUE, label[:m.start()]) for m in re.finditer(ROLE_VALUE["hospitality"], label)) else set())
+        if first:
+            owner = min(first, key=first.get)
         if named:
-            current = named
             about = named
-        elif re.search(GLOBAL, statement):
-            about = set(HIRES)
-        else:
-            about = current
-        out.append((statement, about))
-    return out
+        unit["owner"], unit["labelled"] = owner, bool(first)
+        unit["about"] = set(HIRES) if not named and re.search(GLOBAL, unit["label"]) else about
+    return units + clauses
 
 
 def _role_found(key: str, statements) -> str | None:
-    """'stated', 'rejected' or None for the expected role, in the statements about this hire."""
+    """'stated', 'rejected' or None for the expected role, in this hire's own statements."""
     stated = rejected = False
-    for statement, about in statements:
-        if key not in about:
+    for unit in statements:
+        text = unit["role_text"]
+        owned = unit["owner"] == key
+        # A rejection also counts in a line that names no hire of its own ("Do not use Lifeguard
+        # for this hire"): that errs toward wrong, which is the safe side for this check.
+        if not (owned or not unit["labelled"]) or text.endswith("?"):
             continue
-        matches = list(re.finditer(ROLE_VALUE[key], statement))
-        if key == "lifeguard" and re.search(SAME_AS_TITLE, statement) and matches:
-            stated = True
+        matches = list(re.finditer(ROLE_VALUE[key], text))
         for match in matches:
-            before, after = statement[:match.start()], statement[match.end():]
-            if re.search(REJECT_BEFORE, before) or re.search(REJECT_AFTER, after):
+            before, after = text[:match.start()], text[match.end():]
+            clause = re.split(r"[.;|\n]", after, maxsplit=1)[0]
+            if re.search(REJECT_BEFORE, before) or re.search(REJECT_AFTER, after) or (
+                    re.search(DOUBT_AFTER, clause) and not re.search(OTHER_TOPIC, clause)):
                 rejected = True
-            elif key not in NEEDS_CUE or re.search(ROLE_CUE, before) or (
-                    len(list(re.finditer(HIRES[key]["anchor"], statement))) > 1 and match is matches[-1]):
+            elif not owned:
+                continue
+            elif re.search(ROLE_CUE, before) or re.search(HIRES[key]["title"] + AFTER_TITLE, before):
                 stated = True
     return "rejected" if rejected else "stated" if stated else None
 
 
 def _mailbox_value(statement: str) -> str | None:
+    """'yes', 'no', 'not stated', 'mixed' or None for one sentence or table cell.
+
+    A yes next to anything else is mixed, so "the standard does not say, but yes" is not a
+    right answer. A no with a hedge is read as the hedge ("it has no mailbox entitlement for
+    any role, so I can't say"), unless the sentence turns on a "but"."""
     if not re.search(MAILBOX, statement) or statement.endswith("?"):
         return None
-    if re.search(LEADING_YES, statement):
-        return "yes"
-    if re.search(SAYS_NOTHING, statement):
-        return UNSTATED
-    if re.search(LEADING_NO, statement) or re.search(NOT_GIVEN, statement):
-        return "no"
-    if re.search(IS_GIVEN, statement):
-        return "yes"
-    return None
+    claims = re.sub(NOT_A_CLAIM, " ", statement)
+    unstated = bool(re.search(SAYS_NOTHING, statement) or re.search(NEITHER, statement))
+    no = bool(re.search(LEADING_NO, statement) or re.search(NOT_GIVEN, claims)) and not re.search(NEITHER, statement)
+    yes = bool(re.search(LEADING_YES, statement) or re.search(IS_GIVEN, re.sub(NOT_GIVEN, " ", claims)))
+    if yes:
+        return "mixed" if unstated or no else "yes"
+    if no and unstated:
+        return "mixed" if re.search(TURN, statement) else UNSTATED
+    return "no" if no else UNSTATED if unstated else None
 
 
 def _mailbox_found(key: str, statements) -> str | None:
-    values = {value for statement, about in statements if key in about
-              for value in [_mailbox_value(statement)] if value}
+    values = {value for unit in statements if key in unit["about"]
+              for piece in unit["pieces"] for value in [_mailbox_value(piece)] if value}
     return "mixed" if len(values) > 1 else next(iter(values), None)
 
 
