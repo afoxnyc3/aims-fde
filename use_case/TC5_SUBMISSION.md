@@ -1,6 +1,6 @@
 # TC5: The Question Endpoint, Built a Second Way and Measured
 
-> Submitted 2026-11-10 (Known Issues updated 2026-11-12 with a re-measurement; the Loom and deck show the 2026-11-10 state). **Loom:** https://www.loom.com/share/1a3b85c2674d4b27aeb5fd5ce7c89e14 (4 min). **Deck:** [`demo/tc5_demo.html`](demo/tc5_demo.html).
+> Submitted 2026-11-10 (Known Issues updated 2026-11-12 with a re-measurement; headline and unnecessary-asks count corrected 2026-11-18, see [Corrections after review](#corrections-after-review-2026-11-18); the Loom shows the 2026-11-10 state and still says the original headline). **Loom:** https://www.loom.com/share/1a3b85c2674d4b27aeb5fd5ce7c89e14 (4 min). **Deck:** [`demo/tc5_demo.html`](demo/tc5_demo.html).
 > Architecture row decided 2026-11-07. Step 1 marks confirmed, Service Desk session held and Step 7.2 line recorded on 2026-11-09. Role rulings and the v0.5 re-run on 2026-11-10.
 
 ## TL;DR
@@ -9,7 +9,7 @@ I exposed the onboarding question endpoint as an MCP server and measured it agai
 
 **Decision:** a private, gated, read-only tools service. The onboarding app calls it as an internal API. Staff using Claude reach it over MCP.
 
-**And the agent got better.** On the same 29 real test tickets as TC4: **14 → 27 right, over-access 2 → 0** (not held out; see [Results after the 2026-11-10 rulings](#results-after-the-2026-11-10-rulings)). The model barely changed. The standard did.
+**And the agent got better, by less than the first headline said.** **On current labels, the same 29 real test tickets went from 22 right to 27 right, with 0 over-grants in 3 recommendations.** The TC4 baseline stays 14 of 29 as scored on 2026-11-03, but the move from 14 to 22 is the owner's surname ruling relabelling 8 tickets, not the agent: the same saved TC4 outputs score 22 on today's labels. The agent and standard v0.5 account for the 5 tickets from 22 to 27. Not held out; sources and commands are in [Results after the 2026-11-10 rulings](#results-after-the-2026-11-10-rulings). The model barely changed. The standard did.
 
 ---
 
@@ -17,13 +17,26 @@ I exposed the onboarding question endpoint as an MCP server and measured it agai
 
 Same 29 real test tickets as TC4, current agent, standard v0.5. **Not held out:** this split has been read closely, and one check below was added after a test run.
 
-| | TC4 (2026-11-03, v0.3) | TC5 (2026-11-10, v0.5) |
-| --- | --- | --- |
-| Test, right outcome | 14 of 29 (0.48) | **27 of 29 (0.93)** |
-| Test, over-access | 2 | **0** |
-| Dev, right outcome | 25 of 29 | **28 of 29**, 0 over-access |
-| Synthetic grid | 168 of 180, 11 over-access | **174 of 180, 2 over-access** |
-| Unnecessary asks (test) | 8 | **1** |
+**Headline: on current labels, 22 to 27 of 29 test tickets right, and 0 over-grants in 3 recommendations.**
+
+| | TC4 run, labels at run time (2026-11-03, v0.3) | Same TC4 outputs, current labels | TC5 run, current labels (2026-11-10, v0.5) |
+| --- | --- | --- | --- |
+| Test, right outcome | 14 of 29 (0.48) | 22 of 29 (0.76) | **27 of 29 (0.93)** |
+| Test, over-access | 2 of 5 recommendations | 2 of 5 recommendations | **0 of 3 recommendations** |
+| Unnecessary asks (test) | 8 | 0 | **0** |
+| Dev, right outcome | 25 of 29, 0 over-access | 26 of 29 | **28 of 29**, 0 over-access in 11 recommendations |
+| Synthetic grid | 168 of 180, 11 over-access | labels unchanged | **174 of 180, 2 over-access** |
+
+**How to read the test rows.**
+- **The like-for-like gain is 22 to 27, five tickets.** The first column is the TC4 baseline as it was scored. The middle column is the same saved outputs against today's labels, with no re-run. The step from 14 to 22 is the owner's surname ruling (2026-11-07): 8 test tickets moved from `recommended` to `needs_information`, which is what the TC4 agent already answered ([TC4, name policy](TC4_SUBMISSION.md#name-policy-2026-11-07)). The five tickets the TC5 run gained are the two TC4 over-grants (TKT-63, TKT-408) and three asks on exception tickets (TKT-155, TKT-414, TKT-421), all now sent to a person.
+- **"Zero over-access" rests on 3 recommendations.** The TC5 run recommended 3 of the 29 test tickets (TKT-119, TKT-478, TKT-485) and all 3 carry a `recommended` label. The labels say recommend on 5; the other 2 (TKT-334, TKT-390) went to a person, which are the two misses. The TC4 run recommended 5, and 2 of those were over-grants. Three is too few to claim a rate. Dev adds 11 recommendations with 0 over-grants, and the grid has 2 over-grants in 180 scenarios.
+- **Unnecessary asks are 0 in the TC5 test run.** An unnecessary ask is a `needs_information` answer on a ticket labelled `recommended` (`unnecessary_ask` in [`evals/harness.py`](evals/harness.py)). The run file records a count of 0 and its rows recompute to 0. This table said 1 before 2026-11-18; no saved file supports a 1.
+
+**Where each number comes from.** No model calls; both commands read saved files only.
+- 14, 22, the TC4 over-access of 2 and the TC4 unnecessary asks of 8 and 0: `python3 use_case/evals/run.py --committed`, which reads [`evals/real_v03/results/endpoint_test.json`](evals/real_v03/results/endpoint_test.json) and rescores it against [`evals/real_v03/golden.jsonl`](evals/real_v03/golden.jsonl). The test split has the same status labels in [`evals/real_v05/golden.jsonl`](evals/real_v05/golden.jsonl), so 22 holds on either label file.
+- 27, the 3 recommendations, the 0 over-grants and the 0 unnecessary asks: [`evals/real_v05/results/endpoint_test.json`](evals/real_v05/results/endpoint_test.json), by counting its rows (`actual` against `expected`, and the `no_over_privilege` score). Its `meta.metrics` block records `unnecessary_asks` count 0 and `over_privilege` count 0. The recommendation counts of 5 and 3 are rows whose `actual` status is `recommended` in the two run files.
+- Dev: 25, 28 and the 11 recommendations from `evals/real_v03/results/endpoint_dev.json` and `evals/real_v05/results/endpoint_dev.json`. The 26 is the saved TC4 dev outputs matched by status against `evals/real_v05/golden.jsonl`; it is 27 against `real_v03` labels, and the difference is TKT-293, relabelled in `real_v05` to `needs_information`. The TC4 run recommended that ticket, so on current labels it is a missed ask in the TC4 dev run.
+- Grid: `endpoint_grid.json` in the same two results folders.
 
 **What moved it:** six owner and Service Desk rulings that closed role mappings and the exception order, a business-unit scope and a per-title staff group in the decision code, and a deterministic check for systems outside the role bundle. Rulings in [`decisions.md`](decisions.md#owner-decisions-2026-11-10); labels and runs in [`evals/real_v05`](evals/real_v05/README.md). `real_v03` stays the frozen TC4 record.
 
@@ -229,11 +242,11 @@ The ingress route to the privately hosted service, and the data sign-off for rea
 
 **"Prove onboarding first, then role changes."** Re-hires, transfers and promotions now go straight to a person with the gaps listed, and so does any other exception. Removing stale access is on the list after go-live.
 
-**"Take the name question to the owner."** The owner ruled a legal surname is required. Unnecessary asks on recommended tickets went from 8 to 0.
+**"Take the name question to the owner."** The owner ruled a legal surname is required. Unnecessary asks on recommended tickets went from 8 to 0. That drop is the relabel: the 8 tickets now carry the label the TC4 agent already gave.
 
 **"Score three multi-turn scenarios."** Built and run live: 3 of 3 pass (surname supplied then recommended, re-hire to review, mirror refused).
 
-**"Report unnecessary asks beside over-grants."** Now a column. The line the CTO hears today: 0 over-grants, 1 extra round-trip, on 29 test tickets.
+**"Report unnecessary asks beside over-grants."** Now a column. The line the CTO hears today: 0 over-grants in 3 recommendations and 0 unnecessary asks, on 29 test tickets (`evals/real_v05/results/endpoint_test.json`).
 
 ---
 
@@ -266,3 +279,26 @@ The ingress route to the privately hosted service, and the data sign-off for rea
 5. Monitored rollout: role by role, every action logged to a Teams channel via webhook, weekly email report.
 6. Before go-live: remove staff admin from Senior Group Fitness Instructor with stakeholders, security sign-off, and a fresh held-out ticket set.
 7. *(Code fix done 2026-11-12: an `answer`/`decline` tool call, forced where supported, else one retry; the eval-set paraphrases are still open.)* Make the decline flag independent of the model's wording. Require a structured decline, either a forced tool call or a required `declined` field, and add a code check that a reply whose text refuses can't come back `declined: false`. Add paraphrased credential questions to the eval set, so a prose refusal shows up as a failure.
+
+---
+
+## Corrections after review, 2026-11-18
+
+The course reviewer raised three wording problems in this write-up. All three were checked against the saved run files and are true. No model was called and no run was repeated: every number below is read from a file already in the repo. The original claims are listed here so they are not silently rewritten.
+
+1. **The headline mixed a relabel with an improvement.**
+   - *Was:* "14 → 27 right, over-access 2 → 0" in the TL;DR, the results table, `README.md` and the deck.
+   - *Now:* on current labels, 22 to 27 of 29 right. 14 of 29 stays as the TC4 baseline, with a plain statement that the relabel accounts for the move from 14 to 22.
+   - *Why:* `python3 use_case/evals/run.py --committed` scores the saved TC4 outputs (`evals/real_v03/results/endpoint_test.json`) at 14 of 29 on the labels at run time and 22 of 29 on the current labels. So 8 of the 13 tickets in "14 to 27" come from the owner's surname ruling changing the labels, and 5 come from the agent and standard v0.5.
+2. **"Zero over-access" had no denominator.**
+   - *Was:* "over-access 2 → 0", with no count of recommendations.
+   - *Now:* 0 over-grants in 3 recommendations (TC4: 2 in 5).
+   - *Why:* in `evals/real_v05/results/endpoint_test.json` 3 of the 29 rows have an `actual` status of `recommended`, and all 3 have a `recommended` label. A zero over 3 recommendations is weak evidence on its own, and the write-up now says so.
+3. **Unnecessary asks read 1 in two places and 0 in two others.**
+   - *Was:* 1 in the results table and in "The line the CTO hears today" (and in the deck); 0 in "Take the name question to the owner" and in `README.md`.
+   - *Now:* 0 everywhere.
+   - *Why:* `evals/real_v05/results/endpoint_test.json` records `unnecessary_asks` count 0 in `meta.metrics`, and counting its rows gives 0 under the definition in `evals/harness.py`. It is also 0 under a wider reading (any ask where the label does not ask). The 1 could not be reproduced from any saved file, so it is withdrawn, not explained. The two zeros that were already in the text are different measurements that happen to agree: one is the saved TC4 outputs rescored after the relabel, the other is the TC5 run.
+
+Also changed for the same reason: the dev row now shows the saved TC4 dev outputs on current labels (26 of 29) next to the baseline, the same result line in `decisions.md` carries a dated correction, and the deck (`demo/tc5_demo.html`) has the corrected headline, table row and CTO line. The Loom was recorded on 2026-11-10 and still says the original headline.
+
+Not changed here: the several-lookups measurement and `measure_tc5.py`.
