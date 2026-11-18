@@ -1,6 +1,6 @@
 # TC5: The Question Endpoint, Built a Second Way and Measured
 
-> Submitted 2026-11-10 (Known Issues updated 2026-11-12 with a re-measurement; headline and unnecessary-asks count corrected 2026-11-18, see [Corrections after review](#corrections-after-review-2026-11-18); the Loom shows the 2026-11-10 state and still says the original headline). **Loom:** https://www.loom.com/share/1a3b85c2674d4b27aeb5fd5ce7c89e14 (4 min). **Deck:** [`demo/tc5_demo.html`](demo/tc5_demo.html).
+> Submitted 2026-11-10 (Known Issues updated 2026-11-12 with a re-measurement; headline and unnecessary-asks count corrected 2026-11-18, and the several-lookups answers graded in a re-run the same day, see [Corrections after review](#corrections-after-review-2026-11-18); the Loom shows the 2026-11-10 state and still says the original headline). **Loom:** https://www.loom.com/share/1a3b85c2674d4b27aeb5fd5ce7c89e14 (4 min). **Deck:** [`demo/tc5_demo.html`](demo/tc5_demo.html).
 > Architecture row decided 2026-11-07. Step 1 marks confirmed, Service Desk session held and Step 7.2 line recorded on 2026-11-09. Role rulings and the v0.5 re-run on 2026-11-10.
 
 ## TL;DR
@@ -109,6 +109,7 @@ Two settings are required:
 - The MCP tool has **the same description and parameter wording as Way 1's schema**, but the two aren't byte-identical. FastMCP adds `"default": 4` on `k` and `"additionalProperties": false`. `test_mcp_server` pins that difference.
 - Way 2 runs against **one warm server session per size**, because Claude Desktop keeps a stdio server alive for the whole session.
 - Real-size rows are in `use_case/evals/tc5_measure_run{1,2,3}.jsonl`, written with `--out` (the script's default file name is `tc5_measure.jsonl`). The demo-size rows and an earlier real-size round, both taken before the schemas were matched, are in `tc5_measure_schema_unmatched_run{1,2,3}.jsonl`.
+- The several-lookups request was run again on 2026-11-18 to grade its answers, 3 runs per way, same model and settings. Those rows, with the answer text, are in `use_case/evals/tc5_measure_graded_2026-11-18_run{1,2,3}.jsonl`.
 
 **Startup cost: about 2 s, once per session.** With `MCP_PRELOAD`, the server loads and embeds the corpus before it answers the handshake. The handshake takes 1.82–1.92 s and the first `list_tools` call takes 0.07–0.10 s. That holds for both the raw-search and the guarded session, each timed on its own. Earlier rounds warmed on the first call instead, at 1.8–3.0 s total. Those rounds aren't on disk: only this round and the unmatched round are. An earlier version of the harness started a new server for every request and put that cost into every row. Those numbers are superseded.
 
@@ -116,23 +117,41 @@ Two settings are required:
 
 Whole records, 4 by default. The model sets `k` up to 8, so a raw-search response is **4.1–8.4 KB** (run averages). Way 2b is the guarded tool used the way an outside client would use it. *Client* tokens are what the caller's model reads. *Total* tokens add what the server spends on its internal retrieval loop.
 
-| Request | Way | Model calls (client) | Capability calls | Seconds | Tokens (client) | Tokens (total) |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
-| one lookup | 1 tool | 2 | 2 | 4.9 | 9,136 | 9,136 |
-| one lookup | 2 MCP raw search (warm) | 2 | 2 | 5.6 | 8,991 | 8,991 |
-| one lookup | 2b MCP guarded (warm) | 2 | 1 guarded call* | 12.0 | 2,346 | 11,271 |
-| several lookups | 1 tool | 3 | 5 | 10.4 | 25,668 | 25,668 |
-| several lookups | 2 MCP raw search (warm) | 3 | 5 | 12.1 | 19,498 | 19,498 |
-| several lookups | 2b MCP guarded (warm) | 2 | 3 guarded calls* | 46.7 | 4,491 | 71,299 |
+| Request | Way | Model calls (client) | Capability calls | Seconds | Tokens (client) | Tokens (total) | Facts right of 6, per run (median)† |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| one lookup | 1 tool | 2 | 2 | 4.9 | 9,136 | 9,136 | not scored |
+| one lookup | 2 MCP raw search (warm) | 2 | 2 | 5.6 | 8,991 | 8,991 | not scored |
+| one lookup | 2b MCP guarded (warm) | 2 | 1 guarded call* | 12.0 | 2,346 | 11,271 | not scored |
+| several lookups | 1 tool | 3 | 5 | 10.4 | 25,668 | 25,668 | 6, 6, 6 (6) |
+| several lookups | 2 MCP raw search (warm) | 3 | 5 | 12.1 | 19,498 | 19,498 | 6, 6, 6 (6) |
+| several lookups | 2b MCP guarded (warm) | 2 | 3 guarded calls* | 46.7 | 4,491 | 71,299 | 6, 6, 6 (6) |
 
 \* For 2b, capability calls count calls to the guarded tool. Each call runs its own retrieval loop with several searches the client never sees (`server_model_turns` in the audit log). These cells don't compare with the search counts above them.
+
+† The facts column comes from a separate re-run on 2026-11-18 (`use_case/evals/tc5_measure_graded_2026-11-18_run{1,2,3}.jsonl`), not from the 2026-11-07 runs that give the other columns. The old run files kept no answer text, so they cannot be graded. n=3 per way. This is not a significance test. The re-run's own cost, from the same files, is in the next table.
+
+**The graded re-run, several lookups, 2026-11-18** (medians of 3; per-run values in brackets; all from `use_case/evals/tc5_measure_graded_2026-11-18_run{1,2,3}.jsonl`)
+
+| Way | Facts right of 6 | Seconds | Tokens (client) | Tokens (total) |
+| --- | ---: | ---: | ---: | ---: |
+| 1 tool | 6 (6, 6, 6) | 17.0 (14.0, 17.0, 18.1) | 41,423 | 41,423 (41,423, 24,617, 43,663) |
+| 2 MCP raw search (warm) | 6 (6, 6, 6) | 10.5 (11.7, 10.3, 10.5) | 32,084 | 32,084 (32,222, 32,084, 24,592) |
+| 2b MCP guarded (warm) | 6 (6, 6, 6) | 41.1 (30.2, 46.0, 41.1) | 4,050 | 88,120 (88,120, 90,801, 85,774) |
+
+In this re-run the tool and raw search each took a 4th model turn in 2 of 3 runs (`model_calls` 4, 3, 4 and 4, 4, 3), which is why their tokens are higher than on 2026-11-07. The guarded tool cost about 2.1x the tool's total tokens and about 2.4x its time here, against about 2.8x and 4.5x on 2026-11-07.
 
 **Per run, several lookups:** the tool made 5, 5 and 5 searches, in 3 turns each. Raw-search MCP made 5, 7 and 5. The 7-search run took a 4th turn and cost 42,340 tokens. The guarded server ran 9, 9 and 10 model turns of its own across 3–4 sub-questions (`server_model_turns`, from its audit log).
 
 **Answer checks**
 - **All 18 real-size runs answered**, meaning none declined according to `retrieval.decline_reason` on the final text. For 2b this check reads the client's wording, so a paraphrased decline from the server would still pass. The harness now also counts the server's own `declined` field (`server_declined`), but these runs predate it. Treat 2b's "answered" as the weaker text check.
 - **All 9 one-lookup runs named the expected role.** `role_named` is a substring check for "front desk associate", so an answer that names the role in order to reject it would also pass. Read this at n=9, not as grading.
-- **The several-lookups answers were not graded.**
+- **The several-lookups answers are now graded, in a re-run on 2026-11-18: every way got 6 of 6 facts right in all 3 runs.** n=3 per way, 9 answers. This is not a significance test, and 9 perfect answers cannot show that the three ways are equally accurate, only that none of them got a fact wrong here.
+  - **The six facts:** a role and a mailbox answer for each of the three hires. The expected values come from the synthetic standard in `01_Product_Engineering/challenge/standard_v0_1.md`. The roles are Front Desk Associate, Lifeguard and Personal Trainer. That file has no mailbox column and never uses the word, so the right mailbox answer for each hire is "the standard does not say". A yes is wrong and a flat no is wrong. So three of the six facts test whether the answer avoids making up a rule, not whether it finds one.
+  - **The scorer** is `score_several_lookups` in `01_Product_Engineering/challenge/tc5_facts.py`, a fixed-pattern text check with no model. A fact is right only if the answer states the correct value for the correct hire. Naming a value in order to reject it is wrong. `test_tc5_facts.py` covers right, wrong, partial and rejected-value answers.
+  - **The scorer was corrected after reading the answers.** Its first version marked 4 of the 9 answers down (3, 3, 5 and 3 of 6), and a later version marked one more down (5 of 6). Read by hand, all 9 answers are 6 of 6. The misreads were remarks such as "that ticket field is not a mailbox entitlement" taken as a no, and "I can't give the Lifeguard answer for your club" taken as rejecting the role. Each misread phrasing is now a test case. The scores in the run files are the final scorer's, written back with `python tc5_facts.py --write`, and they match the hand reading on all 9. The scorer has been fitted to these 9 answers, so treat it as checked on them and not beyond.
+  - **One guarded sub-call declined.** In run 3 the guarded server declined the Lifeguard sub-question (`server_declined` 1, `answered` false in `tc5_measure_graded_2026-11-18_run3.jsonl`). The client's answer still named the Lifeguard role and said the standard does not cover mailboxes for all three, so the text scores 6 of 6, but it had no sources for that hire. The tool and raw search had no declines.
+
+**What this means for the decision.** On this request the guarded tool's extra cost bought no extra right answers: all three ways scored 6 of 6, and the guarded tool cost 88,120 total tokens and 41.1 s against 41,423 and 17.0 s for the in-app tool (`use_case/evals/tc5_measure_graded_2026-11-18_run{1,2,3}.jsonl`). So the decision to ship the guarded tool cannot rest on accuracy. It rests on the guards running inside the server and on the caller reading about 10x fewer tokens (4,050 against 41,423), and it is paid for with about twice the tokens, more than twice the wait, and in this sample one declined sub-question the cheaper ways answered. Whether that wait is acceptable is still open (see [Open](#open)).
 
 ### Demo size
 
@@ -232,6 +251,11 @@ On the guarded path: about 11K tokens per one-lookup question and 71K per multi-
 
 The ingress route to the privately hosted service, and the data sign-off for real tickets. These are the same open items as in `ecosystem.md`.
 
+Two more items are open as of 2026-11-18. Only the owner can answer them.
+
+1. **Who approves a sandbox, and by when.** The Code Mode trigger says "when a sandbox is approved" and names no role and no date. Until a role and a date are named, that trigger cannot fire.
+2. **A seconds trigger.** The switch conditions have token and turn thresholds and no time threshold. The guarded tool took 41.1 s (median, `use_case/evals/tc5_measure_graded_2026-11-18_run{1,2,3}.jsonl`) and 46.7 s (median, `use_case/evals/tc5_measure_run{1,2,3}.jsonl`) on the several-lookups request. The trigger should be the answer time the Technology Support Associate would accept. That number has not been asked for yet.
+
 ### What the Room Raised
 
 **"Putting Claude in front of the system of record needs a middleware layer, not a direct connection."** The architecture row is that layer: a **gated, read-only tools service between Claude and the system of record**, with **per-caller scoping**. SSO identity maps each caller to a role. A versioned policy table decides which tools and business-unit rows that role can reach, with default deny. The service reaches the system of record through its own least-privilege, read-only service account. No model holds a credential, and no caller sees rows outside its scope.
@@ -284,7 +308,7 @@ The ingress route to the privately hosted service, and the data sign-off for rea
 
 ## Corrections after review, 2026-11-18
 
-The course reviewer raised three wording problems in this write-up. All three were checked against the saved run files and are true. No model was called and no run was repeated: every number below is read from a file already in the repo. The original claims are listed here so they are not silently rewritten.
+The course reviewer raised three wording problems in this write-up. All three were checked against the saved run files and are true. For items 1 to 3 no model was called and no run was repeated: every number in them is read from a file already in the repo. Item 4 was added later the same day and did call the model. The original claims are listed here so they are not silently rewritten.
 
 1. **The headline mixed a relabel with an improvement.**
    - *Was:* "14 → 27 right, over-access 2 → 0" in the TL;DR, the results table, `README.md` and the deck.
@@ -301,4 +325,9 @@ The course reviewer raised three wording problems in this write-up. All three we
 
 Also changed for the same reason: the dev row now shows the saved TC4 dev outputs on current labels (26 of 29) next to the baseline, the same result line in `decisions.md` carries a dated correction, and the deck (`demo/tc5_demo.html`) has the corrected headline, table row and CTO line. The Loom was recorded on 2026-11-10 and still says the original headline.
 
-Not changed here: the several-lookups measurement and `measure_tc5.py`.
+4. **The several-lookups answers were not graded** (added later on 2026-11-18, with model calls).
+   - *Was:* "The several-lookups answers were not graded." The harness checked content only on the one-lookup request and the run files kept no answer text, so nothing showed whether the guarded tool's extra cost bought right answers.
+   - *Now:* `measure_tc5.py` saves the final answer text in every row and scores the several-lookups answer on six facts with `tc5_facts.py`. The request was run again 3 times per way (9 runs, same model and settings, no retries needed). Every way scored 6 of 6 in every run. See [Real size](#real-size) and the answer checks under it.
+   - *Why it matters:* the extra cost did not buy extra right answers at n=3, so the decision is stated as a trade for the guards and a smaller caller context, not for accuracy. The 2026-11-07 run files are unchanged.
+
+Items 1 to 3 used no model call. Item 4 is the only one that did.

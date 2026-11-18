@@ -253,6 +253,8 @@ The second way, the measurements and the draft architecture row are in [`TC5_SUB
 
 \* Each guarded call runs its own retrieval loop inside the server, so it is not comparable with a search count. Session start-up (about 2 s) is measured separately; the demo-size table and the caveats are in the submission.
 
+The several-lookups answers were graded in a re-run on 2026-11-18: all three ways got 6 of 6 facts right in each of 3 runs (`evals/tc5_measure_graded_2026-11-18_run{1,2,3}.jsonl`; n=3 per way, not a significance test). The guarded tool's extra cost bought no extra right answers on this request. It buys the guards and a smaller caller context.
+
 ## Bring it to work
 
 **Project:** We can't decide which roles keep seats under a fixed AI-tool

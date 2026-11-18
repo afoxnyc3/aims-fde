@@ -96,6 +96,31 @@ class MeasureTest(unittest.TestCase):
         self.assertFalse(measure_tc5._declined("[STD-role-list]\nFront Desk Associate ..."))
         self.assertFalse(measure_tc5._declined(json.dumps({"declined": False})))
 
+    def test_every_row_keeps_the_final_answer_text(self):
+        for label in measure_tc5.REQUESTS:
+            fields = measure_tc5.result_fields("Use Front Desk Associate.", label)
+            self.assertEqual(fields["answer"], "Use Front Desk Associate.")
+            self.assertTrue(fields["answered"])
+
+    def test_several_lookups_rows_carry_the_six_fact_score(self):
+        answer = ("- Hospitality Associate Level 1: use Front Desk Associate.\n- Lifeguard: use Lifeguard.\n"
+                  "- Personal Trainer Level 2: use Personal Trainer.\n"
+                  "Company mailbox: yes for all three.")
+        fields = measure_tc5.result_fields(answer, "several lookups")
+        self.assertEqual(fields["facts_right"], 3)
+        self.assertEqual(len(fields["facts"]), 6)
+        self.assertTrue(fields["facts"]["lifeguard_role"])
+        self.assertFalse(fields["facts"]["lifeguard_mailbox"])
+        self.assertNotIn("facts", measure_tc5.result_fields(answer, "one lookup"))
+
+    def test_a_declined_run_scores_no_facts(self):
+        fields = measure_tc5.result_fields("", "several lookups", declined=True)
+        self.assertEqual((fields["answered"], fields["facts_right"]), (False, 0))
+
+    def test_one_request_can_be_run_alone(self):
+        self.assertEqual(list(measure_tc5.requests_for("several lookups")), ["several lookups"])
+        self.assertEqual(measure_tc5.requests_for("all"), measure_tc5.REQUESTS)
+
 
 if __name__ == "__main__":
     unittest.main()
