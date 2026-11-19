@@ -70,7 +70,7 @@ REJECT_BEFORE = (r"(?:\bnot\b|n't\b|\bcannot\b|\bnever\b|\brather\s+than\b|\bins
 # "A Lifeguard does not get a mailbox" is about the mailbox, so the verdict has to be about the role.
 REJECT_AFTER = (r"^\W{0,3}(?:(?:is|are|was|would\s+be)\s*(?:not|n't)\s+(?:the|a|an|correct|right|valid|appropriate|"
                 r"used|to\s+be\s+used|what)\b|(?:is|are|was|would\s+be)\s+(?:the\s+|a\s+|an\s+)?(?:wrong|incorrect)\b|"
-                r"(?:should|must|can|may|could|shall|might|will)\s*(?:not|n't)\s+be\s+(?:used|assigned|chosen|picked|selected)|no\s+longer\s+exists?|"
+                r"(?:should|must|can|ca|may|could|shall|might|will|wo|would)\s*(?:not|n't)\s+be\s+(?:used|assigned|chosen|picked|selected)|no\s+longer\s+exists?|"
                 r"[^.;]{0,40}\b(?:is|was|would\s+be)\s+(?:a\s+mistake|wrong|incorrect)\b|"
                 r"(?:does|do|would)\s*(?:not|n't)\s+(?:apply|fit|match|exist))")
 
@@ -79,7 +79,7 @@ REJECT_AFTER = (r"^\W{0,3}(?:(?:is|are|was|would\s+be)\s*(?:not|n't)\s+(?:the|a|
 # the name follows a role cue ("I would not recommend that you use X", "do not, under any circumstances,
 # use X"). The stretch starts again at a comma, a colon or a word like "so", so "the old title is not
 # allowed, so use X" still states X. A comma right after the negation does not end it ("never, ever").
-NEGATION = (r"(?:\bnot\b|n't\b|\bcannot\b|\bnever\b|\bno\s+(?:circumstances?|means|case|one|longer)\b|\bnobody\b|"
+NEGATION = (r"(?:\bnot\b|n't\b|\bcannot\b|\bnever\b|\bno\s+(?:circumstances?|means|case|one|longer|way)\b|\bnobody\b|"
             r"\bnone\b|\b(?:" + PROHIBIT + r")\b|\brefrain\w*|\bstop\w*|\bagainst\b|\bavoid\w*|\bsteer\s+clear\b|"
             r"\bprevent\w*)")
 STARTS_AGAIN = r"[,:]|\s[—–-]\s|\b(?:so|but|instead|therefore|hence|thus|then|and)\b"
@@ -87,6 +87,10 @@ STARTS_AGAIN = r"[,:]|\s[—–-]\s|\b(?:so|but|instead|therefore|hence|thus|the
 # standard prohibits", "X here violates the standard"), unless the words between are about something
 # else ("X, because the old title is prohibited") or negate it ("X, which is not forbidden").
 PROHIBIT_AFTER = r"\b(?:" + PROHIBIT + r"|prohibits?|forbids?|retired|deprecated|discontinued)\b"
+# The sentence right after the one that states the role, on the same line, can take it back:
+# "Use X. This role is prohibited." "Use X. That is not allowed." "Use X. Actually, don't."
+TAKEN_BACK = (r"^\W*(?:actually\W+)?(?:(?:this|that|it)(?:\s+role)?\s+(?:is|was|would\s+be)\s+(?:strictly\s+)?"
+              r"(?:" + PROHIBIT + r"|wrong)\b|(?:don't|do\s+not)\W*$)")
 ABOUT_SOMETHING_ELSE = r"\btitles?\b|\blegacy\b|\bold\s+name\b|hospitality\s+associate|\bticket\b"
 
 # After the name, in the rest of the same clause: a verb with a negation ("is not in the standard",
@@ -94,7 +98,7 @@ ABOUT_SOMETHING_ELSE = r"\btitles?\b|\blegacy\b|\bold\s+name\b|hospitality\s+ass
 # or an alternative or condition ("or Pool Attendant", "if it exists"). A clause about the login,
 # mailbox, member record or club is left alone: "does not get a staff login" is not about the role.
 DOUBT_AFTER = (r"\b(?:is|are|was|were|does|do|did|has|have|had|can|could|would|will)\s*(?:not\b|n't\b|no\b)|"
-               r"\bcannot\b|\(\s*(?:not\b|no\b|un\w+|could\s*n|can\s*n)|^\W{0,3}(?:or|if)\b")
+               r"\bcannot\b|\bcan't\b|\bwon't\b|\(\s*(?:not\b|no\b|un\w+|could\s*n|can\s*n)|^\W{0,3}(?:or|if)\b")
 OTHER_TOPIC = r"mailbox|e-?mail|\blogin\b|member\s+record|\bclubs?\b"
 
 MAILBOX_NOUN = r"(?:mailbox|mail\s+account|e-?mail\s+account|inbox)"
@@ -122,7 +126,9 @@ GIVE = (r"(?:gets?|receiv\w*|given|gives?|provid\w*|includ\w*|has|have|comes?\s+
         r"issu\w+|assign\w*|grant\w*|allocat\w*|allot\w*|suppl\w+|offer\w*|provision\w*|award\w*|set\s+up\s+with|"
         r"ends?\s+up\s+with|end\s+up\s+with)")
 # What is given: a mailbox by name, or "one" standing for it ("so all three get one").
-GIVEN_THING = r"(?:" + MAILBOX_NOUN + r"|one\b(?!\s+(?!too\b|each\b|anyway\b|as\s+well\b)\w))"
+# "one" only at the end of its clause or before a word like "anyway": "gets one member record" is not it.
+ONE = r"one\b(?=\W*$|\s*[,;.)]|\s+(?:anyway|too|each|regardless|automatically|by\s+default|as\s+well|as\s+standard)\b)"
+GIVEN_THING = r"(?:" + MAILBOX_NOUN + r"|" + ONE + r")"
 GIVEN_STATE = (r"(?:given|provided|included|issued|provisioned|created|set\s+up|assigned|granted|allocated|allotted|"
                r"supplied|offered|available)")
 NOT_GIVEN = (r"(?:\bnot\b|n't\b|\bno\b|\bnever\b|\bwithout\b|\bneither\b|\bnor\b|\bnone\b|\bnobody\b|\bno\s+one\b)"
@@ -138,6 +144,8 @@ IS_GIVEN = (r"\b" + GIVE + r"\s+(?:(?!no\b|not\b|never\b)\w+\s+){0,4}?" + GIVEN_
 NOT_A_CLAIM = (r"\b(?:whether|if)\b[^.,;]*|"
                r"\b(?:say|says|state|states|mention|mentions|show|shows|mean|means)\s+that\b[^.,;]*")
 TURN = r"\b(?:but|however|though|yet|still)\b"
+THE_HIRES = (r"all\s+(?:three|3)|\bthey\b|\bthem\b|\beach\b|\bevery(?:one)?\b|\bboth\b|the\s+three|\bhires?\b|"
+             r"hospitality|lifeguard|trainer")
 HEDGE_WORD = r"\b(?:whether|if|ask|check|confirm|depends?|decides?|unless|knows?|owner|owns|up\s+to)\b"
 
 
@@ -150,7 +158,7 @@ def _units(answer: str) -> list[dict]:
     pieces to look for a mailbox answer in. A table row is one statement: its first cell is
     the label, the rest are 'Header: cell' pieces, so a cell keeps its column's meaning."""
     units, header = [], None
-    for line in _clean(answer).splitlines():
+    for number, line in enumerate(_clean(answer).splitlines()):
         stripped = line.strip()
         if stripped.startswith("|"):
             cells = [cell.strip() for cell in stripped.strip("|").split("|")]
@@ -162,15 +170,16 @@ def _units(answer: str) -> list[dict]:
                               "pieces": [piece for pair in pairs[1:] for piece in _sentences(pair)]})
             continue
         header = None
+        mailbox_named = False
         for sentence in re.split(r"(?<=[.!?])\s+", stripped):
-            mailbox_named = False
             for part in _sentences(sentence):
                 piece = part
-                # "silent on mailboxes; all three get one regardless": "one" is the mailbox just named.
+                # "silent on mailboxes; all three get one regardless", or the same with a full stop:
+                # "one" is the mailbox named earlier on the line.
                 if mailbox_named and not re.search(MAILBOX, part):
-                    piece = re.sub(r"\b(" + GIVE + r"\s+(?:\w+\s+){0,2}?)one\b", r"\1a mailbox", part, count=1)
+                    piece = re.sub(r"\b(" + GIVE + r"\s+(?:\w+\s+){0,2}?)" + ONE, r"\1a mailbox", part, count=1)
                 mailbox_named = mailbox_named or bool(re.search(MAILBOX, part))
-                units.append({"label": part, "role_text": part, "pieces": [piece]})
+                units.append({"label": part, "role_text": part, "pieces": [piece], "line": number})
     return units
 
 
@@ -212,16 +221,22 @@ def _statements(answer: str) -> list[dict]:
         if named:
             about = named
         unit["owner"], unit["labelled"] = owner, bool(first)
-        unit["about"] = set(HIRES) if not named and re.search(GLOBAL, unit["label"]) else about
+        if not named and re.search(GLOBAL, unit["label"]):
+            about = set(HIRES)  # and so is what follows it, until a hire is named: "They each get one."
+        unit["about"] = about
     return units + clauses
 
 
 def _role_found(key: str, statements) -> str | None:
     """'stated', 'rejected' or None for the expected role, in this hire's own statements."""
     stated = rejected = False
-    for unit in statements:
+    for index, unit in enumerate(statements):
         text = unit["role_text"]
         owned = unit["owner"] == key
+        following = statements[index + 1] if index + 1 < len(statements) else {}
+        taken_back = (unit.get("line") is not None and following.get("line") == unit["line"]
+                      and bool(re.search(TAKEN_BACK, following["role_text"]))
+                      and not re.search(OTHER_TOPIC, following["role_text"]))
         # A rejection also counts in a line that names no hire of its own ("Do not use Lifeguard
         # for this hire"): that errs toward wrong, which is the safe side for this check.
         if not (owned or not unit["labelled"]) or text.endswith("?"):
@@ -231,7 +246,7 @@ def _role_found(key: str, statements) -> str | None:
             before, after = text[:match.start()], text[match.end():]
             clause = re.split(r"[.;|\n]", after, maxsplit=1)[0]
             if re.search(REJECT_BEFORE, before) or re.search(REJECT_AFTER, after) or _negated_before(before) or (
-                    _prohibited_after(clause)) or (
+                    _prohibited_after(clause)) or taken_back or (
                     re.search(DOUBT_AFTER, clause) and not re.search(OTHER_TOPIC, clause)):
                 rejected = True
             elif not owned:
@@ -284,13 +299,14 @@ def _mailbox_value(statement: str) -> str | None:
 
 def _turns_to_a_claim(statement: str) -> bool:
     """True when a hedge is followed by a turn ("but", "however") into something else said about
-    the mailbox that is not itself a hedge: "does not say, but in practice all three end up with a
-    mailbox". The wording of the grant does not have to be one the patterns above know."""
+    the hires and the mailbox that is not itself a hedge: "does not say, but in practice all three
+    walk off with a mailbox". The wording of the grant does not have to be one the patterns above know.
+    A turn to where to ask ("but the mailbox is a question for the Service Desk") is not a claim."""
     for turn in re.finditer(TURN, statement):
         before, after = statement[:turn.start()], statement[turn.end():]
         if not (re.search(SAYS_NOTHING, before) or re.search(NEITHER, before)):
             continue
-        if re.search(MAILBOX, after) and not (re.search(SAYS_NOTHING, after) or re.search(NEITHER, after)
+        if re.search(MAILBOX, after) and re.search(THE_HIRES, after) and not (re.search(SAYS_NOTHING, after) or re.search(NEITHER, after)
                                                or re.search(HEDGE_WORD, after) or re.search(NOT_GIVEN, after)):
             return True
     return False
