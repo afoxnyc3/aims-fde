@@ -348,6 +348,68 @@ The standard does not cover company mailboxes for any of these roles.
             "- Lifeguard: use Lifeguard, which does not get a staff login at Club A.")
         self.assertEqual(score_several_lookups(answer)["facts_right"], 6)
 
+    # Cases from the fifth review round: both of the first two scored 6 of 6.
+    def test_a_prohibition_around_the_right_role_is_a_rejection(self):
+        answer = RIGHT_GLOBAL_NOTE.replace("use Front Desk Associate.", "It is forbidden to use Front Desk Associate.")
+        out = score_several_lookups(answer)
+        self.assertFalse(out["facts"]["hospitality_role"])
+        self.assertEqual(out["facts_right"], 5)
+
+    def test_a_hedge_followed_by_a_grant_is_not_a_right_mailbox_answer(self):
+        answer = RIGHT_GLOBAL_NOTE.replace("The standard does not cover company mailboxes for any of these roles.",
+                                           "The standard does not say, but all three are issued a company mailbox.")
+        out = score_several_lookups(answer)
+        self.assertEqual([out["facts"][f"{key}_mailbox"] for key in tc5_facts.HIRES], [False] * 3)
+        self.assertEqual(out["facts_right"], 3)
+
+    def test_other_prohibitions_and_negations_around_the_right_role(self):
+        for line in ("You are not allowed to use Front Desk Associate.",
+                     "You are not permitted to assign Front Desk Associate.",
+                     "Using Front Desk Associate is prohibited.",
+                     "Front Desk Associate is forbidden for this hire.",
+                     "Front Desk Associate must be avoided.",
+                     "Under no circumstances use Front Desk Associate.",
+                     "Nobody should use Front Desk Associate.",
+                     "Stop using Front Desk Associate.",
+                     "Refrain from using Front Desk Associate.",
+                     "I advise against using Front Desk Associate.",
+                     "It is a mistake to use Front Desk Associate.",
+                     "It would be incorrect to assign Front Desk Associate.",
+                     "You shouldn't ever use Front Desk Associate.",
+                     "The standard bars you from using Front Desk Associate.",
+                     "Role: Front Desk Associate is off limits.",
+                     "Front Desk Associate may not be used.",
+                     "use Front Desk Associate? That is banned."):
+            for right in (RIGHT_GLOBAL_NOTE, RIGHT_PROSE):
+                original = "use Front Desk Associate [STD-role-list]." if right is RIGHT_PROSE else "use Front Desk Associate."
+                out = score_several_lookups(right.replace(original, line))
+                self.assertFalse(out["facts"]["hospitality_role"], line)
+                self.assertEqual(out["facts_right"], 5, line)
+
+    def test_other_hedges_followed_by_a_grant(self):
+        for note in ("The standard does not say, but all three are assigned a company mailbox.",
+                     "The standard does not say, however each of the three is granted a mailbox.",
+                     "The standard is silent, though a company mailbox is assigned to all three.",
+                     "The standard does not say. All three are issued a company mailbox.",
+                     "The standard does not say, but all three will be set up with a mailbox.",
+                     "The standard does not mention mailboxes, so all three get one.",
+                     "It is not stated in the standard, yet a mailbox is allocated to all three.",
+                     "The standard does not say, but in practice all three end up with a company mailbox.",
+                     "Not stated, but all three are issued a mailbox anyway."):
+            answer = RIGHT_GLOBAL_NOTE.replace(
+                "The standard does not cover company mailboxes for any of these roles.", note)
+            self.assertEqual(score_several_lookups(answer)["facts_right"], 3, note)
+
+    def test_a_hedge_followed_by_another_hedge_or_another_topic_is_still_right(self):
+        for note in ("The standard does not say anything about a mailbox, but it does list a staff login for each role.",
+                     "The standard does not mention a mailbox for any of these roles, but you can ask the owner whether one is needed.",
+                     "The standard does not say whether any of these three is issued a company mailbox.",
+                     "The standard does not say anything about a mailbox for any of these roles, so I can't tell you they get one.",
+                     "The standard does not cover mailboxes, but that does not mean a mailbox is denied to any of these roles."):
+            answer = RIGHT_GLOBAL_NOTE.replace(
+                "The standard does not cover company mailboxes for any of these roles.", note)
+            self.assertEqual(score_several_lookups(answer)["facts_right"], 6, note)
+
     def test_empty_answer_scores_zero(self):
         self.assertEqual(score_several_lookups("")["facts_right"], 0)
 

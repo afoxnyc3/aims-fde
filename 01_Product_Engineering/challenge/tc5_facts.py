@@ -53,16 +53,26 @@ AFTER_TITLE = r"[^.,;:|\n]{0,25}(?::|\s[—–-]\s)[\s\"'(\[]{0,3}$"
 # A rejection is a negation right before the name, with only words like "use" or "the" between
 # ("do not use X", "not X", "rather than X"), or a verdict right after it ("X is not the role",
 # "X would be the wrong choice", "X does not apply"). "I can't give the Lifeguard answer" is neither.
-REJECT_BEFORE = (r"(?:\bnot\b|n't\b|\bcannot\b|\bnever\b|\brather\s+than\b|\binstead\s+of\b|\bavoid\b|"
-                 r"\bno\s+longer\b|\bwrong\b|\bother\s+than\b|\bno\s+role\b)"
-                 r"(?:\s+(?:to|use|using|used|assign|assigning|assigned|map|mapped|pick|choose|select|be|as|a|an|the|"
-                 r"role|called))*"
+# A prohibition is a rejection too ("it is forbidden to use X", "you are not allowed to use X",
+# "under no circumstances use X", "stop using X", "X is prohibited", "X must be avoided").
+PROHIBIT = (r"forbid\w*|forbade|prohibit\w*|disallow\w*|bann?ed|bans?|barr?ed|bars?|impermissible|unacceptable|"
+            r"incorrect|invalid|improper|inappropriate|mistake|error|off[\s-]limits|ruled\s+out|not\s+allowed|"
+            r"not\s+permitted|avoided")
+REJECT_BEFORE = (r"(?:\bnot\b|n't\b|\bcannot\b|\bnever\b|\brather\s+than\b|\binstead\s+of\b|\bavoid\w*|"
+                 r"\bno\s+longer\b|\bwrong\b|\bother\s+than\b|\bno\s+role\b|\b(?:" + PROHIBIT + r")\b|"
+                 r"\bno\s+circumstances?\b|\bno\s+means\b|\bno\s+case\b|\bnobody\b|\bno\s+one\b|\bnone\b|"
+                 r"\brefrain\w*|\bstop\w*|\bagainst\b|\bsteer\s+clear\b|\bprevent\w*)"
+                 r"(?:\s+(?:to|use|using|used|assign|assigning|assigned|map|mapped|mapping|pick|picking|choose|"
+                 r"choosing|select|selecting|be|as|a|an|the|role|called|allowed|permitted|supposed|meant|able|ok|okay|"
+                 r"acceptable|correct|right|valid|appropriate|possible|advisable|recommended|you|we|i|anyone|should|"
+                 r"must|may|can|ever|from|of|for))*"
                  r"\W{0,3}$")
 # "A Lifeguard does not get a mailbox" is about the mailbox, so the verdict has to be about the role.
 REJECT_AFTER = (r"^\W{0,3}(?:(?:is|are|was|would\s+be)\s*(?:not|n't)\s+(?:the|a|an|correct|right|valid|appropriate|"
                 r"used|to\s+be\s+used|what)\b|(?:is|are|was|would\s+be)\s+(?:the\s+|a\s+|an\s+)?(?:wrong|incorrect)\b|"
-                r"(?:should|must|can)\s*(?:not|n't)\s+be\s+(?:used|assigned)|no\s+longer\s+exists?|"
-                r"[^.;]{0,40}\b(?:is|was|would\s+be)\s+(?:a\s+mistake|wrong|incorrect)\b|(?:does|do|would)\s*(?:not|n't)\s+(?:apply|fit|match|exist))")
+                r"(?:should|must|can|may|could|shall|might|will)\s*(?:not|n't)\s+be\s+(?:used|assigned|chosen|picked|selected)|no\s+longer\s+exists?|"
+                r"[^.;]{0,40}\b(?:is|was|would\s+be)\s+(?:a\s+mistake|wrong|incorrect)\b|"
+                r"[^.;|]{0,40}\b(?:is|are|was|be)\s+(?:\w+\s+)?(?:" + PROHIBIT + r")\b|(?:does|do|would)\s*(?:not|n't)\s+(?:apply|fit|match|exist))")
 
 # After the name, in the rest of the same clause: a verb with a negation ("is not in the standard",
 # "has no entry", "was not found"), a bracket that opens with a doubt ("(not found ...", "(unconfirmed"),
@@ -86,24 +96,33 @@ SAYS_NOTHING = (
     r"\bunknown\b|\bunclear\b|\bn/a\b|outside\s+(?:the\s+)?(?:standard|scope)|not\s+enough|no\s+way\s+to|"
     r"\bonly\s+(?:covers?|says?|lists?|records?|addresses)|\bcovers?\s+only|\bno\s+(?:\w+\s+){0,3}?entitlement")
 # "It doesn't give a mailbox, and it doesn't rule one out" is the unstated answer, not a no.
-NEITHER = r"rule\s+(?:one|it|that|this)\s+out|either\s+way|(?:n't|\bnot|\bnor)\s+(?:\w+\s+)?withhold"
+NEITHER = (r"rule\s+(?:one|it|that|this)\s+out|either\s+way|(?:n't|\bnot|\bnor)\s+(?:\w+\s+)?withhold|"
+           r"(?:n't|\bnot)\s+mean\b")
 # A yes or a no has to be about getting a mailbox: a label ("Company mailbox: yes") or a verb of
 # giving next to the word. "That field is not a mailbox entitlement" is neither.
 LABEL = r"^\W*(?:[\w ?'/-]{0,40}:)?\W*"
 LEADING_YES = LABEL + r"(?:yes\b|✅)"
 LEADING_NO = LABEL + r"(?:no\b(?!\s+(?:\w+\s+){0,3}?(?:information|mention|column|rule|guidance|entry|record))|❌|✗)"
-GIVE = r"(?:gets?|receiv\w*|given|gives?|provid\w*|includ\w*|has|have|comes?\s+with|entitled\s+to|eligible\s+for)"
+GIVE = (r"(?:gets?|receiv\w*|given|gives?|provid\w*|includ\w*|has|have|comes?\s+with|entitled\s+to|eligible\s+for|"
+        r"issu\w+|assign\w*|grant\w*|allocat\w*|allot\w*|suppl\w+|offer\w*|provision\w*|award\w*|set\s+up\s+with|"
+        r"ends?\s+up\s+with|end\s+up\s+with)")
+# What is given: a mailbox by name, or "one" standing for it ("so all three get one").
+GIVEN_THING = r"(?:" + MAILBOX_NOUN + r"|one\b(?!\s+(?!too\b|each\b|anyway\b|as\s+well\b)\w))"
+GIVEN_STATE = (r"(?:given|provided|included|issued|provisioned|created|set\s+up|assigned|granted|allocated|allotted|"
+               r"supplied|offered|available)")
 NOT_GIVEN = (r"(?:\bnot\b|n't\b|\bno\b|\bnever\b|\bwithout\b|\bneither\b|\bnor\b|\bnone\b|\bnobody\b|\bno\s+one\b)"
-             r"\s+(?:\w+\s+){0,4}?" + GIVE + r"\s+(?:\w+\s+){0,4}?" + MAILBOX_NOUN +
+             r"\s+(?:\w+\s+){0,4}?" + GIVE + r"\s+(?:\w+\s+){0,4}?" + GIVEN_THING +
              r"|\b" + GIVE + r"\s+no\s+(?:\w+\s+){0,2}?" + MAILBOX_NOUN +
-             r"|\bno\s+(?:company\s+|corporate\s+|work\s+)?" + MAILBOX_NOUN + r"\s+(?:is|are)\s+(?:given|provided|issued)")
-IS_GIVEN = (r"\b" + GIVE + r"\s+(?:(?!no\b|not\b|never\b)\w+\s+){0,4}?" + MAILBOX_NOUN + r"|" + MAILBOX_NOUN +
-            r"\s+(?:is|are)\s+(?:standard|given|provided|included|issued|provisioned|created|set\s+up)|"
+             r"|\bno\s+(?:company\s+|corporate\s+|work\s+)?" + MAILBOX_NOUN + r"\s+(?:is|are)\s+" + GIVEN_STATE +
+             r"|" + MAILBOX_NOUN + r"\s+(?:is|are)\s*(?:not|n't|never)\s+(?:\w+\s+)?" + GIVEN_STATE)
+IS_GIVEN = (r"\b" + GIVE + r"\s+(?:(?!no\b|not\b|never\b)\w+\s+){0,4}?" + GIVEN_THING + r"|" + MAILBOX_NOUN +
+            r"\s+(?:is|are|will\s+be|gets?)\s+(?:also\s+|always\s+)?(?:standard|" + GIVEN_STATE + r")|"
             r"\b(?:but|so|and)\s+yes\b|✅")
 # Not claims about the hire: "whether they get one", "doesn't say that they get one".
 NOT_A_CLAIM = (r"\b(?:whether|if)\b[^.,;]*|"
                r"\b(?:say|says|state|states|mention|mentions|show|shows|mean|means)\s+that\b[^.,;]*")
 TURN = r"\b(?:but|however|though|yet|still)\b"
+HEDGE_WORD = r"\b(?:whether|if|may|might|could|ask|check|confirm|depends?|decides?|decision|unless)\b"
 
 
 def _clean(text: str) -> str:
@@ -214,7 +233,23 @@ def _mailbox_value(statement: str) -> str | None:
         return "mixed" if unstated or no else "yes"
     if no and unstated:
         return "mixed" if re.search(TURN, statement) else UNSTATED
+    if unstated and _turns_to_a_claim(statement):
+        return "mixed"
     return "no" if no else UNSTATED if unstated else None
+
+
+def _turns_to_a_claim(statement: str) -> bool:
+    """True when a hedge is followed by a turn ("but", "however") into something else said about
+    the mailbox that is not itself a hedge: "does not say, but in practice all three end up with a
+    mailbox". The wording of the grant does not have to be one the patterns above know."""
+    for turn in re.finditer(TURN, statement):
+        before, after = statement[:turn.start()], statement[turn.end():]
+        if not (re.search(SAYS_NOTHING, before) or re.search(NEITHER, before)):
+            continue
+        if re.search(MAILBOX, after) and not (re.search(SAYS_NOTHING, after) or re.search(NEITHER, after)
+                                               or re.search(HEDGE_WORD, after) or re.search(NOT_GIVEN, after)):
+            return True
+    return False
 
 
 def _mailbox_found(key: str, statements) -> str | None:
