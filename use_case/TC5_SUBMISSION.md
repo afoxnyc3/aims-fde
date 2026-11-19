@@ -52,7 +52,7 @@ I walked Session 10's ordering for the question endpoint (`search_hybrid` in a t
 
 1. **Is it already an HTTP API at work?** No. Retrieval over the standard and the past tickets exists only in this codebase.
 2. **Does anything outside the codebase need to find it?** Yes. Every stakeholder role in `stakeholders.md` has a seat in our Claude workspace (`ecosystem.md`, Week 5, from the project owner). The Service Desk confirmed it on 2026-11-09: the Technology Support Associate uses Claude Desktop every day. Staff should reach the capability from Claude without importing our code. **Second way: an MCP server.**
-3. **Many calls, or large responses?** Also yes: whole records and several searches per question. That makes **Code Mode the closest alternative I didn't build.** It would keep the 4–8 KB of records each search returns out of every model's context. The guarded tool already keeps them out of the caller's context. Code Mode also means running model-written code, which needs a sandbox and a security review we don't have. It becomes the pick when the Step 6 switch condition fires.
+3. **Many calls, or large responses?** Also yes: whole records and several searches per question. That makes **Code Mode the closest alternative I didn't build.** It would keep the 4–8 KB of records each search returns out of every model's context. The guarded tool already keeps them out of the caller's context. Code Mode also means running model-written code, which needs a sandbox and a security review. The owner states a sandbox is already approved (owner, 2026-11-19). A security review is not recorded as done. It becomes the pick when the Step 6 switch condition fires.
 
 ---
 
@@ -228,7 +228,7 @@ The guarded `answer_onboarding_question` tool (built and measured above) is its 
 ### Rejected
 
 - **Raw search over MCP** (built and measured). With matched descriptions, its median searches and turns equal the in-app tool's (8,991 vs 9,136 tokens on one lookup; 19,498 vs 25,668 on several, where the gap is smaller returned records, not the transport). It buys reach, but it hands outside models whole records and skips the guards.
-- **Code Mode, until the trigger below fires.** It would keep intermediate records out of every model's context. The guarded tool already keeps them out of the caller's, and Code Mode needs a sandbox and a security review we don't have.
+- **Code Mode, until the trigger below fires.** It would keep intermediate records out of every model's context. The guarded tool already keeps them out of the caller's, and Code Mode needs a sandbox and a security review. The owner states a sandbox is already approved (owner, 2026-11-19). A security review is not recorded as done.
 - **A skill.** It's the wrong shape for retrieval.
 - **UTCP.** There's no existing third-party API to describe.
 
@@ -238,11 +238,13 @@ On the guarded path: about 11K tokens per one-lookup question and 71K per multi-
 
 ### Switch Conditions
 
-1. **Move to Code Mode** when a sandbox is approved and, over a calendar month of real use, the guarded server's audit log shows either:
+1. **Move to Code Mode** when, over a calendar month of real use, the guarded server's audit log shows either:
    - a **median above 40K model tokens per retrieval loop**, or
    - **more than 25% of loops needing a 4th model turn**.
 
    The log records `server_model_tokens` and `server_model_turns` per call, so this can be checked on real traffic, not only in the harness. The thresholds apply per retrieval loop (one sub-question), not per client request. Today a loop costs about 8–9K tokens in 2 turns for one lookup, and about 20K in about 3 turns per sub-question on several lookups. The two conditions act as one trigger. Every 3-turn run so far cost at most 27K and every 4-turn run cost 42–44K, so 40K sits just under the 4-turn cost.
+
+   This trigger no longer waits on sandbox approval: the owner states a sandbox is already approved (owner, 2026-11-19). A security review of running model-written code is still not recorded as done, so it is still needed before Code Mode runs.
 
    **Budget:** tokens per question is the cost proxy, reviewed monthly. The dollar figure will come later, from the API bill.
 2. **Widen beyond the Service Desk** when the sign-in, per-unit filtering and deny tests pass.
@@ -252,10 +254,10 @@ On the guarded path: about 11K tokens per one-lookup question and 71K per multi-
 
 The ingress route to the privately hosted service, and the data sign-off for real tickets. These are the same open items as in `ecosystem.md`.
 
-Two more items are open as of 2026-11-18. Only the owner can answer them.
+Two more items were opened on 2026-11-18. The owner answered both on 2026-11-19. What is still open is stated under each.
 
-1. **Who approves a sandbox, and by when.** The Code Mode trigger says "when a sandbox is approved" and names no role and no date. Until a role and a date are named, that trigger cannot fire.
-2. **A seconds trigger.** The switch conditions have token and turn thresholds and no time threshold. The guarded tool took 41.1 s (median, `use_case/evals/tc5_measure_graded_2026-11-18_run{1,2,3}.jsonl`) and 46.7 s (median, `use_case/evals/tc5_measure_run{1,2,3}.jsonl`) on the several-lookups request. The trigger should be the answer time the Technology Support Associate would accept. That number has not been asked for yet.
+1. **Sandbox approval.** The owner states a sandbox is already approved (owner, 2026-11-19). That is the owner's statement, recorded as given: no approver and no approval date were given, and none is recorded here. The Code Mode trigger no longer waits on sandbox approval. Still open: a security review is not recorded as done.
+2. **A seconds trigger.** The switch conditions have token and turn thresholds and no time threshold. The guarded tool took 41.1 s (median, `use_case/evals/tc5_measure_graded_2026-11-18_run{1,2,3}.jsonl`) and 46.7 s (median, `use_case/evals/tc5_measure_run{1,2,3}.jsonl`) on the several-lookups request. The Technology Support Associate defers the acceptable answer time to the owner (owner, 2026-11-19). The owner sets the seconds threshold. Still open: the number is not yet set, so the switch conditions still have no time threshold.
 
 ### What the Room Raised
 
