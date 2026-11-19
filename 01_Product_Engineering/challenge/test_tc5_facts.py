@@ -410,6 +410,53 @@ The standard does not cover company mailboxes for any of these roles.
                 "The standard does not cover company mailboxes for any of these roles.", note)
             self.assertEqual(score_several_lookups(answer)["facts_right"], 6, note)
 
+    # Cases from the sixth review round: each wrong one scored 6 of 6, each right one scored too low.
+    def test_a_negation_anywhere_before_the_cue_rejects_the_role(self):
+        for line in ("do not, under any circumstances, use Front Desk Associate.",
+                     "the standard says you must never, ever use Front Desk Associate.",
+                     "I would not recommend that you use Front Desk Associate.",
+                     "You must not under any condition assign the role Front Desk Associate.",
+                     "It is prohibited by the standard for anyone to ever use Front Desk Associate.",
+                     "It is not the case that you should use Front Desk Associate.",
+                     "Role: Front Desk Associate (prohibited).",
+                     "Role: Front Desk Associate, which the standard prohibits.",
+                     "It's illegal to use Front Desk Associate.",
+                     "It would be a violation to use Front Desk Associate.",
+                     "It is unwise to use Front Desk Associate.",
+                     "The standard discourages you from using Front Desk Associate.",
+                     "Using Front Desk Associate here violates the standard.",
+                     "maps to Front Desk Associate, a retired role you can't use."):
+            out = score_several_lookups(RIGHT_GLOBAL_NOTE.replace("use Front Desk Associate.", line))
+            self.assertFalse(out["facts"]["hospitality_role"], line)
+            self.assertEqual(out["facts_right"], 5, line)
+
+    def test_a_prohibition_aimed_at_the_old_title_does_not_reject_the_role(self):
+        for line in ("use Front Desk Associate, because the title Hospitality Associate is prohibited.",
+                     "Role: Front Desk Associate (the legacy title must be avoided).",
+                     "the old title is invalid, so use Front Desk Associate.",
+                     "Hospitality Associate is not a role in the standard: use Front Desk Associate.",
+                     "the ticket title is not allowed, so the role to use is Front Desk Associate."):
+            out = score_several_lookups(RIGHT_GLOBAL_NOTE.replace("use Front Desk Associate.", line))
+            self.assertEqual(out["facts_right"], 6, line)
+
+    def test_a_grant_after_a_hedge_with_no_turn_word_is_wrong(self):
+        for note in ("The standard doesn't cover mailboxes. Expect a mailbox for every hire.",
+                     "The standard is silent on mailboxes; all three get one regardless.",
+                     "The standard does not say, but if you ask me all three get a mailbox.",
+                     "The standard does not say, but all three may rest assured a mailbox is theirs.",
+                     "The standard does not say, but the mailbox decision is yes for all three."):
+            answer = RIGHT_GLOBAL_NOTE.replace(
+                "The standard does not cover company mailboxes for any of these roles.", note)
+            self.assertEqual(score_several_lookups(answer)["facts_right"], 3, note)
+
+    def test_a_hedge_that_turns_to_who_would_know_is_still_right(self):
+        for note in ("The standard does not say for any of these roles, but a mailbox is not ruled out.",
+                     "For all three the standard does not say, but the mailbox is something the club's IT lead would know.",
+                     "The standard says nothing either way about mailboxes for any of these roles, so don't assume yes or no."):
+            answer = RIGHT_GLOBAL_NOTE.replace(
+                "The standard does not cover company mailboxes for any of these roles.", note)
+            self.assertEqual(score_several_lookups(answer)["facts_right"], 6, note)
+
     def test_empty_answer_scores_zero(self):
         self.assertEqual(score_several_lookups("")["facts_right"], 0)
 

@@ -57,7 +57,7 @@ AFTER_TITLE = r"[^.,;:|\n]{0,25}(?::|\s[—–-]\s)[\s\"'(\[]{0,3}$"
 # "under no circumstances use X", "stop using X", "X is prohibited", "X must be avoided").
 PROHIBIT = (r"forbid\w*|forbade|prohibit\w*|disallow\w*|bann?ed|bans?|barr?ed|bars?|impermissible|unacceptable|"
             r"incorrect|invalid|improper|inappropriate|mistake|error|off[\s-]limits|ruled\s+out|not\s+allowed|"
-            r"not\s+permitted|avoided")
+            r"not\s+permitted|avoided|illegal|unlawful|violat\w+|unwise|ill-?advised|discourag\w+")
 REJECT_BEFORE = (r"(?:\bnot\b|n't\b|\bcannot\b|\bnever\b|\brather\s+than\b|\binstead\s+of\b|\bavoid\w*|"
                  r"\bno\s+longer\b|\bwrong\b|\bother\s+than\b|\bno\s+role\b|\b(?:" + PROHIBIT + r")\b|"
                  r"\bno\s+circumstances?\b|\bno\s+means\b|\bno\s+case\b|\bnobody\b|\bno\s+one\b|\bnone\b|"
@@ -72,7 +72,22 @@ REJECT_AFTER = (r"^\W{0,3}(?:(?:is|are|was|would\s+be)\s*(?:not|n't)\s+(?:the|a|
                 r"used|to\s+be\s+used|what)\b|(?:is|are|was|would\s+be)\s+(?:the\s+|a\s+|an\s+)?(?:wrong|incorrect)\b|"
                 r"(?:should|must|can|may|could|shall|might|will)\s*(?:not|n't)\s+be\s+(?:used|assigned|chosen|picked|selected)|no\s+longer\s+exists?|"
                 r"[^.;]{0,40}\b(?:is|was|would\s+be)\s+(?:a\s+mistake|wrong|incorrect)\b|"
-                r"[^.;|]{0,40}\b(?:is|are|was|be)\s+(?:\w+\s+)?(?:" + PROHIBIT + r")\b|(?:does|do|would)\s*(?:not|n't)\s+(?:apply|fit|match|exist))")
+                r"(?:does|do|would)\s*(?:not|n't)\s+(?:apply|fit|match|exist))")
+
+# The two rules above need the negation right next to the name. These two do not.
+# Before the name: a negation or prohibition anywhere earlier in the same stretch of the sentence, when
+# the name follows a role cue ("I would not recommend that you use X", "do not, under any circumstances,
+# use X"). The stretch starts again at a comma, a colon or a word like "so", so "the old title is not
+# allowed, so use X" still states X. A comma right after the negation does not end it ("never, ever").
+NEGATION = (r"(?:\bnot\b|n't\b|\bcannot\b|\bnever\b|\bno\s+(?:circumstances?|means|case|one|longer)\b|\bnobody\b|"
+            r"\bnone\b|\b(?:" + PROHIBIT + r")\b|\brefrain\w*|\bstop\w*|\bagainst\b|\bavoid\w*|\bsteer\s+clear\b|"
+            r"\bprevent\w*)")
+STARTS_AGAIN = r"[,:]|\s[—–-]\s|\b(?:so|but|instead|therefore|hence|thus|then|and)\b"
+# After the name, in the rest of its clause: a prohibition in any form ("X (prohibited)", "X, which the
+# standard prohibits", "X here violates the standard"), unless the words between are about something
+# else ("X, because the old title is prohibited") or negate it ("X, which is not forbidden").
+PROHIBIT_AFTER = r"\b(?:" + PROHIBIT + r"|prohibits?|forbids?|retired|deprecated|discontinued)\b"
+ABOUT_SOMETHING_ELSE = r"\btitles?\b|\blegacy\b|\bold\s+name\b|hospitality\s+associate|\bticket\b"
 
 # After the name, in the rest of the same clause: a verb with a negation ("is not in the standard",
 # "has no entry", "was not found"), a bracket that opens with a doubt ("(not found ...", "(unconfirmed"),
@@ -97,7 +112,7 @@ SAYS_NOTHING = (
     r"\bonly\s+(?:covers?|says?|lists?|records?|addresses)|\bcovers?\s+only|\bno\s+(?:\w+\s+){0,3}?entitlement")
 # "It doesn't give a mailbox, and it doesn't rule one out" is the unstated answer, not a no.
 NEITHER = (r"rule\s+(?:one|it|that|this)\s+out|either\s+way|(?:n't|\bnot|\bnor)\s+(?:\w+\s+)?withhold|"
-           r"(?:n't|\bnot)\s+mean\b")
+           r"(?:n't|\bnot)\s+mean\b|(?:n't|\bnot)\s+(?:be\s+)?ruled\s+out")
 # A yes or a no has to be about getting a mailbox: a label ("Company mailbox: yes") or a verb of
 # giving next to the word. "That field is not a mailbox entitlement" is neither.
 LABEL = r"^\W*(?:[\w ?'/-]{0,40}:)?\W*"
@@ -117,12 +132,13 @@ NOT_GIVEN = (r"(?:\bnot\b|n't\b|\bno\b|\bnever\b|\bwithout\b|\bneither\b|\bnor\b
              r"|" + MAILBOX_NOUN + r"\s+(?:is|are)\s*(?:not|n't|never)\s+(?:\w+\s+)?" + GIVEN_STATE)
 IS_GIVEN = (r"\b" + GIVE + r"\s+(?:(?!no\b|not\b|never\b)\w+\s+){0,4}?" + GIVEN_THING + r"|" + MAILBOX_NOUN +
             r"\s+(?:is|are|will\s+be|gets?)\s+(?:also\s+|always\s+)?(?:standard|" + GIVEN_STATE + r")|"
-            r"\b(?:but|so|and)\s+yes\b|✅")
+            r"\bexpect\w*\s+(?:a\s+)?(?:\w+\s+)?" + MAILBOX_NOUN + r"|" + MAILBOX_NOUN + r"\s+is\s+(?:theirs|yours)\b|"
+            r"(?<!assume\s)\byes\b(?!\s*(?:or|/)\s*no\b)|✅")
 # Not claims about the hire: "whether they get one", "doesn't say that they get one".
 NOT_A_CLAIM = (r"\b(?:whether|if)\b[^.,;]*|"
                r"\b(?:say|says|state|states|mention|mentions|show|shows|mean|means)\s+that\b[^.,;]*")
 TURN = r"\b(?:but|however|though|yet|still)\b"
-HEDGE_WORD = r"\b(?:whether|if|may|might|could|ask|check|confirm|depends?|decides?|decision|unless)\b"
+HEDGE_WORD = r"\b(?:whether|if|ask|check|confirm|depends?|decides?|unless|knows?|owner|owns|up\s+to)\b"
 
 
 def _clean(text: str) -> str:
@@ -146,8 +162,15 @@ def _units(answer: str) -> list[dict]:
                               "pieces": [piece for pair in pairs[1:] for piece in _sentences(pair)]})
             continue
         header = None
-        for sentence in _sentences(stripped):
-            units.append({"label": sentence, "role_text": sentence, "pieces": [sentence]})
+        for sentence in re.split(r"(?<=[.!?])\s+", stripped):
+            mailbox_named = False
+            for part in _sentences(sentence):
+                piece = part
+                # "silent on mailboxes; all three get one regardless": "one" is the mailbox just named.
+                if mailbox_named and not re.search(MAILBOX, part):
+                    piece = re.sub(r"\b(" + GIVE + r"\s+(?:\w+\s+){0,2}?)one\b", r"\1a mailbox", part, count=1)
+                mailbox_named = mailbox_named or bool(re.search(MAILBOX, part))
+                units.append({"label": part, "role_text": part, "pieces": [piece]})
     return units
 
 
@@ -207,7 +230,8 @@ def _role_found(key: str, statements) -> str | None:
         for match in matches:
             before, after = text[:match.start()], text[match.end():]
             clause = re.split(r"[.;|\n]", after, maxsplit=1)[0]
-            if re.search(REJECT_BEFORE, before) or re.search(REJECT_AFTER, after) or (
+            if re.search(REJECT_BEFORE, before) or re.search(REJECT_AFTER, after) or _negated_before(before) or (
+                    _prohibited_after(clause)) or (
                     re.search(DOUBT_AFTER, clause) and not re.search(OTHER_TOPIC, clause)):
                 rejected = True
             elif not owned:
@@ -215,6 +239,25 @@ def _role_found(key: str, statements) -> str | None:
             elif re.search(ROLE_CUE, before) or re.search(HIRES[key]["title"] + AFTER_TITLE, before):
                 stated = True
     return "rejected" if rejected else "stated" if stated else None
+
+
+def _negated_before(before: str) -> bool:
+    """True when the name follows a role cue and a negation or prohibition governs that cue."""
+    if not re.search(ROLE_CUE, before):
+        return False
+    text = re.sub(r"(" + NEGATION + r")\s*,([^,]{0,40}),", r"\1 \2 ", before)
+    text = re.sub(r"(" + NEGATION + r")\s*,", r"\1 ", text)
+    return bool(re.search(NEGATION, re.split(STARTS_AGAIN, text)[-1]))
+
+
+def _prohibited_after(clause: str) -> bool:
+    """True when the rest of the name's clause prohibits the role itself."""
+    for match in re.finditer(PROHIBIT_AFTER, clause):
+        between = clause[:match.start()]
+        if not (re.search(ABOUT_SOMETHING_ELSE, between) or re.search(OTHER_TOPIC, between)
+                or re.search(r"(?:\bnot|n't|\bnever)\s+(?:\w+\s+)?$", between)):
+            return True
+    return False
 
 
 def _mailbox_value(statement: str) -> str | None:
@@ -225,6 +268,7 @@ def _mailbox_value(statement: str) -> str | None:
     any role, so I can't say"), unless the sentence turns on a "but"."""
     if not re.search(MAILBOX, statement) or statement.endswith("?"):
         return None
+    statement = re.sub(r"\bif\s+you\s+ask\s+me\b", " ", statement)
     claims = re.sub(NOT_A_CLAIM, " ", statement)
     unstated = bool(re.search(SAYS_NOTHING, statement) or re.search(NEITHER, statement))
     no = bool(re.search(LEADING_NO, statement) or re.search(NOT_GIVEN, claims)) and not re.search(NEITHER, statement)
