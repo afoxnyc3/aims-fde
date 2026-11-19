@@ -70,7 +70,7 @@ REJECT_BEFORE = (r"(?:\bnot\b|n't\b|\bcannot\b|\bnever\b|\brather\s+than\b|\bins
 # "A Lifeguard does not get a mailbox" is about the mailbox, so the verdict has to be about the role.
 REJECT_AFTER = (r"^\W{0,3}(?:(?:is|are|was|would\s+be)\s*(?:not|n't)\s+(?:the|a|an|correct|right|valid|appropriate|"
                 r"used|to\s+be\s+used|what)\b|(?:is|are|was|would\s+be)\s+(?:the\s+|a\s+|an\s+)?(?:wrong|incorrect)\b|"
-                r"(?:should|must|can|ca|may|could|shall|might|will|wo|would)\s*(?:not|n't)\s+be\s+(?:used|assigned|chosen|picked|selected)|no\s+longer\s+exists?|"
+                r"(?:should|must|can|ca|may|could|shall|might|will|wo|would)\s*(?:not|n't|\s+never)\s+be\s+(?:used|assigned|chosen|picked|selected)|no\s+longer\s+exists?|"
                 r"[^.;]{0,40}\b(?:is|was|would\s+be)\s+(?:a\s+mistake|wrong|incorrect)\b|"
                 r"(?:does|do|would)\s*(?:not|n't)\s+(?:apply|fit|match|exist))")
 
@@ -80,10 +80,14 @@ REJECT_AFTER = (r"^\W{0,3}(?:(?:is|are|was|would\s+be)\s*(?:not|n't)\s+(?:the|a|
 # use X"). The stretch starts again at a comma, a colon or a word like "so", so "the old title is not
 # allowed, so use X" still states X. A comma right after the negation does not end it ("never, ever").
 NEGATION = (r"(?:\bnot\b|n't\b|\bcannot\b|\bnever\b|\bno\s+(?:circumstances?|means|case|one|longer|way)\b|\bnobody\b|"
-            r"\bnone\b|\b(?:" + PROHIBIT + r")\b|\brefrain\w*|\bstop\w*|\bagainst\b|\bavoid\w*|\bsteer\s+clear\b|"
-            r"\bprevent\w*)")
+            r"\bnone\b|\bforbid\w*|\bforbade\b|\bprohibit\w*|\bdisallow\w*|\bbann?ed\b|\bbarr?ed\b|\billegal\b|"
+            r"\bunlawful\b|\bviolat\w+|\bunwise\b|\bill-?advised\b|\bdiscourag\w+|\bagainst\b)")
+# A negation about the title, the level or the role list is not about the role that follows:
+# "legacy title, not in the role list → X", "the level is not part of the role → X".
+ABOUT_THE_TITLE = (r"\btitles?\b|\blegacy\b|\bnames?\b|\blevels?\b|role\s+list|\b(?:a|as\s+a)\s+role\b|\blisted\b|"
+                   r"hospitality\s+associate")
 DANGLING = r"(?:\bnot\b|n't\b|\bcannot\b|\bnever\b)"
-STARTS_AGAIN = r"[,:]|\s[—–-]\s|\b(?:so|but|instead|therefore|hence|thus|then|and)\b"
+STARTS_AGAIN = r"[,:]|\s[—–-]\s|→|->|=>|\b(?:so|but|instead|therefore|hence|thus|then|and)\b"
 # After the name, in the rest of its clause: a prohibition in any form ("X (prohibited)", "X, which the
 # standard prohibits", "X here violates the standard"), unless the words between are about something
 # else ("X, because the old title is prohibited") or negate it ("X, which is not forbidden").
@@ -96,7 +100,7 @@ TAKEN_BACK = (r"^\W*(?:(?:actually|no)\W+)?(?:(?:this|that|it)(?:\s+role)?(?:"
               r"(?:the\s+)?(?:allowed|permitted|used|assigned|right|correct|valid)\b)|(?:don't|do\s+not)\W*$)")
 # "It is incorrect to use the legacy title" is about the title, not the role just stated.
 NOT_A_TAKE_BACK = r"\bto\s+\w+|\blevels?\b"
-ABOUT_SOMETHING_ELSE = r"\btitles?\b|\blegacy\b|\bold\s+name\b|hospitality\s+associate|\bticket\b"
+ABOUT_SOMETHING_ELSE = r"\btitles?\b|\blegacy\b|\bnames?\b|\bformer\b|hospitality\s+associate|\bticket\b"
 
 # After the name, in the rest of the same clause: a verb with a negation ("is not in the standard",
 # "has no entry", "was not found"), a bracket that opens with a doubt ("(not found ...", "(unconfirmed"),
@@ -127,13 +131,18 @@ NEITHER = (r"rule\s+(?:one|it|that|this)\s+out|either\s+way|(?:n't|\bnot|\bnor)\
 LABEL = r"^\W*(?:[\w ?'/-]{0,40}:)?\W*"
 LEADING_YES = LABEL + r"(?:yes\b|✅)"
 LEADING_NO = LABEL + r"(?:no\b(?!\s+(?:\w+\s+){0,3}?(?:information|mention|column|rule|guidance|entry|record))|❌|✗)"
-GIVE = (r"(?:gets?|receiv\w*|given|gives?|provid\w*|includ\w*|has|have|comes?\s+with|entitled\s+to|eligible\s+for|"
+GIVE = (r"(?:gets?|getting|receiv\w*|given|gives?|provid\w*|includ\w*|has|have|comes?\s+with|entitled\s+to|eligible\s+for|"
         r"issu\w+|assign\w*|grant\w*|allocat\w*|allot\w*|suppl\w+|offer\w*|provision\w*|award\w*|set\s+up\s+with|"
         r"ends?\s+up\s+with|qualif\w+\s+for|count\s+on)")
-# What is given: a mailbox by name, or "one" standing for it ("so all three get one").
-# "one" standing for the mailbox: "all three get one", "get one on their first day". Not one of
-# something else: "gets one member record", "gives each one a staff login".
-ONE = r"(?<!each\s)one\b(?!\s+(?:\w+\s+){0,2}?(?:records?|logins?|accounts?|roles?|clubs?|entry|entries|titles?)\b)"
+# What is given: a mailbox by name, or "one" standing for it, only where the clause ends or goes on about when or how:
+# "all three get one", "get one on their first day". Not "gets one member record" or "has one row".
+ONE = (r"(?<!each\s)one\b(?=\W*$|\s*[,;.)]|\s+(?:anyway|too|each|regardless|automatically|though|by\s+default|"
+       r"as\s+well|as\s+standard|on\s+(?:their|the|day)|from\s+it)\b)")
+# The next sentence after a mailbox note grants one only as a plain statement about the hires:
+# "All three get one." "They each get one anyway." Not "You would have to request one."
+PLAIN_GRANT_OF_ONE = (r"^\W*(?:(?:so|still|and|but)\W+)?(?:all\s+(?:three|3|of\s+them)|they(?:\s+(?:all|each))?|"
+                      r"each(?:\s+of\s+(?:them|the\s+three))?|every(?:one|\s+hire)|both)\s+(?:will\s+|do\s+|"
+                      r"would\s+|should\s+)?((?:gets?|receives?|has|have)\s+)" + ONE)
 GIVEN_THING = r"(?:" + MAILBOX_NOUN + r"|" + ONE + r")"
 GIVEN_STATE = (r"(?:given|provided|included|issued|provisioned|created|set\s+up|assigned|granted|allocated|allotted|"
                r"supplied|offered|available)")
@@ -147,11 +156,14 @@ NOT_GIVEN = (r"(?:\bnot\b|n't\b|\bno\b|\bnever\b|\bwithout\b|\bneither\b|\bnor\b
 IS_GIVEN = (r"\b" + GIVE + r"\s+(?:(?!no\b|not\b|never\b)\w+\s+){0,4}?" + GIVEN_THING + r"|" + MAILBOX_NOUN +
             r"\s+(?:is|are|will\s+be|gets?)\s+(?:also\s+|always\s+)?(?:standard|" + GIVEN_STATE + r")|" +
             MAILBOX_NOUN + r"\s+comes?\s+(?:with|as)\b|"
-            r"\bexpect\w*\s+(?:a\s+)?(?:\w+\s+)?" + MAILBOX_NOUN + r"|" + MAILBOX_NOUN + r"\s+is\s+(?:theirs|yours)\b|"
-            r"(?<!assume\s)\byes\b(?!\s*(?:or|/)\s*no\b)|✅")
+            r"\b(?:creates?|sets?\s+up)\s+(?:a\s+)?(?:\w+\s+)?" + MAILBOX_NOUN + r"\s+for\b|"
+            r"(?<!n't\s)(?<!not\s)\bexpect\w*\s+(?:a\s+)?(?:\w+\s+)?" + MAILBOX_NOUN + r"(?!\s+(?:answer|question|decision|rule))|" + MAILBOX_NOUN + r"\s+is\s+(?:theirs|yours)\b|"
+            r"\b(?:but|so|and|yet|is|are)\s+yes\b|\byes\s+for\s+(?:all|each|every|both|the)\b|✅")
 # Not claims about the hire: "whether they get one", "doesn't say that they get one".
 # Nor is "don't assume they get one", "they may or may not get one", "who gets one".
-NOT_A_CLAIM = (r"\b(?:whether|if|who|assum\w+|might|may\s+or\s+may\s+not)\b[^.,;]*|"
+NOT_A_CLAIM = (r"\b(?:whether|if|might|may\s+or\s+may\s+not)\b[^.,;]*|"
+               r"\b(?:decid\w+|determin\w+|says?|knows?)\s+who\b[^.,;]*|"
+               r"(?:n't|\bnot|\bnever|\bbefore|\bwithout)\s+(?:\w+\s+)?assum\w+[^.,;]*|"
                r"\b(?:say|says|state|states|mention|mentions|show|shows|mean|means)\s+that\b[^.,;]*")
 TURN = r"\b(?:but|however|though|yet|still)\b"
 
@@ -184,7 +196,7 @@ def _units(answer: str) -> list[dict]:
                 # "silent on mailboxes; all three get one regardless", or the same with a full stop:
                 # "one" is the mailbox named earlier on the line.
                 if mailbox_named and not re.search(MAILBOX, part):
-                    piece = re.sub(r"\b(" + GIVE + r"\s+(?:\w+\s+){0,2}?)" + ONE, r"\1a mailbox", part, count=1)
+                    piece = re.sub(PLAIN_GRANT_OF_ONE, r"they \1a mailbox", part, count=1)
                 mailbox_named = mailbox_named or bool(re.search(MAILBOX, part))
                 units.append({"label": part, "role_text": part, "pieces": [piece], "line": number})
     return units
@@ -271,7 +283,8 @@ def _negated_before(before: str) -> bool:
     # Only a bare negation dangles over a comma. "The old title is invalid, map to X" does not.
     text = re.sub(r"(" + DANGLING + r")\s*,([^,]{0,40}),", r"\1 \2 ", before)
     text = re.sub(r"(" + DANGLING + r")\s*,", r"\1 ", text)
-    return bool(re.search(NEGATION, re.split(STARTS_AGAIN, text)[-1]))
+    stretch = re.split(STARTS_AGAIN, text)[-1]
+    return bool(re.search(NEGATION, stretch)) and not re.search(ABOUT_THE_TITLE, stretch)
 
 
 def _prohibited_after(clause: str) -> bool:

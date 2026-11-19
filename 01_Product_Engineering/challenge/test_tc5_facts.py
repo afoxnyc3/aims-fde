@@ -461,6 +461,7 @@ The standard does not cover company mailboxes for any of these roles.
     def test_contractions_next_sentences_and_no_way_reject_the_role(self):
         for line in ("Front Desk Associate can't be used.", "Role: Front Desk Associate can't be used.",
                      "Front Desk Associate can't be assigned.", "Front Desk Associate won't be used.",
+                     "Front Desk Associate must never be assigned.",
                      "use Front Desk Associate. This role is prohibited.",
                      "use Front Desk Associate. That is not allowed.",
                      "use Front Desk Associate. Actually, don't.",
@@ -554,10 +555,60 @@ The standard does not cover company mailboxes for any of these roles.
                      "The standard does not say, but all three qualify for a company mailbox.",
                      "The standard does not say, but no mailbox for any of the three.",
                      "The standard does not say, but mailboxes are denied to all three.",
-                     "The standard does not say, but all three are refused a mailbox."):
+                     "The standard does not say, but all three are refused a mailbox.",
+                     "The standard does not say, but all three are getting a mailbox.",
+                     "The standard is silent on mailboxes. IT sets up a mailbox for every hire.",
+                     "The standard is silent on mailboxes. IT creates a mailbox for each hire."):
             answer = RIGHT_GLOBAL_NOTE.replace(
                 "The standard does not cover company mailboxes for any of these roles.", note)
             self.assertEqual(score_several_lookups(answer)["facts_right"], 3, note)
+
+    # Cases from the ninth review round.
+    def test_who_and_assume_do_not_hide_a_grant(self):
+        start = "The standard does not say for any of these roles, "
+        for note in (start + "but everyone who joins gets a mailbox.", start + "but I assume all three get a mailbox.",
+                     start + "but anyone who works here is issued a mailbox."):
+            answer = RIGHT_GLOBAL_NOTE.replace(
+                "The standard does not cover company mailboxes for any of these roles.", note)
+            self.assertEqual(score_several_lookups(answer)["facts_right"], 3, note)
+
+    def test_neither_yes_nor_no_is_still_right(self):
+        start = "The standard does not cover mailboxes for any of these roles, "
+        for rest in ("so I can't give a yes or a no on the mailbox.", "so the mailbox answer is neither yes nor no.",
+                     "so I can't say yes to a mailbox.", "so don't expect a mailbox answer from it."):
+            answer = RIGHT_GLOBAL_NOTE.replace(
+                "The standard does not cover company mailboxes for any of these roles.", start + rest)
+            self.assertEqual(score_several_lookups(answer)["facts_right"], 6, rest)
+
+    def test_a_cautious_or_where_to_ask_sentence_with_one_is_still_right(self):
+        note = "The standard does not cover company mailboxes for any of these roles."
+        for more in (" You would have to request one.", " You'd have to request one from IT.",
+                     " IT can provide one on request.", " Nothing says they get one.",
+                     " I can't promise that each gets one.", " It's possible they get one.",
+                     " They could get one, but that is not in the standard.", " I don't know that they get one.",
+                     " So I won't say they get one.", " It would be a guess to say they get one.",
+                     " It gives one answer only: the role.", " I have one caveat: the standard is a draft."):
+            self.assertEqual(score_several_lookups(RIGHT_GLOBAL_NOTE.replace(note, note + more))["facts_right"], 6, more)
+        answer = RIGHT_GLOBAL_NOTE.replace(note, "The standard has one row for each role and no mailbox field for any of these roles.")
+        self.assertEqual(score_several_lookups(answer)["facts_right"], 6)
+
+    def test_a_negation_about_the_title_before_the_cue_does_not_reject_the_role(self):
+        cases = {
+            "- Hospitality Associate Level 1: use Front Desk Associate.": (
+                "- Hospitality Associate Level 1: legacy title, not in the role list → Front Desk Associate.",
+                "- Hospitality Associate Level 1: not listed as a role → Front Desk Associate.",
+                "- Hospitality Associate Level 1: legacy title (not a role) -> Front Desk Associate.",
+                "- Hospitality Associate Level 1: because Hospitality Associate is not in the role list you should "
+                "use Front Desk Associate.",
+                "- Hospitality Associate Level 1: To avoid confusion use Front Desk Associate.",
+                "- Hospitality Associate Level 1: use Front Desk Associate (the former name is deprecated)."),
+            "- Lifeguard: use Lifeguard.": ("- Lifeguard: not a legacy title → Lifeguard.",),
+            "- Personal Trainer Level 2: use Personal Trainer.": (
+                "- Personal Trainer Level 2: the level is not part of the role → Personal Trainer.",),
+        }
+        for original, lines in cases.items():
+            for line in lines:
+                self.assertEqual(score_several_lookups(RIGHT_GLOBAL_NOTE.replace(original, line))["facts_right"], 6, line)
 
     def test_empty_answer_scores_zero(self):
         self.assertEqual(score_several_lookups("")["facts_right"], 0)
