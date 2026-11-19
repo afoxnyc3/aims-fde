@@ -283,7 +283,7 @@ Two more items are open as of 2026-11-18. Only the owner can answer them.
 - **Docker:** image rebuilt 2026-11-10 from this branch. It runs non-root (UID 1000), has no `.env` in the image, mounts the data and the standard read-only, and `/health` returns ok on `anthropic/claude-sonnet-5-5`. Live model calls ran in the container with the key supplied at runtime:
   - The app answered two role questions with cited sources.
   - The MCP server over stdio listed only `answer_onboarding_question`, answered with a citation, declined the password question with no sources, and rejected `search_hybrid` as an unknown tool.
-  - On v0.5, a synthetic Massage Therapist ticket was recommended Personal Trainer/Pro New plus the Massage Therapist group at the club, and a synthetic ticket asking for Zoho and Prospr went to review as an exception naming both systems and the approver.
+  - On v0.5, a synthetic Massage Therapist ticket was recommended Personal Trainer/Pro New plus the Massage Therapist group at the club, and a synthetic ticket asking for two systems outside every role's bundle went to review as an exception naming both systems and the approver.
 
 ---
 
