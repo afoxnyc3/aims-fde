@@ -595,7 +595,9 @@ The standard does not cover company mailboxes for any of these roles.
                          "nothing says they get one.", "it's possible they get one.",
                          "they could get one, but that is not in the standard.", "it would be a guess to say they get one.",
                          "I can't promise that each gets one.", "I don't know that they get one.",
-                         "I won't say they get one.", "ask IT to provide one.", "only IT can grant one."):
+                         "I won't say they get one.", "ask IT to provide one.", "only IT can grant one.",
+                         "IT would have to issue one.", "it is up to IT to issue one.",
+                         "I cannot promise they will receive one."):
                 answer = RIGHT_GLOBAL_NOTE.replace(note, stem + join + rest)
                 self.assertEqual(score_several_lookups(answer)["facts_right"], 6, join + rest)
         for wrong in (stem + ", so all three get one.", stem + ", but they each get one anyway.",
