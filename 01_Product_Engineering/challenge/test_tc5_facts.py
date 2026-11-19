@@ -589,6 +589,19 @@ The standard does not cover company mailboxes for any of these roles.
                      " So I won't say they get one.", " It would be a guess to say they get one.",
                      " It gives one answer only: the role.", " I have one caveat: the standard is a draft."):
             self.assertEqual(score_several_lookups(RIGHT_GLOBAL_NOTE.replace(note, note + more))["facts_right"], 6, more)
+        stem = note[:-1]
+        for join in (", so ", ", and ", ", but ", " - "):
+            for rest in ("you would have to request one.", "you'd have to request one from IT.",
+                         "nothing says they get one.", "it's possible they get one.",
+                         "they could get one, but that is not in the standard.", "it would be a guess to say they get one.",
+                         "I can't promise that each gets one.", "I don't know that they get one.",
+                         "I won't say they get one.", "ask IT to provide one.", "only IT can grant one."):
+                answer = RIGHT_GLOBAL_NOTE.replace(note, stem + join + rest)
+                self.assertEqual(score_several_lookups(answer)["facts_right"], 6, join + rest)
+        for wrong in (stem + ", so all three get one.", stem + ", but they each get one anyway.",
+                      note + " They'll get one.", note + " Every new hire gets one.",
+                      note + " All three of them receive one."):
+            self.assertEqual(score_several_lookups(RIGHT_GLOBAL_NOTE.replace(note, wrong))["facts_right"], 3, wrong)
         answer = RIGHT_GLOBAL_NOTE.replace(note, "The standard has one row for each role and no mailbox field for any of these roles.")
         self.assertEqual(score_several_lookups(answer)["facts_right"], 6)
 

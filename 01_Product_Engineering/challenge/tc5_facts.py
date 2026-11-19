@@ -90,7 +90,7 @@ DANGLING = r"(?:\bnot\b|n't\b|\bcannot\b|\bnever\b)"
 STARTS_AGAIN = r"[,:]|\s[—–-]\s|→|->|=>|\b(?:so|but|instead|therefore|hence|thus|then|and)\b"
 # After the name, in the rest of its clause: a prohibition in any form ("X (prohibited)", "X, which the
 # standard prohibits", "X here violates the standard"), unless the words between are about something
-# else ("X, because the old title is prohibited") or negate it ("X, which is not forbidden").
+# else ("X, because the old title is prohibited") or negate it ("X, never prohibited").
 PROHIBIT_AFTER = r"\b(?:" + PROHIBIT + r"|prohibits?|forbids?|retired|deprecated|discontinued)\b"
 # The sentence right after the one that states the role, on the same line, can take it back:
 # "Use X. This role is prohibited." "Use X. That is not allowed." "Use X. Actually, don't."
@@ -134,16 +134,18 @@ LEADING_NO = LABEL + r"(?:no\b(?!\s+(?:\w+\s+){0,3}?(?:information|mention|colum
 GIVE = (r"(?:gets?|getting|receiv\w*|given|gives?|provid\w*|includ\w*|has|have|comes?\s+with|entitled\s+to|eligible\s+for|"
         r"issu\w+|assign\w*|grant\w*|allocat\w*|allot\w*|suppl\w+|offer\w*|provision\w*|award\w*|set\s+up\s+with|"
         r"ends?\s+up\s+with|qualif\w+\s+for|count\s+on)")
-# What is given: a mailbox by name, or "one" standing for it, only where the clause ends or goes on about when or how:
+# "one" standing for the mailbox, only where the clause ends or goes on about when or how:
 # "all three get one", "get one on their first day". Not "gets one member record" or "has one row".
 ONE = (r"(?<!each\s)one\b(?=\W*$|\s*[,;.)]|\s+(?:anyway|too|each|regardless|automatically|though|by\s+default|"
        r"as\s+well|as\s+standard|on\s+(?:their|the|day)|from\s+it)\b)")
-# The next sentence after a mailbox note grants one only as a plain statement about the hires:
-# "All three get one." "They each get one anyway." Not "You would have to request one."
-PLAIN_GRANT_OF_ONE = (r"^\W*(?:(?:so|still|and|but)\W+)?(?:all\s+(?:three|3|of\s+them)|they(?:\s+(?:all|each))?|"
-                      r"each(?:\s+of\s+(?:them|the\s+three))?|every(?:one|\s+hire)|both)\s+(?:will\s+|do\s+|"
-                      r"would\s+|should\s+)?((?:gets?|receives?|has|have)\s+)" + ONE)
-GIVEN_THING = r"(?:" + MAILBOX_NOUN + r"|" + ONE + r")"
+# And only as a plain statement about the hires: "All three get one." "..., so they each get one anyway."
+# Not "you would have to request one", "nothing says they get one", "it's possible they get one".
+THEY_GET = (r"(?:all\s+(?:three|3)(?:\s+of\s+them)?|all\s+of\s+them|they(?:\s+(?:all|each))?|"
+            r"each(?:\s+of\s+(?:them|the\s+three))?|every(?:one|\s+(?:new\s+)?hire)|both)"
+            r"(?:\s+(?:will|do|would|should)|'ll)?\s+((?:gets?|receives?|has|have)\s+)")
+PLAIN_GRANT_OF_ONE = r"^\W*(?:(?:so|still|and|but|yes)\W+)?" + THEY_GET + ONE
+GRANT_OF_ONE_AFTER_A_JOIN = r"(?:[,;:]\s*|\s[—–-]\s)(?:(?:so|and|but|yet|however|though|still)\s+)?" + THEY_GET + ONE
+GIVEN_THING = MAILBOX_NOUN
 GIVEN_STATE = (r"(?:given|provided|included|issued|provisioned|created|set\s+up|assigned|granted|allocated|allotted|"
                r"supplied|offered|available)")
 NOT_GIVEN = (r"(?:\bnot\b|n't\b|\bno\b|\bnever\b|\bwithout\b|\bneither\b|\bnor\b|\bnone\b|\bnobody\b|\bno\s+one\b)"
@@ -153,7 +155,7 @@ NOT_GIVEN = (r"(?:\bnot\b|n't\b|\bno\b|\bnever\b|\bwithout\b|\bneither\b|\bnor\b
              r"|" + MAILBOX_NOUN + r"\s+(?:is|are)\s*(?:not|n't|never)\s+(?:\w+\s+)?" + GIVEN_STATE +
              r"|" + MAILBOX_NOUN + r"\s+(?:is|are)\s+(?:denied|refused|withheld)\b"
              r"|\b(?:denied|refused)\s+(?:a\s+)?(?:\w+\s+)?" + MAILBOX_NOUN + r"|\bno\s+" + MAILBOX_NOUN + r"\s+for\b")
-IS_GIVEN = (r"\b" + GIVE + r"\s+(?:(?!no\b|not\b|never\b)\w+\s+){0,4}?" + GIVEN_THING + r"|" + MAILBOX_NOUN +
+IS_GIVEN = (GRANT_OF_ONE_AFTER_A_JOIN + r"|\b" + GIVE + r"\s+(?:(?!no\b|not\b|never\b)\w+\s+){0,4}?" + GIVEN_THING + r"|" + MAILBOX_NOUN +
             r"\s+(?:is|are|will\s+be|gets?)\s+(?:also\s+|always\s+)?(?:standard|" + GIVEN_STATE + r")|" +
             MAILBOX_NOUN + r"\s+comes?\s+(?:with|as)\b|"
             r"\b(?:creates?|sets?\s+up)\s+(?:a\s+)?(?:\w+\s+)?" + MAILBOX_NOUN + r"\s+for\b|"
