@@ -501,6 +501,64 @@ The standard does not cover company mailboxes for any of these roles.
                 "The standard does not cover company mailboxes for any of these roles.", start + rest)
             self.assertEqual(score_several_lookups(answer)["facts_right"], 6, rest)
 
+    # Cases from the eighth review round: right answers the seventh-round fix marked wrong.
+    def test_a_cautious_next_sentence_about_getting_one_is_still_right(self):
+        note = "The standard does not cover company mailboxes for any of these roles."
+        for more in (" Don't assume they get one.", " They may or may not get one.",
+                     " Check with IT before assuming they get one.", " I would not assume they get one.",
+                     " Someone else decides who gets one.", " Do not read that as a no: they might still get one."):
+            self.assertEqual(score_several_lookups(RIGHT_GLOBAL_NOTE.replace(note, note + more))["facts_right"], 6, more)
+        for more in (" Don't assume the Lifeguard gets one.", " The Lifeguard may or may not get one."):
+            answer = RIGHT_PROSE.replace("- Company mailbox: not stated in the standard.",
+                                         "- Company mailbox: not stated in the standard." + more)
+            self.assertEqual(score_several_lookups(answer)["facts_right"], 6, more)
+
+    def test_a_turn_to_where_to_ask_that_names_the_hires_is_still_right(self):
+        start = "The standard does not say for any of these roles, "
+        for rest in ("but a mailbox for all three is a question for IT.",
+                     "but each hire can request a mailbox from IT.",
+                     "but they may want to raise the mailbox with the Service Desk.",
+                     "but mailbox questions for these hires go to the Service Desk.",
+                     "though the Service Desk can tell you about a mailbox for each hire."):
+            answer = RIGHT_GLOBAL_NOTE.replace(
+                "The standard does not cover company mailboxes for any of these roles.", start + rest)
+            self.assertEqual(score_several_lookups(answer)["facts_right"], 6, rest)
+
+    def test_a_next_sentence_about_the_old_title_or_level_does_not_take_the_role_back(self):
+        for line in ("use Front Desk Associate. It is incorrect to use the legacy title.",
+                     "use Front Desk Associate. It is not allowed to keep the old title.",
+                     "use Front Desk Associate. It would be wrong to keep the legacy title.",
+                     "use Front Desk Associate. It is invalid to use Hospitality Associate.",
+                     "use Front Desk Associate, and this won't change.",
+                     "the legacy title is invalid, map to Front Desk Associate.",
+                     "to avoid an error, use Front Desk Associate.",
+                     "use Front Desk Associate, which replaces the invalid legacy title."):
+            out = score_several_lookups(RIGHT_GLOBAL_NOTE.replace("use Front Desk Associate.", line))
+            self.assertEqual(out["facts_right"], 6, line)
+        for line in ("use Personal Trainer. It is incorrect to include the level.",
+                     "use Personal Trainer. It would be wrong to add the level."):
+            out = score_several_lookups(RIGHT_GLOBAL_NOTE.replace("use Personal Trainer.", line))
+            self.assertEqual(out["facts_right"], 6, line)
+
+    def test_more_take_backs_and_next_sentence_grants(self):
+        for back in ("That's not allowed.", "This role isn't allowed.", "It can't be used.",
+                     "That would be a mistake.", "This is not the right role.", "No, don't."):
+            line = "use Front Desk Associate. " + back
+            out = score_several_lookups(RIGHT_GLOBAL_NOTE.replace("use Front Desk Associate.", line))
+            self.assertEqual(out["facts_right"], 5, line)
+        for note in ("The standard is silent on mailboxes. All three get one on their first day.",
+                     "The standard is silent on mailboxes. Each of them gets one from IT.",
+                     "The standard is silent on mailboxes. They all get one though.",
+                     "The standard does not say, but mailboxes are standard for all staff.",
+                     "The standard does not say, but a mailbox comes with the job for all three.",
+                     "The standard does not say, but all three qualify for a company mailbox.",
+                     "The standard does not say, but no mailbox for any of the three.",
+                     "The standard does not say, but mailboxes are denied to all three.",
+                     "The standard does not say, but all three are refused a mailbox."):
+            answer = RIGHT_GLOBAL_NOTE.replace(
+                "The standard does not cover company mailboxes for any of these roles.", note)
+            self.assertEqual(score_several_lookups(answer)["facts_right"], 3, note)
+
     def test_empty_answer_scores_zero(self):
         self.assertEqual(score_several_lookups("")["facts_right"], 0)
 
