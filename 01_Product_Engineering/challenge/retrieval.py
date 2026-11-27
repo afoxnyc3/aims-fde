@@ -18,6 +18,7 @@ import os
 import re
 import threading
 import time
+import uuid
 from pathlib import Path
 
 import litellm
@@ -205,16 +206,48 @@ class Retriever:
         key = hashlib.sha1((self.embed_model + "\0" + "\0".join(texts)).encode()).hexdigest()[:16]
         cached = self.cache_dir / f"embeddings_{key}.npy" if self.cache_dir else None
         if cached and cached.exists():
-            self.page_embed_tokens = json.loads(cached.with_suffix(".json").read_text())["tokens"]
-            return np.load(cached)
+            # A cache that cannot be read (a write cut short, a damaged file) is a
+            # miss, not a failure: re-embed and overwrite it.
+            try:
+                tokens = json.loads(cached.with_suffix(".json").read_text())["tokens"]
+                matrix = np.load(cached)
+            except (OSError, ValueError, KeyError, TypeError):
+                pass
+            else:
+                self.page_embed_tokens = tokens
+                return matrix
         before = self.embed_tokens
         matrix = np.vstack([self._embed(texts[i:i + 64]) for i in range(0, len(texts), 64)])
         self.page_embed_tokens = self.embed_tokens - before
         if cached:
             cached.parent.mkdir(parents=True, exist_ok=True)
-            np.save(cached, matrix)
-            cached.with_suffix(".json").write_text(json.dumps({"tokens": self.page_embed_tokens}))
+            self._write_cache(cached, matrix)
         return matrix
+
+    def _write_cache(self, cached: Path, matrix: np.ndarray) -> None:
+        """Save the matrix and its token count so a reader never sees half a cache.
+
+        Written under temporary names and renamed, sidecar first, so the .npy only
+        ever appears whole and with its token count beside it. The temporary names
+        are unique to this writer: two processes (or two Retrievers) filling the same
+        cache each rename their own files, and the last one wins with identical
+        content. A cache that cannot be written is not a failure either: the
+        embeddings are already paid for and in memory, so the question goes ahead.
+        """
+        sidecar = cached.with_suffix(".json")
+        writer = f"{os.getpid()}-{uuid.uuid4().hex}"
+        partial_sidecar = cached.with_name(f"{cached.stem}.{writer}.json.tmp")
+        partial_matrix = cached.with_name(f"{cached.stem}.{writer}.tmp.npy")
+        try:
+            partial_sidecar.write_text(json.dumps({"tokens": self.page_embed_tokens}))
+            np.save(partial_matrix, matrix)
+            os.replace(partial_sidecar, sidecar)
+            os.replace(partial_matrix, cached)
+        except OSError:
+            pass
+        finally:
+            for partial in (partial_sidecar, partial_matrix):
+                partial.unlink(missing_ok=True)
 
     # --- tools the model can call --------------------------------------------
 
