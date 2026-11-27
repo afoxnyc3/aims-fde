@@ -18,6 +18,7 @@ import os
 import re
 import threading
 import time
+import uuid
 from pathlib import Path
 
 import litellm
@@ -220,15 +221,33 @@ class Retriever:
         self.page_embed_tokens = self.embed_tokens - before
         if cached:
             cached.parent.mkdir(parents=True, exist_ok=True)
-            # Written under temporary names and renamed, sidecar first, so the .npy
-            # only ever appears whole and with its token count beside it.
-            sidecar = cached.with_suffix(".json")
-            partial_sidecar, partial_matrix = sidecar.with_suffix(".json.tmp"), cached.with_suffix(".tmp.npy")
+            self._write_cache(cached, matrix)
+        return matrix
+
+    def _write_cache(self, cached: Path, matrix: np.ndarray) -> None:
+        """Save the matrix and its token count so a reader never sees half a cache.
+
+        Written under temporary names and renamed, sidecar first, so the .npy only
+        ever appears whole and with its token count beside it. The temporary names
+        are unique to this writer: two processes (or two Retrievers) filling the same
+        cache each rename their own files, and the last one wins with identical
+        content. A cache that cannot be written is not a failure either: the
+        embeddings are already paid for and in memory, so the question goes ahead.
+        """
+        sidecar = cached.with_suffix(".json")
+        writer = f"{os.getpid()}-{uuid.uuid4().hex}"
+        partial_sidecar = cached.with_name(f"{cached.stem}.{writer}.json.tmp")
+        partial_matrix = cached.with_name(f"{cached.stem}.{writer}.tmp.npy")
+        try:
             partial_sidecar.write_text(json.dumps({"tokens": self.page_embed_tokens}))
             np.save(partial_matrix, matrix)
             os.replace(partial_sidecar, sidecar)
             os.replace(partial_matrix, cached)
-        return matrix
+        except OSError:
+            pass
+        finally:
+            for partial in (partial_sidecar, partial_matrix):
+                partial.unlink(missing_ok=True)
 
     # --- tools the model can call --------------------------------------------
 

@@ -357,6 +357,41 @@ class EmbeddingCacheTests(unittest.TestCase):
             retrieval.Retriever(PAGES, cache_dir=Path(folder))._page_matrix()
             self.assertEqual(len(calls), 2)
 
+    def test_two_writers_filling_the_same_cache_both_succeed(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            calls = []
+            first = self.retriever(Path(folder), calls)
+            second = retrieval.Retriever(PAGES, cache_dir=Path(folder))
+            real_save, started, nested = retrieval.np.save, [], []
+
+            def save(path, matrix):
+                real_save(path, matrix)
+                if not started:  # the other writer runs start to finish while this one is mid-write
+                    started.append(True)
+                    nested.append(second._load_or_embed_pages())
+
+            with patch.object(retrieval.np, "save", side_effect=save):
+                matrix = first._page_matrix()
+            self.assertEqual(len(calls), 2)
+            self.assertTrue((matrix == nested[0]).all())
+            self.assertEqual(sorted(path.suffix for path in Path(folder).iterdir()), [".json", ".npy"])
+            reader = retrieval.Retriever(PAGES, cache_dir=Path(folder))
+            self.assertTrue((reader._page_matrix() == matrix).all())
+            self.assertEqual(len(calls), 2)
+
+    def test_cache_that_cannot_be_written_does_not_fail_the_question(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            calls = []
+            retriever = self.retriever(Path(folder), calls)
+            with patch.object(retrieval.os, "replace", side_effect=PermissionError("read-only")):
+                matrix = retriever._page_matrix()
+            self.assertEqual(matrix.shape[0], len(PAGES))
+            self.assertEqual(list(Path(folder).iterdir()), [])  # no cache, and no temporary files left behind
+
 
 if __name__ == "__main__":
     unittest.main()
