@@ -1,10 +1,13 @@
 # A plain, readable Dockerfile. Not the smallest possible image, not the
 # cleverest. You should be able to read every line and say what it does.
 
-FROM python:3.12-slim
+# Tag plus digest: the tag says what this is, the digest makes it the same image on
+# every build. To move it: docker buildx imagetools inspect python:3.12-slim
+FROM python:3.12-slim@sha256:191083cdf6c7bda8c76158983163ead5d5cf7b77cf3033e805bb0f5296f51b4b
 
 # uv installs dependencies fast and is already how we run things locally.
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+# Pinned for the same reason as the base image; `latest` is a different uv next month.
+COPY --from=ghcr.io/astral-sh/uv:0.13.9@sha256:d3b601f0c7b118bc1753febf7c41cc80981df678445e0254284eecf84db79a7d /uv /usr/local/bin/uv
 
 WORKDIR /app
 
@@ -43,6 +46,10 @@ COPY frontend/ ./frontend/
 RUN useradd --create-home appuser
 USER appuser
 
+# app.py binds loopback unless told otherwise. Inside a container that is unreachable
+# from the host, so bind all interfaces here and limit exposure where the port is
+# published: docker run -p 127.0.0.1:7860:7860 ...
+ENV GRADIO_SERVER_NAME=0.0.0.0
 EXPOSE 7860
 
 # The API key is NOT baked into this image. It arrives at runtime via

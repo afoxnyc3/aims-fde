@@ -88,7 +88,9 @@
     }
     let client;
     try {
-      const { Client } = await import("https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js");
+      // Pinned: an unversioned URL serves whatever was published last, and this script
+      // runs with full access to the page. Bump it deliberately, with the server's Gradio.
+      const { Client } = await import("https://cdn.jsdelivr.net/npm/@gradio/client@2.8.0/dist/index.min.js");
       client = await Client.connect(window.location.origin, { events: ["data", "status"] });
       byId("connection").textContent = "Connected · Versioned synthetic standard";
       byId("recommend-button").disabled = false; byId("chat-button").disabled = false;

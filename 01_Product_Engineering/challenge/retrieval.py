@@ -205,15 +205,29 @@ class Retriever:
         key = hashlib.sha1((self.embed_model + "\0" + "\0".join(texts)).encode()).hexdigest()[:16]
         cached = self.cache_dir / f"embeddings_{key}.npy" if self.cache_dir else None
         if cached and cached.exists():
-            self.page_embed_tokens = json.loads(cached.with_suffix(".json").read_text())["tokens"]
-            return np.load(cached)
+            # A cache that cannot be read (a write cut short, a damaged file) is a
+            # miss, not a failure: re-embed and overwrite it.
+            try:
+                tokens = json.loads(cached.with_suffix(".json").read_text())["tokens"]
+                matrix = np.load(cached)
+            except (OSError, ValueError, KeyError, TypeError):
+                pass
+            else:
+                self.page_embed_tokens = tokens
+                return matrix
         before = self.embed_tokens
         matrix = np.vstack([self._embed(texts[i:i + 64]) for i in range(0, len(texts), 64)])
         self.page_embed_tokens = self.embed_tokens - before
         if cached:
             cached.parent.mkdir(parents=True, exist_ok=True)
-            np.save(cached, matrix)
-            cached.with_suffix(".json").write_text(json.dumps({"tokens": self.page_embed_tokens}))
+            # Written under temporary names and renamed, sidecar first, so the .npy
+            # only ever appears whole and with its token count beside it.
+            sidecar = cached.with_suffix(".json")
+            partial_sidecar, partial_matrix = sidecar.with_suffix(".json.tmp"), cached.with_suffix(".tmp.npy")
+            partial_sidecar.write_text(json.dumps({"tokens": self.page_embed_tokens}))
+            np.save(partial_matrix, matrix)
+            os.replace(partial_sidecar, sidecar)
+            os.replace(partial_matrix, cached)
         return matrix
 
     # --- tools the model can call --------------------------------------------

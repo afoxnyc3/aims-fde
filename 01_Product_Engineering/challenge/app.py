@@ -43,11 +43,41 @@ CORPUS_MISSING = "The retrieval corpus is not mounted; set CORPUS_PATH."
 # output components and silently returns nothing. Ask us how we know.
 
 
+# General chat spends the model key for whoever can reach the port, so the caller's
+# input is bounded before it is sent: no caller-supplied system turns, and a cap on
+# every size the caller controls. Override the caps with environment variables.
+CHAT_MAX_MESSAGE_CHARS = int(os.getenv("CHAT_MAX_MESSAGE_CHARS", "8000"))
+CHAT_MAX_HISTORY_TURNS = int(os.getenv("CHAT_MAX_HISTORY_TURNS", "40"))
+CHAT_MAX_REPLY_TOKENS = int(os.getenv("CHAT_MAX_REPLY_TOKENS", "1024"))
+CHAT_TIMEOUT_S = float(os.getenv("CHAT_TIMEOUT_S", "120"))
+CHAT_ROLES = {"user", "assistant"}
+
+
+def _checked_history(history: list | None) -> list[dict]:
+    """Only user/assistant text turns, within the caps. The input is never echoed back."""
+    history = history or []
+    if len(history) > CHAT_MAX_HISTORY_TURNS:
+        raise Error(f"Chat history is too long: at most {CHAT_MAX_HISTORY_TURNS} turns. Start a new chat.")
+    turns = []
+    for turn in history:
+        if not (isinstance(turn, dict) and turn.get("role") in CHAT_ROLES and isinstance(turn.get("content"), str)):
+            raise Error("Invalid chat history: each turn needs a role of user or assistant and text content.")
+        if len(turn["content"]) > CHAT_MAX_MESSAGE_CHARS:
+            raise Error(f"Invalid chat history: a turn is longer than {CHAT_MAX_MESSAGE_CHARS} characters.")
+        turns.append({"role": turn["role"], "content": turn["content"]})
+    return turns
+
+
 @app.api(name="chat")
 def chat(message: str, history: list | None = None) -> str:
     """Stream a reply to one user message."""
+    if not isinstance(message, str) or not message.strip():
+        raise Error("Send a message.")
+    if len(message) > CHAT_MAX_MESSAGE_CHARS:
+        raise Error(f"Message is too long: at most {CHAT_MAX_MESSAGE_CHARS} characters.")
+    turns = _checked_history(history)
     try:
-        yield from stream_reply(message, history)
+        yield from stream_reply(message, turns, max_tokens=CHAT_MAX_REPLY_TOKENS, timeout=CHAT_TIMEOUT_S)
     except ReplyError as exc:
         raise Error(str(exc)) from None
 
@@ -138,17 +168,21 @@ def health() -> dict:
 
 
 if __name__ == "__main__":
-    # 0.0.0.0 so the container is reachable from the host. On your laptop this
-    # is fine. On a firm network, "reachable from where, exactly?" is the
-    # question this challenge wants you to go ask.
-    #
+    # Loopback by default: nothing here asks who is calling, and every endpoint
+    # spends the model key. The container sets GRADIO_SERVER_NAME=0.0.0.0 (see the
+    # Dockerfile) because a container's loopback is not reachable from the host;
+    # there, `docker run -p 127.0.0.1:7860:7860` is what keeps it on this machine.
+    # "Reachable from where, exactly?" is still the question to go ask before
+    # widening either one.
+    host = os.getenv("GRADIO_SERVER_NAME", "127.0.0.1")
+
     # Read the port rather than hardcoding it, so a machine that already has
     # something on 7860 can move this one without editing code.
     port = int(os.getenv("GRADIO_SERVER_PORT", "7860"))
 
-    # Gradio announces the address it BOUND to, which is 0.0.0.0 -- not an
-    # address a browser can open. Windows rejects it outright; macOS and Linux
-    # quietly redirect it to localhost, which is why it looks fine on some
-    # machines and broken on others. Print the one that always works.
+    # When bound to 0.0.0.0 Gradio announces that address, which is not one a
+    # browser can open. Windows rejects it outright; macOS and Linux quietly
+    # redirect it to localhost, which is why it looks fine on some machines and
+    # broken on others. Print the one that always works.
     print(f"\n  Open http://localhost:{port} in your browser\n", flush=True)
-    app.launch(server_name="0.0.0.0", server_port=port)
+    app.launch(server_name=host, server_port=port)
