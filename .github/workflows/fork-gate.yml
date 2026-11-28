@@ -23,11 +23,12 @@ jobs:
     # The suites finish in seconds; a hang (e.g. an unstubbed model call) shouldn't hold a runner for 6 hours.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      # Actions are pinned to a commit: a tag can be moved to different code, a SHA cannot.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false # no step needs git auth; keep the token out of .git/config
-      # Same exact pin as mirrors.yml.
-      - uses: astral-sh/setup-uv@v9.0.0
+      # Same release as mirrors.yml, by commit.
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           enable-cache: true
 
@@ -53,3 +54,15 @@ jobs:
       - name: use_case tc6 guard and spy tests
         if: ${{ !cancelled() }}
         run: uv run --frozen --project 01_Product_Engineering/challenge python -m unittest discover -q -s use_case/evals/tc6
+
+      # Known vulnerabilities in what the container installs: the same export the Dockerfile
+      # runs, checked against the advisory databases. pillow is excluded by name, not silenced
+      # wholesale: gradio 6.26 requires pillow<13 and every listed fix is 13.0.0. Remove the
+      # exclusion when gradio lifts that cap.
+      - name: Dependency audit (challenge lock)
+        if: ${{ !cancelled() }}
+        working-directory: 01_Product_Engineering/challenge
+        run: |
+          uv lock --check
+          uv export --frozen --no-dev --no-emit-project --no-emit-package pillow -o "$RUNNER_TEMP/requirements.txt" -q
+          uvx pip-audit@2.10.1 -r "$RUNNER_TEMP/requirements.txt" --disable-pip --require-hashes --progress-spinner off

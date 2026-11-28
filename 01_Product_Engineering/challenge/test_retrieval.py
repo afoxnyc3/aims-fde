@@ -309,5 +309,89 @@ class LoopTests(unittest.TestCase):
         self.assertEqual((result["stopped"], result["calls"], result["answer"]), ("max_turns", 3, ""))
 
 
+class EmbeddingCacheTests(unittest.TestCase):
+    """The page-embedding cache: reused when whole, re-embedded when a write was cut short."""
+
+    def retriever(self, cache_dir, calls):
+        def embedding(**kwargs):
+            calls.append(kwargs["input"])
+            data = [{"embedding": [1.0, float(i)]} for i, _ in enumerate(kwargs["input"])]
+            return SimpleNamespace(data=data, usage=SimpleNamespace(total_tokens=7))
+
+        self.enterContext(patch.object(retrieval.litellm, "embedding", side_effect=embedding))
+        return retrieval.Retriever(PAGES, cache_dir=cache_dir)
+
+    def test_whole_cache_is_reused_without_embedding(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            calls = []
+            first = self.retriever(Path(folder), calls)._page_matrix()
+            again = retrieval.Retriever(PAGES, cache_dir=Path(folder))
+            second = again._page_matrix()
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(again.page_embed_tokens, 7)
+            self.assertTrue((first == second).all())
+            self.assertEqual(sorted(path.suffix for path in Path(folder).iterdir()), [".json", ".npy"])
+
+    def test_cache_missing_its_sidecar_is_re_embedded_not_an_error(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            calls = []
+            self.retriever(Path(folder), calls)._page_matrix()
+            next(Path(folder).glob("*.json")).unlink()  # what a crash between the two writes used to leave
+            again = retrieval.Retriever(PAGES, cache_dir=Path(folder))
+            again._page_matrix()
+            self.assertEqual(len(calls), 2)
+            self.assertEqual(again.page_embed_tokens, 7)
+            self.assertEqual(len(list(Path(folder).glob("*.json"))), 1)
+
+    def test_truncated_matrix_is_re_embedded_not_an_error(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            calls = []
+            self.retriever(Path(folder), calls)._page_matrix()
+            next(Path(folder).glob("*.npy")).write_bytes(b"\x93NUMPY")
+            retrieval.Retriever(PAGES, cache_dir=Path(folder))._page_matrix()
+            self.assertEqual(len(calls), 2)
+
+    def test_two_writers_filling_the_same_cache_both_succeed(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            calls = []
+            first = self.retriever(Path(folder), calls)
+            second = retrieval.Retriever(PAGES, cache_dir=Path(folder))
+            real_save, started, nested = retrieval.np.save, [], []
+
+            def save(path, matrix):
+                real_save(path, matrix)
+                if not started:  # the other writer runs start to finish while this one is mid-write
+                    started.append(True)
+                    nested.append(second._load_or_embed_pages())
+
+            with patch.object(retrieval.np, "save", side_effect=save):
+                matrix = first._page_matrix()
+            self.assertEqual(len(calls), 2)
+            self.assertTrue((matrix == nested[0]).all())
+            self.assertEqual(sorted(path.suffix for path in Path(folder).iterdir()), [".json", ".npy"])
+            reader = retrieval.Retriever(PAGES, cache_dir=Path(folder))
+            self.assertTrue((reader._page_matrix() == matrix).all())
+            self.assertEqual(len(calls), 2)
+
+    def test_cache_that_cannot_be_written_does_not_fail_the_question(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            calls = []
+            retriever = self.retriever(Path(folder), calls)
+            with patch.object(retrieval.os, "replace", side_effect=PermissionError("read-only")):
+                matrix = retriever._page_matrix()
+            self.assertEqual(matrix.shape[0], len(PAGES))
+            self.assertEqual(list(Path(folder).iterdir()), [])  # no cache, and no temporary files left behind
+
+
 if __name__ == "__main__":
     unittest.main()

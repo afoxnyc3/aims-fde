@@ -280,8 +280,12 @@ def main() -> None:
     reports = [evals.run_eval(cases, echo, "echo", scorers), evals.run_eval(cases, make_oracle(cases), "oracle", scorers)]
     if not args.no_endpoint:
         endpoint = evals.run_eval(cases, make_endpoint(args.url), "endpoint", scorers)
-        with urllib.request.urlopen(args.url.rstrip("/") + "/health", timeout=5) as resp:
-            endpoint.meta["ticket_model"] = json.load(resp).get("model", "unknown")
+        # The run above is paid for. A /health that fails afterwards must not stop it being saved.
+        try:
+            with urllib.request.urlopen(args.url.rstrip("/") + "/health", timeout=5) as resp:
+                endpoint.meta["ticket_model"] = json.load(resp).get("model", "unknown")
+        except (OSError, ValueError) as exc:
+            endpoint.meta["ticket_model"] = f"unknown (/health failed: {type(exc).__name__})"
         # /health reports LLM_MODEL only. Questions can use RETRIEVAL_MODEL, and each response records which.
         traces = [evals.parse(r.actual).get("trace") or {} for r in endpoint.results]
         endpoint.meta["question_models"] = sorted({t["model"] for t in traces if t.get("model")})
