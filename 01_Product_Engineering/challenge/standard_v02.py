@@ -347,7 +347,7 @@ def decide(request: Request, facts, std: dict) -> Response:
     missing = _missing_fields(facts, role, std, names)
     triggers = intake_triggers(request.ticket_text)
     named = [n for n, rx in std.get("non_bundle_systems", ()) if rx.search(request.ticket_text or "")]
-    if named:  # a deterministic backstop: extraction missed "needs Prospr" and "all Zoho accounts" (TC5 test)
+    if named:  # a deterministic backstop: extraction missed "needs <system>" and "all <system> accounts" (TC5 test)
         triggers.append("systems beyond the role bundle: " + ", ".join(named))
     trigger = triggers[0] if triggers else None
     # A re-hire needs a person whatever the requester answers, so asking first only adds a round trip: it skips

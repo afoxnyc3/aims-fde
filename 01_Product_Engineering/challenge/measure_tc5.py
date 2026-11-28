@@ -6,6 +6,10 @@ Plus the first turn's parallel tool-call count and the bytes per response.
 
     uv run --env-file ../../.env python measure_tc5.py                 # demo + real size
     uv run --env-file ../../.env python measure_tc5.py --size real
+    uv run --env-file ../../.env python measure_tc5.py --size real --request "several lookups"
+
+Every row keeps the final answer text. Several-lookups rows are also scored on six facts
+(a role and a mailbox answer for each of three hires) by tc5_facts.py.
 
 Way 2 keeps one warm server session per size, as Claude Desktop does; its start-up
 (handshake and first search) is recorded separately as mcp_session_start.
@@ -29,10 +33,12 @@ import litellm
 from fastmcp import Client
 from fastmcp.client.transports import PythonStdioTransport
 
+import corpus
 import llm
 import mcp_server
 import qa
 import retrieval
+import tc5_facts
 
 HERE = Path(__file__).parent
 
@@ -216,6 +222,36 @@ def graded(answer: str, label: str, server_declined: int = 0, declined: bool = F
     return row
 
 
+def answer_text_may_be_saved() -> bool:
+    """True when answers come from the synthetic corpus, or the operator has said the text may be saved.
+
+    Run files in use_case/evals/ are committed to a public repo. With CORPUS_PATH pointing at
+    any other corpus, an answer can quote its text, so the text is left out unless
+    TC5_SAVE_ANSWERS_APPROVED is exactly "1" (so "0" or "false" does not approve). The same idea as the judge's corpus check in
+    use_case/evals/harness.py."""
+    path = Path(os.getenv("CORPUS_PATH") or corpus.DEFAULT_CORPUS_PATH)
+    return path.resolve() == Path(corpus.DEFAULT_CORPUS_PATH).resolve() or os.getenv("TC5_SAVE_ANSWERS_APPROVED") == "1"
+
+
+def result_fields(answer: str, label: str, server_declined: int = 0, declined: bool = False) -> dict:
+    """What a row records about the answer: its text, the answered check, and for the
+    several-lookups request the six-fact score (see tc5_facts). The text is saved so a
+    reader can grade it by hand, but only when answer_text_may_be_saved() allows it;
+    otherwise the row says the text was withheld and keeps the scores, which hold no text."""
+    saved = answer_text_may_be_saved()
+    fields = {"answer": answer if saved else None, **graded(answer, label, server_declined, declined)}
+    if not saved:
+        fields["answer_withheld"] = True
+    if label == "several lookups":
+        score = tc5_facts.score_several_lookups(answer)
+        fields.update(facts=score["facts"], facts_right=score["facts_right"], facts_found=score["found"])
+    return fields
+
+
+def requests_for(name: str) -> dict:
+    return REQUESTS if name == "all" else {name: REQUESTS[name]}
+
+
 llm_call = llm.call_with_retry  # the unwrapped original
 
 
@@ -225,7 +261,7 @@ def _temp_jsonl() -> Path:
     return Path(name)
 
 
-def run(size: str, retriever) -> list[dict]:
+def run(size: str, retriever, requests: dict | None = None) -> list[dict]:
     hit_chars = SIZES[size]
     retrieval.HIT_CHARS = hit_chars
     rows = []
@@ -237,7 +273,7 @@ def run(size: str, retriever) -> list[dict]:
         if size == "real":  # the guarded endpoint always returns whole-record evidence internally
             guarded, guarded_session = loop.run_until_complete(open_session(hit_chars, guarded_audit, toolset="answer"))
         print(json.dumps({"size": size, "mcp_session_start": session, "guarded_session_start": guarded_session}), flush=True)
-        for label, question in REQUESTS.items():
+        for label, question in (requests or REQUESTS).items():
             for way in ("1 tool", "2 MCP (stdio)") + (("2b MCP guarded",) if guarded else ()):
                 meter = Meter()
                 started = time.perf_counter()
@@ -261,7 +297,7 @@ def run(size: str, retriever) -> list[dict]:
                     "seconds": round(time.perf_counter() - started, 1), "tokens": meter.tokens,
                     "bytes_per_response": round(sum(per_call) / len(per_call)) if per_call else 0,
                     "server_declined": out.get("server_declined"),
-                    **graded(out["answer"], label, out.get("server_declined") or 0, out.get("declined", False)),
+                    **result_fields(out["answer"], label, out.get("server_declined") or 0, out.get("declined", False)),
                     **({"mcp_session_start": guarded_session if way == "2b MCP guarded" else session}
                        if way != "1 tool" else {}),
                 })
@@ -282,11 +318,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--size", choices=["demo", "real", "both"], default="both")
     parser.add_argument("--out", default=str(HERE.parent.parent / "use_case" / "evals" / "tc5_measure.jsonl"))
+    parser.add_argument("--request", choices=[*REQUESTS, "all"], default="all")
     args = parser.parse_args()
     retriever = qa.get_retriever()
     rows = []
     for size in (["demo", "real"] if args.size == "both" else [args.size]):
-        rows += run(size, retriever)
+        rows += run(size, retriever, requests_for(args.request))
     meta = {"model": retrieval.CHAT_MODEL, "embed_model": retrieval.EMBED_MODEL,
             "measured_at": time.strftime("%Y-%m-%d %H:%M"), "python": sys.version.split()[0]}
     with open(args.out, "w") as handle:

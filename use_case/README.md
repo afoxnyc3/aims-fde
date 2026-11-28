@@ -15,8 +15,11 @@ annoys you weekly.
 
 > **What changed after critique (TC5):** The room said the agent asked for things it did not need and that the
 > role standard is the real product. Unnecessary asks went from 8 to 0 once the owner made a legal surname
-> required, and the standard moved to v0.5 with six role and routing decisions closed by their owners. On the
-> same 29 test tickets: 14 to 27 right, over-access 2 to 0 (not held out; see [TC5](TC5_SUBMISSION.md#results-after-the-2026-11-10-rulings)).
+> required, and the standard moved to v0.5 with six role and routing decisions closed by their owners. On
+> current labels, the same 29 test tickets went from 22 right to 27 right, with 0 over-grants in 3
+> recommendations and 0 unnecessary asks (`evals/real_v05/results/endpoint_test.json`). The TC4 baseline was 14
+> of 29; the surname relabel alone moves those saved TC4 outputs to 22
+> (`python3 use_case/evals/run.py --committed`). Not held out; corrected 2026-11-18, see [TC5](TC5_SUBMISSION.md#results-after-the-2026-11-10-rulings).
 > A reviewer asked for a middleware layer in front of the system of record: it is the architecture row, and a
 > read-only tools server on that route is in test. Another asked to lead with one ticket: the Loom does.
 
@@ -249,6 +252,8 @@ The second way, the measurements and the draft architecture row are in [`TC5_SUB
 | several lookups | 2b MCP guarded | 2 | 3 guarded calls* | 46.7 | 4,491 | 71,299 |
 
 \* Each guarded call runs its own retrieval loop inside the server, so it is not comparable with a search count. Session start-up (about 2 s) is measured separately; the demo-size table and the caveats are in the submission.
+
+The several-lookups answers were graded in a re-run on 2026-11-18: all three ways got 6 of 6 facts right in each of 3 runs (`evals/tc5_measure_graded_2026-11-18_run{1,2,3}.jsonl`; n=3 per way, not a significance test). The guarded tool's extra cost bought no extra right answers on this request. It buys the guards and a smaller caller context.
 
 ## Bring it to work
 

@@ -253,9 +253,9 @@ h3{font:500 17px/1.3 var(--sans);margin:0 0 6px}
   <div class="grid2">
     <div>
       <p class="eyebrow">TC5 · Real tickets, our standard · Nov 2026</p>
-      <h1>Same 29 real tickets. 14 right at TC4, 27 right now. Over-access 2 to 0.</h1>
+      <h1>Same 29 real tickets, current labels: 22 right to 27 right. 0 over-grants in 3 recommendations.</h1>
       <p class="lead">The onboarding agent reads anonymized Jira tickets and recommends access against our own role matrix. A person still provisions. This week the business closed six role decisions, and the agent picked up the rules.</p>
-      <p class="foot">Same tickets, current agent: not a held-out score. Everything on screen is counts, roles and clubs. No names, no ticket text.</p>
+      <p class="foot">Same tickets, current agent: not a held-out score. Everything on screen is counts, roles and clubs. No names, no ticket text. Headline corrected 2026-11-18 after review; the recording says the original line.</p>
     </div>
     <div class="card">
       <p class="eyebrow" style="margin-bottom:10px">Test split, TC5 run · each bar is one ticket</p>
@@ -265,7 +265,7 @@ h3{font:500 17px/1.3 var(--sans);margin:0 0 6px}
         <span><b style="background:var(--need)"></b>2 sent to a person, cautious</span>
         <span><b style="background:var(--bad)"></b>0 granted too much</span>
       </div>
-      <p class="small" style="margin:16px 0 0">TC4 on the same tickets: 14 right, 2 over-access. The zero has a story; I’ll show it.</p>
+      <p class="small" style="margin:16px 0 0">TC4 as scored then: 14 of 29, with 2 over-grants in 5 recommendations. The owner’s surname ruling relabelled 8 tickets, and that alone moves the same saved TC4 outputs to 22. The zero has a story; I’ll show it.</p>
     </div>
   </div>
 </section>
@@ -281,13 +281,13 @@ h3{font:500 17px/1.3 var(--sans);margin:0 0 6px}
   <table class="dt">
     <thead><tr><th>You said</th><th>What we did</th></tr></thead>
     <tbody>
-      <tr><td><b>Tyler:</b> put middleware in front of the admin problem while access gets cleaned up</td><td>A gated, read-only tools service: one sign-in, one group, every tool set to Ask. <b>In test now.</b> The staff-admin cleanup is scheduled with stakeholders.</td></tr>
-      <tr><td><b>Phil:</b> lead with one ticket</td><td>This Loom opened on one ticket, end to end.</td></tr>
-      <tr class="hot"><td><b>Phil:</b> the policy cleanup is the product</td><td>Standard v0.5: <b>six role and routing rulings</b> closed by their owners, each now in code. The model reads; code decides.</td></tr>
-      <tr><td><b>Phil:</b> prove onboarding first, then role changes</td><td>Re-hires, transfers and promotions now go straight to a person with the gaps listed. Removing stale access is on the list after go-live.</td></tr>
-      <tr><td><b>Ovo:</b> take the name question to the owner</td><td>The owner ruled a legal surname is required. Unnecessary asks: <b>8 → 0</b>.</td></tr>
-      <tr><td><b>Ovo:</b> score three multi-turn scenarios</td><td>Built and run live: <b>3 of 3 pass</b> (surname then recommend, re-hire to review, mirror refused).</td></tr>
-      <tr><td><b>Ovo:</b> report unnecessary asks beside over-grants</td><td>Now a column. The CTO line today: <b>0 over-grants, 1 extra round-trip</b> on 29 test tickets.</td></tr>
+      <tr><td><b>A course reviewer:</b> put middleware in front of the admin problem while access gets cleaned up</td><td>A gated, read-only tools service: one sign-in, one group, every tool set to Ask. <b>In test now.</b> The staff-admin cleanup is scheduled with stakeholders.</td></tr>
+      <tr><td><b>A second reviewer:</b> lead with one ticket</td><td>This Loom opened on one ticket, end to end.</td></tr>
+      <tr class="hot"><td><b>A second reviewer:</b> the policy cleanup is the product</td><td>Standard v0.5: <b>six role and routing rulings</b> closed by their owners, each now in code. The model reads; code decides.</td></tr>
+      <tr><td><b>A second reviewer:</b> prove onboarding first, then role changes</td><td>Re-hires, transfers and promotions now go straight to a person with the gaps listed. Removing stale access is on the list after go-live.</td></tr>
+      <tr><td><b>A third reviewer:</b> take the name question to the owner</td><td>The owner ruled a legal surname is required. Unnecessary asks: <b>8 → 0</b>, by relabel.</td></tr>
+      <tr><td><b>A third reviewer:</b> score three multi-turn scenarios</td><td>Built and run live: <b>3 of 3 pass</b> (surname then recommend, re-hire to review, mirror refused).</td></tr>
+      <tr><td><b>A third reviewer:</b> report unnecessary asks beside over-grants</td><td>Now a column. The CTO line today: <b>0 over-grants in 3 recommendations, 0 unnecessary asks</b> on 29 test tickets.</td></tr>
     </tbody>
   </table>
 </section>
@@ -299,7 +299,7 @@ h3{font:500 17px/1.3 var(--sans);margin:0 0 6px}
   <table class="dt">
     <thead><tr><th>Set</th><th>TC4 (3 Nov)</th><th>TC5 (10 Nov)</th></tr></thead>
     <tbody>
-      <tr class="hot"><td>Test · 29 real tickets</td><td>14 of 29 · 2 over-access</td><td><b>27 of 29 · 0 over-access</b></td></tr>
+      <tr class="hot"><td>Test · 29 real tickets</td><td>14 of 29 then, 22 of 29 on current labels · 2 over-grants in 5 recommendations</td><td><b>27 of 29 · 0 over-grants in 3 recommendations</b></td></tr>
       <tr><td>Dev · 29 real tickets</td><td>25 of 29 · 0 over-access</td><td><b>28 of 29 · 0 over-access</b></td></tr>
       <tr><td>Synthetic grid · 180 scenarios</td><td>168 of 180 · 11 over-access</td><td><b>174 of 180 · 2 over-access</b></td></tr>
     </tbody>
@@ -390,9 +390,9 @@ const DEMO=[
  {t:"Membership Consultant",c:"Club E",a:"Send to a person · conflicting identities",e:"Recommend · Sales Associate",n:"The model saw two identities in the intake and stopped. Cautious miss.",k:"miss",src:"test"}
 ];
 const SEGS=[
- {tok:"opening",name:"Opening",t:0,notes:["Same 29 real test tickets as TC4: 14 right then, 27 now, and over-access from 2 to 0.","Same tickets re-run, so not a held-out score."]},
- {tok:"advisors",name:"Feedback",t:35,notes:["Tyler: middleware, in test now. Phil: one ticket, the policy is the product, onboarding first. Ovo: surname to the owner, three scenarios, unnecessary asks as a column.","Every point changed the product."]},
- {tok:"results",name:"Results",t:80,notes:["Test 14 to 27, over-access 2 to 0. Dev 25 to 28. Grid 168 to 174, over-access 11 to 2."]},
+ {tok:"opening",name:"Opening",t:0,notes:["Same 29 real test tickets as TC4, on current labels: 22 right to 27 right, and 0 over-grants in 3 recommendations. TC4 was 14 as scored then; the surname relabel moves it to 22.","Same tickets re-run, so not a held-out score."]},
+ {tok:"advisors",name:"Feedback",t:35,notes:["A course reviewer: middleware, in test now. A second reviewer: one ticket, the policy is the product, onboarding first. A third reviewer: surname to the owner, three scenarios, unnecessary asks as a column.","Every point changed the product."]},
+ {tok:"results",name:"Results",t:80,notes:["Test 22 to 27 on current labels (14 as scored at TC4), over-grants 2 in 5 recommendations to 0 in 3. Dev 25 to 28. Grid 168 to 174, over-access 11 to 2."]},
  {tok:"misses",name:"Caught",t:115,notes:["Our first zero was luck: two tickets were safe only because their roles weren’t mapped. Fixed in code.","Known risk: NY instructors get Senior Group Fitness Instructor, which carries staff admin, with a warning until the cleanup."]},
  {tok:"tools",name:"Tools",t:160,notes:["Already running in test: thirteen read-only tools, every one set to Ask. MCP keeps the rules and credentials on our side, where the desk already works."]},
  {tok:"next",name:"Next",t:195,notes:["Cloud hosting, read-only prod API users, MCP in prod, writes proven on TEST, monitored rollout logged to Teams, the staff-admin cleanup."]}
