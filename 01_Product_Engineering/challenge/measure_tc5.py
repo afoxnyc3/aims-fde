@@ -33,6 +33,7 @@ import litellm
 from fastmcp import Client
 from fastmcp.client.transports import PythonStdioTransport
 
+import corpus
 import llm
 import mcp_server
 import qa
@@ -221,11 +222,26 @@ def graded(answer: str, label: str, server_declined: int = 0, declined: bool = F
     return row
 
 
+def answer_text_may_be_saved() -> bool:
+    """True when answers come from the synthetic corpus, or the operator has said the text may be saved.
+
+    Run files in use_case/evals/ are committed to a public repo. With CORPUS_PATH pointing at
+    any other corpus, an answer can quote its text, so the text is left out unless
+    TC5_SAVE_ANSWERS_APPROVED is set. The same rule as the judge's corpus check in
+    use_case/evals/harness.py."""
+    path = Path(os.getenv("CORPUS_PATH") or corpus.DEFAULT_CORPUS_PATH)
+    return path.resolve() == Path(corpus.DEFAULT_CORPUS_PATH).resolve() or bool(os.getenv("TC5_SAVE_ANSWERS_APPROVED"))
+
+
 def result_fields(answer: str, label: str, server_declined: int = 0, declined: bool = False) -> dict:
     """What a row records about the answer: its text, the answered check, and for the
     several-lookups request the six-fact score (see tc5_facts). The text is saved so a
-    reader can grade it by hand; the corpus is synthetic, so it holds no real data."""
-    fields = {"answer": answer, **graded(answer, label, server_declined, declined)}
+    reader can grade it by hand, but only when answer_text_may_be_saved() allows it;
+    otherwise the row says the text was withheld and keeps the scores, which hold no text."""
+    saved = answer_text_may_be_saved()
+    fields = {"answer": answer if saved else None, **graded(answer, label, server_declined, declined)}
+    if not saved:
+        fields["answer_withheld"] = True
     if label == "several lookups":
         score = tc5_facts.score_several_lookups(answer)
         fields.update(facts=score["facts"], facts_right=score["facts_right"], facts_found=score["found"])

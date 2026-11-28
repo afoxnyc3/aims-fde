@@ -97,10 +97,34 @@ class MeasureTest(unittest.TestCase):
         self.assertFalse(measure_tc5._declined(json.dumps({"declined": False})))
 
     def test_every_row_keeps_the_final_answer_text(self):
+        synthetic = {"CORPUS_PATH": str(measure_tc5.corpus.DEFAULT_CORPUS_PATH)}
         for label in measure_tc5.REQUESTS:
-            fields = measure_tc5.result_fields("Use Front Desk Associate.", label)
+            with mock.patch.dict("os.environ", synthetic):
+                fields = measure_tc5.result_fields("Use Front Desk Associate.", label)
             self.assertEqual(fields["answer"], "Use Front Desk Associate.")
             self.assertTrue(fields["answered"])
+
+    def test_answer_text_is_withheld_for_a_corpus_that_is_not_the_synthetic_one(self):
+        answer = "Use Front Desk Associate."
+        other = {"CORPUS_PATH": "/somewhere/real_export.jsonl", "TC5_SAVE_ANSWERS_APPROVED": ""}
+        with mock.patch.dict("os.environ", other):
+            fields = measure_tc5.result_fields(answer, "several lookups")
+        self.assertIsNone(fields["answer"])
+        self.assertTrue(fields["answer_withheld"])
+        self.assertIn("facts_right", fields)  # the scores hold no text, so they stay
+        self.assertNotIn(answer, json.dumps(fields))
+
+    def test_the_operator_can_approve_saving_answers_from_another_corpus(self):
+        approved = {"CORPUS_PATH": "/somewhere/real_export.jsonl", "TC5_SAVE_ANSWERS_APPROVED": "1"}
+        with mock.patch.dict("os.environ", approved):
+            fields = measure_tc5.result_fields("Use Front Desk Associate.", "one lookup")
+        self.assertEqual(fields["answer"], "Use Front Desk Associate.")
+
+    def test_answer_text_is_saved_for_the_synthetic_corpus(self):
+        with mock.patch.dict("os.environ", {"CORPUS_PATH": str(measure_tc5.corpus.DEFAULT_CORPUS_PATH)}):
+            fields = measure_tc5.result_fields("Use Front Desk Associate.", "one lookup")
+        self.assertEqual(fields["answer"], "Use Front Desk Associate.")
+        self.assertNotIn("answer_withheld", fields)
 
     def test_several_lookups_rows_carry_the_six_fact_score(self):
         answer = ("- Hospitality Associate Level 1: use Front Desk Associate.\n- Lifeguard: use Lifeguard.\n"
