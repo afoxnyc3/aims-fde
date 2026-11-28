@@ -126,6 +126,20 @@ class MeasureTest(unittest.TestCase):
         self.assertEqual(fields["answer"], "Use Front Desk Associate.")
         self.assertNotIn("answer_withheld", fields)
 
+    def test_only_the_value_1_approves_saving_answers(self):
+        for value in ("0", "false", "no", "yes"):
+            env = {"CORPUS_PATH": "/somewhere/real_export.jsonl", "TC5_SAVE_ANSWERS_APPROVED": value}
+            with self.subTest(value=value), mock.patch.dict("os.environ", env):
+                self.assertFalse(measure_tc5.answer_text_may_be_saved())
+
+    def test_rescoring_leaves_a_withheld_row_as_it_was(self):
+        row = {"request": "several lookups", "way": "1 tool", "answer": None, "answer_withheld": True, "facts_right": 6}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "run.jsonl"
+            path.write_text(json.dumps(row) + "\n")
+            measure_tc5.tc5_facts.main(["--write", str(path)])
+            self.assertEqual(json.loads(path.read_text()), row)
+
     def test_several_lookups_rows_carry_the_six_fact_score(self):
         answer = ("- Hospitality Associate Level 1: use Front Desk Associate.\n- Lifeguard: use Lifeguard.\n"
                   "- Personal Trainer Level 2: use Personal Trainer.\n"

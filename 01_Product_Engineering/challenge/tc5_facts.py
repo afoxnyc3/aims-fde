@@ -346,7 +346,8 @@ def main(args: list[str]) -> None:
     for path in (arg for arg in args if arg != "--write"):
         rows = [json.loads(line) for line in open(path)]
         for row in rows:
-            if row.get("request") == "several lookups" and "answer" in row:
+            # A row whose text was withheld (measure_tc5.answer_text_may_be_saved) keeps the scores it has.
+            if row.get("request") == "several lookups" and isinstance(row.get("answer"), str):
                 score = score_several_lookups(row["answer"])
                 row.update(facts=score["facts"], facts_right=score["facts_right"], facts_found=score["found"])
                 wrong = [name for name, right in score["facts"].items() if not right]

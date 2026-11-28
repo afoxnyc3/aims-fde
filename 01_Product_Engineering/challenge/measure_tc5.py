@@ -227,10 +227,10 @@ def answer_text_may_be_saved() -> bool:
 
     Run files in use_case/evals/ are committed to a public repo. With CORPUS_PATH pointing at
     any other corpus, an answer can quote its text, so the text is left out unless
-    TC5_SAVE_ANSWERS_APPROVED is set. The same rule as the judge's corpus check in
+    TC5_SAVE_ANSWERS_APPROVED is exactly "1" (so "0" or "false" does not approve). The same idea as the judge's corpus check in
     use_case/evals/harness.py."""
     path = Path(os.getenv("CORPUS_PATH") or corpus.DEFAULT_CORPUS_PATH)
-    return path.resolve() == Path(corpus.DEFAULT_CORPUS_PATH).resolve() or bool(os.getenv("TC5_SAVE_ANSWERS_APPROVED"))
+    return path.resolve() == Path(corpus.DEFAULT_CORPUS_PATH).resolve() or os.getenv("TC5_SAVE_ANSWERS_APPROVED") == "1"
 
 
 def result_fields(answer: str, label: str, server_declined: int = 0, declined: bool = False) -> dict:
