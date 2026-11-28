@@ -86,5 +86,17 @@ class ReportTests(unittest.TestCase):
             self.assertEqual(real_curated.read_bytes(), real_before)  # the real summary too
 
 
+class ReserveTests(unittest.TestCase):
+    def test_two_runs_in_the_same_second_get_different_names(self):
+        started = measure_retrieval.datetime(2026, 11, 28, 9, 0, 0)
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            with patch.multiple(measure_retrieval, RUNS=root / "runs", TRACES=root / "retrieval_traces.jsonl"):
+                first = measure_retrieval.reserve_run(started)
+                second = measure_retrieval.reserve_run(started)  # the first has written nothing yet
+            self.assertEqual((first, second), ("2026-11-28T090000", "2026-11-28T090000-2"))
+            self.assertTrue((root / f"retrieval_traces_{second}.jsonl").is_file())
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -83,14 +83,23 @@ def summarise(rows: list[dict], techniques: list[str]) -> list[dict]:
     return table
 
 
-def run_stamp(started: datetime) -> str:
-    """A name for this run that no earlier run has: the local start time, plus a counter if taken."""
+def reserve_run(started: datetime) -> str:
+    """Claim a name for this run that no other run has: the local start time, plus a counter if taken.
+
+    The claim is the run's trace file, created exclusively, so two runs that start in the same
+    second cannot both get the name: the second one's create fails and it takes the next counter."""
     base = f"{started:%Y-%m-%dT%H%M%S}"
+    TRACES.parent.mkdir(parents=True, exist_ok=True)
     stamp, n = base, 1
-    while (RUNS / f"{stamp}.md").exists() or TRACES.with_name(f"retrieval_traces_{stamp}.jsonl").exists():
+    while True:
+        if not (RUNS / f"{stamp}.md").exists():
+            try:
+                TRACES.with_name(f"retrieval_traces_{stamp}.jsonl").open("x").close()
+                return stamp
+            except FileExistsError:
+                pass
         n += 1
         stamp = f"{base}-{n}"
-    return stamp
 
 
 def write_report(table, rows, cases, similarities, retriever, started, techniques, stamp) -> None:
@@ -145,7 +154,7 @@ def write_report(table, rows, cases, similarities, retriever, started, technique
     RUNS.mkdir(parents=True, exist_ok=True)
     report_path = RUNS / f"{stamp}.md"
     # Written under a temporary name and moved into place, so an interrupted run leaves no
-    # half-written file that looks like a finished report. run_stamp() picked a name no run has.
+    # half-written file that looks like a finished report. reserve_run() claimed this name.
     partial = report_path.with_suffix(".md.partial")
     try:
         partial.write_text("\n".join(lines), encoding="utf-8")
@@ -181,8 +190,8 @@ def main() -> None:
     rows = []
     # A debug run gets its own file, so it never overwrites the traces behind a report.
     # A full run's traces carry the report's stamp, so every report keeps its traces.
-    stamp = run_stamp(started)
-    traces_path = TRACES.with_name(f"retrieval_traces_{args.only if args.only else stamp}.jsonl")
+    stamp = None if args.only else reserve_run(started)
+    traces_path = TRACES.with_name(f"retrieval_traces_{args.only or stamp}.jsonl")
     traces_path.parent.mkdir(parents=True, exist_ok=True)
     with traces_path.open("w", encoding="utf-8") as traces:
         for case in cases:
