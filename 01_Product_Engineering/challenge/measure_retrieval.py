@@ -6,7 +6,8 @@
 Writes the results table (metrics and settings only) to
 use_case/evals/runs/<dated-run>.md. The curated retrieval_results.md is
 maintained separately. Full traces, which contain
-synthetic ticket text, are written to use_case/data/ (gitignored).
+synthetic ticket text, are written to use_case/data/ (gitignored), one file per
+run with the same time stamp as the report. Times are local.
 """
 
 import argparse
@@ -14,9 +15,8 @@ import json
 import os
 import statistics
 import time
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
-from tempfile import mkstemp
 
 import corpus
 import retrieval
@@ -83,14 +83,24 @@ def summarise(rows: list[dict], techniques: list[str]) -> list[dict]:
     return table
 
 
-def write_report(table, rows, cases, similarities, retriever, started, techniques) -> None:
+def run_stamp(started: datetime) -> str:
+    """A name for this run that no earlier run has: the local start time, plus a counter if taken."""
+    base = f"{started:%Y-%m-%dT%H%M%S}"
+    stamp, n = base, 1
+    while (RUNS / f"{stamp}.md").exists() or TRACES.with_name(f"retrieval_traces_{stamp}.jsonl").exists():
+        n += 1
+        stamp = f"{base}-{n}"
+    return stamp
+
+
+def write_report(table, rows, cases, similarities, retriever, started, techniques, stamp) -> None:
     header = ("| Technique | Pass | Cited every gold | Avg calls | Avg evidence (chars) | Avg tokens | "
               "Median latency (s) | Hit turn limit | Retried | Prose after retry |")
     lines = [
         "# Retrieval results (TC3 Step 3)",
         "",
-        f"Run {started:%Y-%m-%d %H:%M} UTC, {len(cases)} questions × {len(techniques)} techniques, one run each. "
-        "Generated as a dated run under `use_case/evals/runs/` by `01_Product_Engineering/challenge/measure_retrieval.py`; traces stay in `use_case/data/`.",
+        f"Run {started:%Y-%m-%d %H:%M} local time, {len(cases)} questions × {len(techniques)} techniques, one run each. "
+        "Generated as a dated run under `use_case/evals/runs/` by `01_Product_Engineering/challenge/measure_retrieval.py`; traces are in `use_case/data/retrieval_traces_<same stamp>.jsonl` (gitignored).",
         "",
         header,
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
@@ -100,7 +110,7 @@ def write_report(table, rows, cases, similarities, retriever, started, technique
     lines += ["", "Citation is counted over the questions with gold records (decline questions have none). "
               "Retried: the first final reply was prose, so one retry offering only answer and decline ran. "
               "Prose after retry: still no answer or decline call, so declined.", "",
-              "## Per question", "",
+              "### Per question", "",
               "| Question | Kind | Top cosine | " + " | ".join(f"`{t}`" for t in techniques) + " |",
               "| --- | --- | --- | " + " | ".join("---" for _ in techniques) + " |"]
     for case in cases:
@@ -112,9 +122,10 @@ def write_report(table, rows, cases, similarities, retriever, started, technique
         cosine = similarities[case["id"]]
         lines.append(f"| {case['id']} | {case['kind']} | {'n/a' if cosine is None else f'{cosine:.3f}'} | "
                      + " | ".join(cells) + " |")
-    lines += ["", "## Settings", "",
+    lines += ["", "### Settings", "",
               f"- **Answer model:** `{retrieval.CHAT_MODEL}`, provider-default sampling",
-              f"- **Turn budget:** {retrieval.MAX_TURNS} (agentic techniques); the pipeline makes one call",
+              f"- **Turn budget:** {retrieval.MAX_TURNS} (agentic techniques); the pipeline makes one answer call, "
+              "plus one retry if that reply is prose",
               f"- **Chunking:** none. One page per record ({len(retriever.names)} pages, standard + verified tickets); "
               f"search hits capped at {retrieval.HIT_CHARS} chars, `read_page` at {retrieval.READ_CHARS:,}",
               f"- **Embedding model:** `{retriever.embed_model}`"
@@ -123,7 +134,8 @@ def write_report(table, rows, cases, similarities, retriever, started, technique
               f"{len(retriever.names)} pages once, from the provider's `usage.total_tokens`; "
               f"{retriever.embed_tokens:,} embedded by this run (queries, plus pages if not cached)",
               f"- **Hybrid:** RRF, k = {retrieval.RRF_K}, over BM25 top 20 and dense top 20",
-              f"- **Pipeline:** `answer_once`, hybrid top {retrieval.ANSWER_TOP_K}, one answer call",
+              f"- **Pipeline:** `answer_once`, hybrid top {retrieval.ANSWER_TOP_K}, one answer call, plus one retry "
+              "offering only answer and decline if the reply is prose (see the Retried column)",
               "- **Scoring:** Session 5's rule, two changes. Pass = every expected term in the answer (underscores read "
               f"as spaces; a list means any one phrasing) and no decline; a decline question passes on a "
               f"`{retrieval.DECLINE_TOOL}` tool call "
@@ -131,13 +143,15 @@ def write_report(table, rows, cases, similarities, retriever, started, technique
               "Substring scoring cannot tell a confident answer from a hedged one; that needs the Week 4 judge.",
               ""]
     RUNS.mkdir(parents=True, exist_ok=True)
-    fd, report_path = mkstemp(prefix=f"{started:%Y-%m-%dT%H%M%S}-", suffix=".md", dir=RUNS)
+    report_path = RUNS / f"{stamp}.md"
+    # Written under a temporary name and moved into place, so an interrupted run leaves no
+    # half-written file that looks like a finished report. run_stamp() picked a name no run has.
+    partial = report_path.with_suffix(".md.partial")
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as report:
-            report.write("\n".join(lines))
-    except OSError:
-        Path(report_path).unlink(missing_ok=True)
-        raise
+        partial.write_text("\n".join(lines), encoding="utf-8")
+        os.replace(partial, report_path)
+    finally:
+        partial.unlink(missing_ok=True)
     print(f"Wrote retrieval report to {report_path}")
 
 
@@ -156,7 +170,7 @@ def main() -> None:
     if not cases or unknown:
         parser.error(f"no question matches --only {args.only!r}" if not cases else f"unknown techniques: {unknown}")
     retriever = retrieval.Retriever(corpus.load_corpus(), cache_dir=EMBED_CACHE)
-    started = datetime.now(UTC)
+    started = datetime.now()
 
     # Recorded per question so the decline threshold is set from data, not picked.
     # Skipped when no selected technique embeds: BM25 and DCI need only a chat model.
@@ -165,8 +179,10 @@ def main() -> None:
                     for case in cases}
 
     rows = []
-    # A debug run gets its own file, so it never overwrites the traces behind the report.
-    traces_path = TRACES.with_name(f"retrieval_traces_{args.only}.jsonl") if args.only else TRACES
+    # A debug run gets its own file, so it never overwrites the traces behind a report.
+    # A full run's traces carry the report's stamp, so every report keeps its traces.
+    stamp = run_stamp(started)
+    traces_path = TRACES.with_name(f"retrieval_traces_{args.only if args.only else stamp}.jsonl")
     traces_path.parent.mkdir(parents=True, exist_ok=True)
     with traces_path.open("w", encoding="utf-8") as traces:
         for case in cases:
@@ -181,7 +197,7 @@ def main() -> None:
 
     table = summarise(rows, techniques)
     if not args.only:
-        write_report(table, rows, cases, similarities, retriever, started, techniques)
+        write_report(table, rows, cases, similarities, retriever, started, techniques, stamp)
     for row in table:
         print(row)
     print("embedding tokens (measured):", retriever.embed_tokens)
